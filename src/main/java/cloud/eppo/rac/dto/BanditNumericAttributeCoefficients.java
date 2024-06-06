@@ -1,6 +1,10 @@
 package cloud.eppo.rac.dto;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class BanditNumericAttributeCoefficients implements AttributeCoefficients {
+  private final Logger logger = LoggerFactory.getLogger(BanditNumericAttributeCoefficients.class);
   private final String attributeKey;
   private final Double coefficient;
   private final Double missingValueCoefficient;
@@ -18,7 +22,7 @@ public class BanditNumericAttributeCoefficients implements AttributeCoefficients
       return missingValueCoefficient;
     }
     if (!attributeValue.isNumeric()) {
-      log.warn("Unexpected categorical attribute value for attribute " + attributeKey);
+      logger.warn("Unexpected categorical attribute value for attribute {}", attributeKey);
     }
     return coefficient * attributeValue.doubleValue();
   }

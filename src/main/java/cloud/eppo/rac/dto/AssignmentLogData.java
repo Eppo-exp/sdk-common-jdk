@@ -4,13 +4,13 @@ import java.util.Date;
 
 /** Assignment Log Data Class */
 public class AssignmentLogData {
-  public String experiment;
-  public String featureFlag;
-  public String allocation;
-  public String variation;
-  public Date timestamp;
-  public String subject;
-  public EppoAttributes subjectAttributes;
+  private final String experiment;
+  private final String featureFlag;
+  private final String allocation;
+  private final String variation;
+  private final Date timestamp;
+  private final String subject;
+  private final EppoAttributes subjectAttributes;
 
   public AssignmentLogData(
       String experiment,
@@ -26,5 +26,33 @@ public class AssignmentLogData {
     this.timestamp = new Date();
     this.subject = subject;
     this.subjectAttributes = subjectAttributes;
+  }
+
+  public String getExperiment() {
+    return experiment;
+  }
+
+  public String getFeatureFlag() {
+    return featureFlag;
+  }
+
+  public String getAllocation() {
+    return allocation;
+  }
+
+  public String getVariation() {
+    return variation;
+  }
+
+  public Date getTimestamp() {
+    return timestamp;
+  }
+
+  public String getSubject() {
+    return subject;
+  }
+
+  public EppoAttributes getSubjectAttributes() {
+    return subjectAttributes;
   }
 }

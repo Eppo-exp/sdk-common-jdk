@@ -1,6 +1,6 @@
-package cloud.eppo.android.dto.adapters;
+package cloud.eppo.ufc.dto.adapters;
 
-import static cloud.eppo.android.util.Utils.getISODate;
+import static cloud.eppo.Utils.getISODate;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;

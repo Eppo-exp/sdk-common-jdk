@@ -1,4 +1,4 @@
-package cloud.eppo.rac;
+package cloud.eppo.rac.deserializer;
 
 import cloud.eppo.rac.dto.*;
 import com.fasterxml.jackson.core.JsonParser;
@@ -140,10 +140,8 @@ public class BanditsDeserializer extends StdDeserializer<Map<String, BanditParam
                   });
 
               BanditCategoricalAttributeCoefficients coefficients =
-                  new BanditCategoricalAttributeCoefficients();
-              coefficients.setAttributeKey(attributeKey);
-              coefficients.setValueCoefficients(valueCoefficients);
-              coefficients.setMissingValueCoefficient(missingValueCoefficient);
+                  new BanditCategoricalAttributeCoefficients(
+                      attributeKey, missingValueCoefficient, valueCoefficients);
               categoricalAttributeCoefficients.put(attributeKey, coefficients);
             });
 

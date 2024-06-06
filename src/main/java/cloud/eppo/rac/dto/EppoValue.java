@@ -1,6 +1,6 @@
 package cloud.eppo.rac.dto;
 
-import com.eppo.sdk.deserializer.EppoValueDeserializer;
+import cloud.eppo.rac.deserializer.EppoValueDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.Collections;

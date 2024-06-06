@@ -1,6 +1,5 @@
 package cloud.eppo.ufc.dto;
 
-import androidx.annotation.NonNull;
 import java.util.List;
 
 public class EppoValue {
@@ -90,7 +89,7 @@ public class EppoValue {
     return type == EppoValueType.ARRAY_OF_STRING;
   }
 
-  @NonNull @Override
+  @Override
   public String toString() {
     switch (this.type) {
       case BOOLEAN:

@@ -1,7 +1,7 @@
-package cloud.eppo.rac;
+package cloud.eppo.rac.deserializer;
 
-import com.eppo.sdk.dto.EppoValue;
-import com.eppo.sdk.exception.UnsupportedEppoValue;
+import cloud.eppo.rac.dto.EppoValue;
+import cloud.eppo.rac.exception.UnsupportedEppoValue;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;

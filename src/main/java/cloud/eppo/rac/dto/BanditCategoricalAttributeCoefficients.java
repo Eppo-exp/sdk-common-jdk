@@ -1,8 +1,12 @@
 package cloud.eppo.rac.dto;
 
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BanditCategoricalAttributeCoefficients implements AttributeCoefficients {
+  private final Logger logger =
+      LoggerFactory.getLogger(BanditCategoricalAttributeCoefficients.class);
   private final String attributeKey;
   private final Double missingValueCoefficient;
   private final Map<String, Double> valueCoefficients;
@@ -19,7 +23,7 @@ public class BanditCategoricalAttributeCoefficients implements AttributeCoeffici
       return missingValueCoefficient;
     }
     if (attributeValue.isNumeric()) {
-      log.warn("Unexpected numeric attribute value for attribute " + attributeKey);
+      logger.warn("Unexpected numeric attribute value for attribute {}", attributeKey);
       return missingValueCoefficient;
     }
 

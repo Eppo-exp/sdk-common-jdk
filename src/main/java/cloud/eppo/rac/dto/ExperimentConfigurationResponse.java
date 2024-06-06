@@ -1,10 +1,16 @@
 package cloud.eppo.rac.dto;
 
 import java.util.Map;
-import lombok.Data;
 
 /** Experiment Configuration Response Class */
-@Data
 public class ExperimentConfigurationResponse {
-  private Map<String, ExperimentConfiguration> flags;
+  private final Map<String, ExperimentConfiguration> flags;
+
+  public ExperimentConfigurationResponse(Map<String, ExperimentConfiguration> flags) {
+    this.flags = flags;
+  }
+
+  public Map<String, ExperimentConfiguration> getFlags() {
+    return flags;
+  }
 }

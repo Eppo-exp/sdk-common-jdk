@@ -1,35 +1,14 @@
-package cloud.eppo.android.dto.adapters;
+package cloud.eppo.ufc.dto.adapters;
 
-import static cloud.eppo.android.util.Utils.logTag;
-import static cloud.eppo.android.util.Utils.parseUtcISODateElement;
+import static cloud.eppo.Utils.parseUtcISODateElement;
 
-import android.util.Log;
-import cloud.eppo.android.dto.Allocation;
-import cloud.eppo.android.dto.EppoValue;
-import cloud.eppo.android.dto.FlagConfig;
-import cloud.eppo.android.dto.FlagConfigResponse;
-import cloud.eppo.android.dto.OperatorType;
-import cloud.eppo.android.dto.Range;
-import cloud.eppo.android.dto.Shard;
-import cloud.eppo.android.dto.Split;
-import cloud.eppo.android.dto.TargetingCondition;
-import cloud.eppo.android.dto.TargetingRule;
-import cloud.eppo.android.dto.Variation;
-import cloud.eppo.android.dto.VariationType;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import cloud.eppo.ufc.dto.*;
+import com.google.gson.*;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hand-rolled deserializer so that we don't rely on annotations and method names, which can be
@@ -37,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * JSON-deserialization-related classes and annotations.
  */
 public class FlagConfigResponseAdapter implements JsonDeserializer<FlagConfigResponse> {
-  private static final String TAG = logTag(FlagConfigResponseAdapter.class);
+  private static final Logger log = LoggerFactory.getLogger(FlagConfigResponseAdapter.class);
 
   private final EppoValueAdapter eppoValueDeserializer = new EppoValueAdapter();
 
@@ -50,14 +29,14 @@ public class FlagConfigResponseAdapter implements JsonDeserializer<FlagConfigRes
     configResponse.setFlags(flags); // Default to a response with an empty map of flags
 
     if (rootElement == null || !rootElement.isJsonObject()) {
-      Log.w(TAG, "no top-level JSON object");
+      log.warn("no top-level JSON object");
       return configResponse;
     }
 
     JsonObject rootObject = rootElement.getAsJsonObject();
     JsonElement flagsElement = rootObject.get("flags");
     if (flagsElement == null) {
-      Log.w(TAG, "no root-level flags property");
+      log.warn("no root-level flags property");
       return configResponse;
     }
 
@@ -134,19 +113,9 @@ public class FlagConfigResponseAdapter implements JsonDeserializer<FlagConfigRes
 
       Date startAt = parseUtcISODateElement(allocationObject.get("startAt"));
       Date endAt = parseUtcISODateElement(allocationObject.get("endAt"));
-
       List<Split> splits = deserializeSplits(allocationObject.get("splits"));
-
       boolean doLog = allocationObject.get("doLog").getAsBoolean();
-
-      Allocation allocation = new Allocation();
-      allocation.setKey(key);
-      allocation.setRules(rules);
-      allocation.setStartAt(startAt);
-      allocation.setEndAt(endAt);
-      allocation.setSplits(splits);
-      allocation.setDoLog(doLog);
-
+      Allocation allocation = new Allocation(key, rules, startAt, endAt, splits, doLog);
       allocations.add(allocation);
     }
 
@@ -170,7 +139,7 @@ public class FlagConfigResponseAdapter implements JsonDeserializer<FlagConfigRes
         String operatorKey = conditionObject.get("operator").getAsString();
         OperatorType operator = OperatorType.fromString(operatorKey);
         if (operator == null) {
-          Log.w(TAG, "Unknown operator \"" + operatorKey + "\"");
+          log.warn("Unknown operator \"" + operatorKey + "\"");
           continue;
         }
         EppoValue value =

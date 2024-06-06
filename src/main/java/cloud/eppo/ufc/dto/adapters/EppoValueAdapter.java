@@ -1,24 +1,15 @@
-package cloud.eppo.android.dto.adapters;
+package cloud.eppo.ufc.dto.adapters;
 
-import static cloud.eppo.android.util.Utils.logTag;
-
-import android.util.Log;
-import cloud.eppo.android.dto.EppoValue;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
+import cloud.eppo.ufc.dto.EppoValue;
+import com.google.gson.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EppoValueAdapter implements JsonDeserializer<EppoValue>, JsonSerializer<EppoValue> {
-  public static final String TAG = logTag(EppoValueAdapter.class);
+  private static final Logger log = LoggerFactory.getLogger(EppoValueAdapter.class);
 
   @Override
   public EppoValue deserialize(
@@ -35,8 +26,8 @@ public class EppoValueAdapter implements JsonDeserializer<EppoValue>, JsonSerial
         if (arrayElement.isJsonPrimitive() && arrayElement.getAsJsonPrimitive().isString()) {
           stringArray.add(arrayElement.getAsJsonPrimitive().getAsString());
         } else {
-          Log.w(
-              TAG, "only Strings are supported for array-valued values; received: " + arrayElement);
+          log.warn(
+              "only Strings are supported for array-valued values; received: {}", arrayElement);
         }
       }
       result = EppoValue.valueOf(stringArray);
@@ -51,7 +42,7 @@ public class EppoValueAdapter implements JsonDeserializer<EppoValue>, JsonSerial
       }
     } else {
       // If here, we don't know what to do; fail to null with a warning
-      Log.w(TAG, "Unexpected JSON for parsing a value: " + jsonElement);
+      log.warn("Unexpected JSON for parsing a value: {}", jsonElement);
       result = EppoValue.nullValue();
     }
 
