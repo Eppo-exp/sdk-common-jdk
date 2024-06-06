@@ -38,4 +38,8 @@ public class EppoClientConfig {
   public IAssignmentLogger getAssignmentLogger() {
     return assignmentLogger;
   }
+
+  public IBanditLogger getBanditLogger() {
+    return banditLogger;
+  }
 }

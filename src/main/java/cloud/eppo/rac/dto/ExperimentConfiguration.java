@@ -49,4 +49,8 @@ public class ExperimentConfiguration {
   public List<Rule> getRules() {
     return rules;
   }
+
+  public Map<String, Allocation> getAllocations() {
+    return allocations;
+  }
 }
