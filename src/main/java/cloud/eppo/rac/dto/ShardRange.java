@@ -3,7 +3,7 @@ package cloud.eppo.rac.dto;
 /** Shard Range Class */
 public class ShardRange {
   private final int start;
-  private final int end;
+  private int end;
 
   public ShardRange(int start, int end) {
     this.start = start;
@@ -21,5 +21,9 @@ public class ShardRange {
 
   public int getEnd() {
     return end;
+  }
+
+  public void setEnd(int end) {
+    this.end = end;
   }
 }

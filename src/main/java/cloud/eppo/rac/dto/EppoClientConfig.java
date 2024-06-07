@@ -1,11 +1,9 @@
 package cloud.eppo.rac.dto;
 
-import cloud.eppo.rac.Constants;
-
 /** Eppo Client Config class */
 public class EppoClientConfig {
   private final String apiKey;
-  private final String baseURL = Constants.DEFAULT_BASE_URL;
+  private final String baseUrl;
   private final IAssignmentLogger assignmentLogger;
   private final IBanditLogger banditLogger;
 
@@ -13,8 +11,9 @@ public class EppoClientConfig {
   private boolean isGracefulMode = true;
 
   public EppoClientConfig(
-      String apiKey, IAssignmentLogger assignmentLogger, IBanditLogger banditLogger) {
+      String apiKey, String baseUrl, IAssignmentLogger assignmentLogger, IBanditLogger banditLogger) {
     this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
   }
@@ -31,8 +30,8 @@ public class EppoClientConfig {
     return apiKey;
   }
 
-  public String getBaseURL() {
-    return baseURL;
+  public String getBaseUrl() {
+    return baseUrl;
   }
 
   public IAssignmentLogger getAssignmentLogger() {

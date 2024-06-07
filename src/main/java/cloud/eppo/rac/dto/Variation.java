@@ -3,7 +3,7 @@ package cloud.eppo.rac.dto;
 /** Experiment's Variation Class */
 public class Variation {
   private final String name;
-  private final EppoValue typedValue;
+  private EppoValue typedValue;
   private final ShardRange shardRange;
   private final AlgorithmType algorithmType;
 
@@ -21,6 +21,10 @@ public class Variation {
 
   public EppoValue getTypedValue() {
     return typedValue;
+  }
+
+  public void setTypedValue(EppoValue typedValue) {
+    this.typedValue = typedValue;
   }
 
   public ShardRange getShardRange() {
