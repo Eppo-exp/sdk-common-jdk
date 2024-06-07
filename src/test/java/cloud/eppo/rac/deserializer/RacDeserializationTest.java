@@ -1,5 +1,7 @@
 package cloud.eppo.rac.deserializer;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import cloud.eppo.rac.dto.*;
 import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,14 +9,11 @@ import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-
-import static com.google.common.truth.Truth.assertThat;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
 
 public class RacDeserializationTest {
   private final ObjectMapper objectMapper =
@@ -38,7 +37,8 @@ public class RacDeserializationTest {
     assertThat(experiment.getRules().get(0).getAllocationKey())
         .isEqualTo("allocation-experiment-1");
     assertThat(allocation.getVariations().get(0).getName()).isEqualTo("control");
-    assertThat(allocation.getVariations().get(0).getAlgorithmType()).isEqualTo(AlgorithmType.OVERRIDE);
+    assertThat(allocation.getVariations().get(0).getAlgorithmType())
+        .isEqualTo(AlgorithmType.OVERRIDE);
     assertThat(allocation.getVariations().get(0).getShardRange().getStart()).isEqualTo(0);
     assertThat(allocation.getVariations().get(0).getShardRange().getEnd()).isEqualTo(3333);
     assertThat(allocation.getVariations().get(1).getName()).isEqualTo("red");
