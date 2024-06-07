@@ -12,7 +12,7 @@ public enum OperatorType {
 
   public final String label;
 
-  private OperatorType(String label) {
+  OperatorType(String label) {
     this.label = label;
   }
 }
