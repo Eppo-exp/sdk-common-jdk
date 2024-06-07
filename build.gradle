@@ -69,8 +69,8 @@ publishing {
         }
       }
       pom {
-        name = 'Eppo JVM SDK'
-        description = 'Eppo SDK for JVM'
+        name = 'Eppo JVM SDK shared library'
+        description = 'Eppo SDK for JVM shared library'
         url = 'https://github.com/Eppo-exp/sdk-common-jvm'
         licenses {
           license {
@@ -94,21 +94,18 @@ publishing {
   }
   repositories {
     maven {
-      // change URLs to point to your repos, e.g. http://my.org/repo
-      def releasesRepoUrl = layout.buildDirectory.dir('repos/releases')
-      def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+      def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+      def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
       url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
       credentials {
-        username = System.getenv("MAVEN_USERNAME") ? "$MAVEN_USERNAME" : ""
-        password = System.getenv("MAVEN_PASSWORD") ? "$MAVEN_PASSWORD" : ""
+        username = ossrhUsername
+        password = ossrhPassword
       }
     }
   }
 }
 
 signing {
-  // only sign release versions
-  required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
   sign publishing.publications.mavenJava
 }
 
