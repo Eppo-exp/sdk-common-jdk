@@ -11,7 +11,10 @@ public class EppoClientConfig {
   private boolean isGracefulMode = true;
 
   public EppoClientConfig(
-      String apiKey, String baseUrl, IAssignmentLogger assignmentLogger, IBanditLogger banditLogger) {
+      String apiKey,
+      String baseUrl,
+      IAssignmentLogger assignmentLogger,
+      IBanditLogger banditLogger) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.assignmentLogger = assignmentLogger;
