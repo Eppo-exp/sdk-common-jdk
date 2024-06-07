@@ -1,12 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.model.ShardRange;
 import java.util.Set;
 
 public class Shard {
-
   private String salt;
-
-  private Set<Range> ranges;
+  private Set<ShardRange> ranges;
 
   public String getSalt() {
     return salt;
@@ -16,11 +15,11 @@ public class Shard {
     this.salt = salt;
   }
 
-  public Set<Range> getRanges() {
+  public Set<ShardRange> getRanges() {
     return ranges;
   }
 
-  public void setRanges(Set<Range> ranges) {
+  public void setRanges(Set<ShardRange> ranges) {
     this.ranges = ranges;
   }
 }

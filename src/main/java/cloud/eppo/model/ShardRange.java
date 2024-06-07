@@ -1,11 +1,15 @@
-package cloud.eppo.rac.dto;
+package cloud.eppo.model;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /** Shard Range Class */
 public class ShardRange {
   private final int start;
   private int end;
 
-  public ShardRange(int start, int end) {
+  @JsonCreator
+  public ShardRange(@JsonProperty("start") int start, @JsonProperty("end") int end) {
     this.start = start;
     this.end = end;
   }

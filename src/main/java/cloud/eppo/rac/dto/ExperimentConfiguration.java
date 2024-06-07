@@ -1,5 +1,7 @@
 package cloud.eppo.rac.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +15,13 @@ public class ExperimentConfiguration {
   private final Map<String, Allocation> allocations;
   private final List<Rule> rules;
 
+  @JsonCreator
   public ExperimentConfiguration(
-      String name,
-      boolean enabled,
-      int subjectShards,
-      Map<String, Allocation> allocations,
-      List<Rule> rules) {
+      @JsonProperty("name") String name,
+      @JsonProperty("enabled") boolean enabled,
+      @JsonProperty("subjectShards") int subjectShards,
+      @JsonProperty("allocations") Map<String, Allocation> allocations,
+      @JsonProperty("rules") List<Rule> rules) {
     this.name = name;
     this.enabled = enabled;
     this.subjectShards = subjectShards;

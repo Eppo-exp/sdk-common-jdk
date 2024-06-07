@@ -1,12 +1,19 @@
 package cloud.eppo.rac.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /** Rule's Condition Class */
 public class Condition {
   private final OperatorType operator;
   private final String attribute;
   private final EppoValue value;
 
-  public Condition(OperatorType operator, String attribute, EppoValue value) {
+  @JsonCreator
+  public Condition(
+      @JsonProperty("operator") OperatorType operator,
+      @JsonProperty("attribute") String attribute,
+      @JsonProperty("value") EppoValue value) {
     this.operator = operator;
     this.attribute = attribute;
     this.value = value;

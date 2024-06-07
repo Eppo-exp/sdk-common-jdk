@@ -2,6 +2,7 @@ package cloud.eppo.ufc.dto.adapters;
 
 import static cloud.eppo.Utils.parseUtcISODateElement;
 
+import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
 import com.google.gson.*;
 import java.lang.reflect.Type;
@@ -199,15 +200,13 @@ public class FlagConfigResponseAdapter implements JsonDeserializer<FlagConfigRes
     for (JsonElement shardElement : jsonElement.getAsJsonArray()) {
       JsonObject shardObject = shardElement.getAsJsonObject();
       String salt = shardObject.get("salt").getAsString();
-      Set<Range> ranges = new HashSet<>();
+      Set<ShardRange> ranges = new HashSet<>();
       for (JsonElement rangeElement : shardObject.get("ranges").getAsJsonArray()) {
         JsonObject rangeObject = rangeElement.getAsJsonObject();
         int start = rangeObject.get("start").getAsInt();
         int end = rangeObject.get("end").getAsInt();
 
-        Range range = new Range();
-        range.setStart(start);
-        range.setEnd(end);
+        ShardRange range = new ShardRange(start, end);
         ranges.add(range);
       }
       Shard shard = new Shard();

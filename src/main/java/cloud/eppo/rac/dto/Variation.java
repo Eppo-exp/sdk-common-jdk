@@ -1,5 +1,9 @@
 package cloud.eppo.rac.dto;
 
+import cloud.eppo.model.ShardRange;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /** Experiment's Variation Class */
 public class Variation {
   private final String name;
@@ -7,8 +11,12 @@ public class Variation {
   private final ShardRange shardRange;
   private final AlgorithmType algorithmType;
 
+  @JsonCreator
   public Variation(
-      String name, EppoValue typedValue, ShardRange shardRange, AlgorithmType algorithmType) {
+      @JsonProperty("name") String name,
+      @JsonProperty("typedValue") EppoValue typedValue,
+      @JsonProperty("shardRange") ShardRange shardRange,
+      @JsonProperty("algorithmType") AlgorithmType algorithmType) {
     this.name = name;
     this.typedValue = typedValue;
     this.shardRange = shardRange;
