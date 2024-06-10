@@ -10,7 +10,7 @@ or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 
 ```groovy
 dependencies {
-  implementation 'com.eppo:eppo-jvm-common-sdk:1.0.0'
+  implementation 'cloud.eppo:sdk-common-jvm:1.0.0'
 }
 ```
 
@@ -29,10 +29,10 @@ represent the most recent changes on master and may contain bugs.
 
 ```groovy
 repositories {
-  maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+  maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots" }
 }
 
 dependencies {
-  implementation 'com.eppo:eppo-jvm-common-sdk:1.0.0-SNAPSHOT'
+  implementation 'cloud.eppo:sdk-common-jvm:1.0.0-SNAPSHOT'
 }
 ```
