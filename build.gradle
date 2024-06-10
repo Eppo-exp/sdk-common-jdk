@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '1.0.0-SNAPSHOT'
+version = '2.0.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 dependencies {
@@ -107,7 +107,9 @@ publishing {
 
 signing {
   sign publishing.publications.mavenJava
-  useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+  if (System.env['CI']) {
+    useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+  }
 }
 
 

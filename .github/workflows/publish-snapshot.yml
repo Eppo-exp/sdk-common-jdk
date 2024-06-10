@@ -7,6 +7,7 @@ on:
 env:
   ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
   ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
+  CI: true
 
 jobs:
   publish-snapshot:
@@ -25,7 +26,7 @@ jobs:
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Publish Snapshot artifact
-        run: ./gradlew publish --no-daemon
+        run: ./gradlew check publish --no-daemon
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

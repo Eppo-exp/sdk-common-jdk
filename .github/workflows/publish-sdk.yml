@@ -7,6 +7,7 @@ on:
 env:
   ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
   ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
+  CI: true
 
 jobs:
   publish:
@@ -22,9 +23,6 @@ jobs:
           server-id: ossrh
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Download test data
-        run: make test-data
 
       - name: Publish to Maven Central
         run: ./gradlew publish --no-daemon
