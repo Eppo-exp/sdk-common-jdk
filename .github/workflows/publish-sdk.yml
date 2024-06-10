@@ -1,4 +1,4 @@
-name: Publish sdk to the Maven Central Repository
+name: Publish release SDK to the Maven Central Repository
 on:
   release:
     types: [published]
