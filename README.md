@@ -18,18 +18,22 @@ dependencies {
 
 For publishing a release locally, follow the steps below.
 
-You haven't yet, generate a user token on `s01.oss.sonatype.org` and add it to your `~/.gradle/gradle.properties` file.
-Also make sure you have a [configured GPG key](https://central.sonatype.org/publish/requirements/gpg/) for signing the artifact.
+### Prerequisites
 
-1. Make sure you have the following vars in your `~/.gradle/gradle.properties` file:
-   1. `ossrhUsername` - User token username for Sonatype
-   2. `ossrhPassword` - User token password for Sonatype
-   3. `signing.keyId` - GPG key ID
-   4. `signing.password` - GPG key password
-   5. `signing.secretKeyRingFile` - Path to GPG key file
-2. Bump the project version in `build.gradle`
-3. Run `./gradlew publish`
-4. Follow the steps in [this page](https://central.sonatype.org/publish/release/#credentials) to promote your release
+1. [Generate a user token](https://central.sonatype.org/publish/generate-token/) on `s01.oss.sonatype.org`;
+2. [Configure a GPG key](https://central.sonatype.org/publish/requirements/gpg/) for signing the artifact. Don't forget to upload it to the key server;
+3. Make sure you have the following vars in your `~/.gradle/gradle.properties` file:
+   1. `ossrhUsername` - User token username for Sonatype generated in step 1
+   2. `ossrhPassword` - User token password for Sonatype generated in step 1
+   3. `signing.keyId` - GPG key ID generated in step 2
+   4. `signing.password` - GPG key password generated in step 2
+   5. `signing.secretKeyRingFile` - Path to GPG key file generated in step 2
+
+Once you have the prerequisites, follow the steps below to release a new version:
+
+1. Bump the project version in `build.gradle`
+2. Run `./gradlew publish`
+3. Follow the steps in [this page](https://central.sonatype.org/publish/release/#credentials) to promote your release
 
 ## Using Snapshots
 
