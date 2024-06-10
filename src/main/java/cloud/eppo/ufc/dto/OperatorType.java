@@ -3,6 +3,7 @@ package cloud.eppo.ufc.dto;
 import static cloud.eppo.Utils.getMD5Hex;
 
 public enum OperatorType {
+  NOT_MATCHES("NOT_MATCHES"),
   MATCHES("MATCHES"),
   GREATER_THAN_OR_EQUAL_TO("GTE"),
   GREATER_THAN("GT"),
