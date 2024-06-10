@@ -1,4 +1,4 @@
-name: Publish snapshot SDK to the oss.sonatype.org
+name: Publish SDK Snapshot artifact
 
 on:
   pull_request:
