@@ -19,7 +19,7 @@ dependencies {
 For publishing a release locally, follow the steps below.
 
 You haven't yet, generate a user token on `s01.oss.sonatype.org` and add it to your `~/.gradle/gradle.properties` file.
-Also make sure you have a configured GPG key for signing the artifact.
+Also make sure you have a [configured GPG key](https://central.sonatype.org/publish/requirements/gpg/) for signing the artifact.
 
 1. Make sure you have the following vars in your `~/.gradle/gradle.properties` file:
    1. `ossrhUsername` - User token username for Sonatype
