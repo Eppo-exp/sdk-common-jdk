@@ -22,11 +22,11 @@ You haven't yet, generate a user token on `s01.oss.sonatype.org` and add it to y
 Also make sure you have a configured GPG key for signing the artifact.
 
 1. Make sure you have the following vars in your `~/.gradle/gradle.properties` file:
-    1.1. `ossrhUsername` - User token username for Sonatype
-    1.2. `ossrhPassword` - User token password for Sonatype
-    1.3. `signing.keyId` - GPG key ID
-    1.4. `signing.password` - GPG key password
-    1.4. `signing.secretKeyRingFile` - Path to GPG key file
+   1. `ossrhUsername` - User token username for Sonatype
+   2. `ossrhPassword` - User token password for Sonatype
+   3. `signing.keyId` - GPG key ID
+   4. `signing.password` - GPG key password
+   5. `signing.secretKeyRingFile` - Path to GPG key file
 2. Bump the project version in `build.gradle`
 3. Run `./gradlew publish`
 4. Follow the steps in [this page](https://central.sonatype.org/publish/release/#credentials) to promote your release
