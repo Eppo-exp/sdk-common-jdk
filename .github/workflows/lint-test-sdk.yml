@@ -5,6 +5,10 @@ on:
     paths:
       - '**/*'
 
+env:
+  ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
+  ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
+
 jobs:
   lint-test-sdk:
     runs-on: ubuntu-latest
@@ -21,9 +25,8 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'adopt'
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Run tests
-        run: ./gradlew check
-        env:
-          ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
-          ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
+        run: ./gradlew check --no-daemon
