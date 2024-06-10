@@ -107,7 +107,9 @@ publishing {
 
 signing {
   sign publishing.publications.mavenJava
-  useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+  if (project.hasProperty('CI')) {
+    useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+  }
 }
 
 
