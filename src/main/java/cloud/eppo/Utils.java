@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -33,11 +33,11 @@ public final class Utils {
     return hashText.toString();
   }
 
-  public static Date parseUtcISODateElement(JsonElement isoDateStringElement) {
-    if (isoDateStringElement == null || isoDateStringElement.isJsonNull()) {
+  public static Date parseUtcISODateElement(JsonNode isoDateStringElement) {
+    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
       return null;
     }
-    String isoDateString = isoDateStringElement.getAsString();
+    String isoDateString = isoDateStringElement.asText();
     Date result = null;
     try {
       result = isoUtcDateFormat.parse(isoDateString);

@@ -1,24 +1,19 @@
 package cloud.eppo.ufc.dto;
 
 public class Variation {
+  private final String key;
+  private final EppoValue value;
 
-  private String key;
-
-  private EppoValue value;
+  public Variation(String key, EppoValue value) {
+    this.key = key;
+    this.value = value;
+  }
 
   public String getKey() {
     return this.key;
   }
 
-  public void setKey(String key) {
-    this.key = key;
-  }
-
   public EppoValue getValue() {
     return value;
-  }
-
-  public void setValue(EppoValue value) {
-    this.value = value;
   }
 }

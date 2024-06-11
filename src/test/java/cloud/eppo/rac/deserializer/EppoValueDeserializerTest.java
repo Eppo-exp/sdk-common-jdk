@@ -1,13 +1,14 @@
 package cloud.eppo.rac.deserializer;
 
 import cloud.eppo.rac.dto.EppoValue;
+import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class EppoValueDeserializerTest {
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());
 
   @DisplayName("Test deserializing double")
   @Test
