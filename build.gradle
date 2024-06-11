@@ -22,7 +22,7 @@ dependencies {
   testImplementation platform('org.junit:junit-bom:5.10.2')
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.skyscreamer:jsonassert:1.5.1'
-  testImplementation 'commons-io:commons-io:2.11.0'
+  testImplementation 'commons-io:commons-io:2.16.1'
   testImplementation "com.google.truth:truth:1.4.2"
 }
 
