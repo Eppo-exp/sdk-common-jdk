@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Utils {
-  private static final SimpleDateFormat isoUtcDateFormat = buildUtcIsoDateFormat();
+  private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   public static String getMD5Hex(String input) {
@@ -33,14 +33,14 @@ public final class Utils {
     return hashText.toString();
   }
 
-  public static Date parseUtcISODateElement(JsonElement isoDateStringElement) {
-    if (isoDateStringElement == null || isoDateStringElement.isJsonNull()) {
+  public static Date parseUtcISODateElement(JsonNode isoDateStringElement) {
+    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
       return null;
     }
-    String isoDateString = isoDateStringElement.getAsString();
+    String isoDateString = isoDateStringElement.asText();
     Date result = null;
     try {
-      result = isoUtcDateFormat.parse(isoDateString);
+      result = UTC_ISO_DATE_FORMAT.parse(isoDateString);
     } catch (ParseException e) {
       // We expect to fail parsing if the date is base 64 encoded
       // Thus we'll leave the result null for now and try again with the decoded value
@@ -50,7 +50,7 @@ public final class Utils {
       // Date may be encoded
       String decodedIsoDateString = base64Decode(isoDateString);
       try {
-        result = isoUtcDateFormat.parse(decodedIsoDateString);
+        result = UTC_ISO_DATE_FORMAT.parse(decodedIsoDateString);
       } catch (ParseException e) {
         log.warn("Date \"{}\" not in ISO date format", isoDateString);
       }
@@ -60,7 +60,7 @@ public final class Utils {
   }
 
   public static String getISODate(Date date) {
-    return isoUtcDateFormat.format(date);
+    return UTC_ISO_DATE_FORMAT.format(date);
   }
 
   public static String base64Decode(String input) {

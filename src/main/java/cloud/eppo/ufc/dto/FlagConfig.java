@@ -4,63 +4,49 @@ import java.util.List;
 import java.util.Map;
 
 public class FlagConfig {
-  private String key;
+  private final String key;
+  private final boolean enabled;
+  private final int totalShards;
+  private final VariationType variationType;
+  private final Map<String, Variation> variations;
+  private final List<Allocation> allocations;
 
-  private boolean enabled;
-
-  private int totalShards;
-
-  private VariationType variationType;
-
-  private Map<String, Variation> variations;
-
-  private List<Allocation> allocations;
+  public FlagConfig(
+      String key,
+      boolean enabled,
+      int totalShards,
+      VariationType variationType,
+      Map<String, Variation> variations,
+      List<Allocation> allocations) {
+    this.key = key;
+    this.enabled = enabled;
+    this.totalShards = totalShards;
+    this.variationType = variationType;
+    this.variations = variations;
+    this.allocations = allocations;
+  }
 
   public String getKey() {
     return this.key;
-  }
-
-  public void setKey(String key) {
-    this.key = key;
   }
 
   public int getTotalShards() {
     return totalShards;
   }
 
-  public void setTotalShards(int totalShards) {
-    this.totalShards = totalShards;
-  }
-
   public boolean isEnabled() {
     return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
   }
 
   public VariationType getVariationType() {
     return variationType;
   }
 
-  public void setVariationType(VariationType variationType) {
-    this.variationType = variationType;
-  }
-
   public Map<String, Variation> getVariations() {
     return variations;
   }
 
-  public void setVariations(Map<String, Variation> variations) {
-    this.variations = variations;
-  }
-
   public List<Allocation> getAllocations() {
     return allocations;
-  }
-
-  public void setAllocations(List<Allocation> allocations) {
-    this.allocations = allocations;
   }
 }

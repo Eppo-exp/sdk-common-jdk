@@ -3,12 +3,9 @@ package cloud.eppo.rac.deserializer;
 import static com.google.common.truth.Truth.assertThat;
 
 import cloud.eppo.rac.dto.*;
-import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -17,10 +14,7 @@ import org.junit.jupiter.api.Test;
 
 public class RacDeserializationTest {
   private final ObjectMapper objectMapper =
-      new ObjectMapper(
-              new JsonFactoryBuilder().enable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION).build())
-          .registerModule(new Jdk8Module())
-          .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
   @Test
   public void testDeserialization() throws JsonProcessingException {

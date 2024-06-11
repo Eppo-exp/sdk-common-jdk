@@ -1,33 +1,25 @@
 package cloud.eppo.ufc.dto;
 
 public class TargetingCondition {
-  private OperatorType operator;
+  private final OperatorType operator;
+  private final String attribute;
+  private final EppoValue value;
 
-  private String attribute;
-
-  private EppoValue value;
+  public TargetingCondition(OperatorType operator, String attribute, EppoValue value) {
+    this.operator = operator;
+    this.attribute = attribute;
+    this.value = value;
+  }
 
   public OperatorType getOperator() {
     return operator;
-  }
-
-  public void setOperator(OperatorType operatorType) {
-    this.operator = operatorType;
   }
 
   public String getAttribute() {
     return attribute;
   }
 
-  public void setAttribute(String attribute) {
-    this.attribute = attribute;
-  }
-
   public EppoValue getValue() {
     return value;
-  }
-
-  public void setValue(EppoValue value) {
-    this.value = value;
   }
 }
