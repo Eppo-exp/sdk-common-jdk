@@ -1,17 +1,16 @@
 package cloud.eppo.rac.deserializer;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import cloud.eppo.rac.dto.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-
-import static com.google.common.truth.Truth.assertThat;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
 
 public class RacDeserializationTest {
   private final ObjectMapper objectMapper =
