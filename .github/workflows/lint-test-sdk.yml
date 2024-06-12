@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - '**/*'
+  push:
+    branches: [main]
 
 env:
   ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
