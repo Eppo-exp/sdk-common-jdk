@@ -14,7 +14,7 @@ dependencies {
   // For UFC DTOs
   implementation 'commons-codec:commons-codec:1.17.0'
   implementation 'org.slf4j:slf4j-api:2.0.13'
-  testImplementation platform('org.junit:junit-bom:5.10.2')
+  testImplementation platform('org.junit:junit-bom:5.10.3')
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.skyscreamer:jsonassert:1.5.1'
   testImplementation 'commons-io:commons-io:2.11.0'
