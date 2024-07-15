@@ -18,7 +18,7 @@ dependencies {
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
   testImplementation 'commons-io:commons-io:2.11.0'
-  testImplementation "com.google.truth:truth:1.4.3"
+  testImplementation "com.google.truth:truth:1.4.4"
 }
 
 test {
