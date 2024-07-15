@@ -2,6 +2,7 @@ package cloud.eppo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -61,6 +62,13 @@ public final class Utils {
 
   public static String getISODate(Date date) {
     return UTC_ISO_DATE_FORMAT.format(date);
+  }
+
+  public static String base64Encode(String input) {
+    if (input == null) {
+      return null;
+    }
+    return Base64.encodeBase64String(input.getBytes(StandardCharsets.UTF_8));
   }
 
   public static String base64Decode(String input) {
