@@ -6,10 +6,9 @@ import cloud.eppo.ufc.dto.FlagConfigResponse;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ConfigurationStore {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationStore.class);

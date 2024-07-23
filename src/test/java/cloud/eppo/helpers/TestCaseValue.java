@@ -1,9 +1,8 @@
 package cloud.eppo.helpers;
 
 import cloud.eppo.ufc.dto.EppoValue;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.List;
 
 public class TestCaseValue extends EppoValue {
   private JsonNode jsonValue;

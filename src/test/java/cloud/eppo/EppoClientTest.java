@@ -35,7 +35,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Stream;
-
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,27 +56,24 @@ public class EppoClientTest {
 
   private AssignmentLogger mockAssignmentLogger;
 
-  //TODO: async init client tests
+  // TODO: async init client tests
 
   private void initClient() {
     initClient(TEST_HOST, false, false, DUMMY_API_KEY);
   }
 
   private void initClient(
-      String host,
-      boolean isGracefulMode,
-      boolean isConfigObfuscated,
-      String apiKey) {
+      String host, boolean isGracefulMode, boolean isConfigObfuscated, String apiKey) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     new EppoClient.Builder()
-      .apiKey(apiKey)
-      .sdkName(isConfigObfuscated ? "android" : "java")
-      .sdkVersion("3.0.0")
-      .isGracefulMode(isGracefulMode)
-      .host(host)
-      .assignmentLogger(mockAssignmentLogger)
-      .buildAndInit();
+        .apiKey(apiKey)
+        .sdkName(isConfigObfuscated ? "android" : "java")
+        .sdkVersion("3.0.0")
+        .isGracefulMode(isGracefulMode)
+        .host(host)
+        .assignmentLogger(mockAssignmentLogger)
+        .buildAndInit();
 
     log.info("Test client initialized");
   }
@@ -143,95 +139,91 @@ public class EppoClientTest {
       switch (testCase.getVariationType()) {
         case BOOLEAN:
           boolean boolAssignment =
-            eppoClient.getBooleanAssignment(
-              flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
+              eppoClient.getBooleanAssignment(
+                  flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
           assertAssignment(flagKey, subjectAssignment, boolAssignment);
           break;
         case INTEGER:
           int intAssignment =
-            eppoClient.getIntegerAssignment(
-              flagKey,
-              subjectKey,
-              subjectAttributes,
-              Double.valueOf(defaultValue.doubleValue()).intValue());
+              eppoClient.getIntegerAssignment(
+                  flagKey,
+                  subjectKey,
+                  subjectAttributes,
+                  Double.valueOf(defaultValue.doubleValue()).intValue());
           assertAssignment(flagKey, subjectAssignment, intAssignment);
           break;
         case NUMERIC:
           double doubleAssignment =
-            eppoClient.getDoubleAssignment(
-              flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
+              eppoClient.getDoubleAssignment(
+                  flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
           assertAssignment(flagKey, subjectAssignment, doubleAssignment);
           break;
         case STRING:
           String stringAssignment =
-            eppoClient.getStringAssignment(
-              flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
+              eppoClient.getStringAssignment(
+                  flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
           assertAssignment(flagKey, subjectAssignment, stringAssignment);
           break;
         case JSON:
           JsonNode jsonAssignment =
-            eppoClient.getJSONAssignment(
-              flagKey,
-              subjectKey,
-              subjectAttributes,
-              testCase.getDefaultValue().jsonValue()
-            );
+              eppoClient.getJSONAssignment(
+                  flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
           assertAssignment(flagKey, subjectAssignment, jsonAssignment);
           break;
         default:
           throw new UnsupportedOperationException(
-            "Unexpected variation type "
-              + testCase.getVariationType()
-              + " for "
-              + flagKey
-              + " test case");
+              "Unexpected variation type "
+                  + testCase.getVariationType()
+                  + " for "
+                  + flagKey
+                  + " test case");
       }
     }
   }
 
   /** Helper method for asserting a subject assignment with a useful failure message. */
   private <T> void assertAssignment(
-    String flagKey, SubjectAssignment expectedSubjectAssignment, T assignment) {
+      String flagKey, SubjectAssignment expectedSubjectAssignment, T assignment) {
 
     if (assignment == null) {
       fail(
-        "Unexpected null "
-          + flagKey
-          + " assignment for subject "
-          + expectedSubjectAssignment.getSubjectKey());
+          "Unexpected null "
+              + flagKey
+              + " assignment for subject "
+              + expectedSubjectAssignment.getSubjectKey());
     }
 
     String failureMessage =
-      "Incorrect "
-        + flagKey
-        + " assignment for subject "
-        + expectedSubjectAssignment.getSubjectKey();
+        "Incorrect "
+            + flagKey
+            + " assignment for subject "
+            + expectedSubjectAssignment.getSubjectKey();
 
     if (assignment instanceof Boolean) {
       assertEquals(
-        failureMessage, expectedSubjectAssignment.getAssignment().booleanValue(), assignment);
+          failureMessage, expectedSubjectAssignment.getAssignment().booleanValue(), assignment);
     } else if (assignment instanceof Integer) {
       assertEquals(
-        failureMessage,
-        Double.valueOf(expectedSubjectAssignment.getAssignment().doubleValue()).intValue(),
-        assignment);
+          failureMessage,
+          Double.valueOf(expectedSubjectAssignment.getAssignment().doubleValue()).intValue(),
+          assignment);
     } else if (assignment instanceof Double) {
       assertEquals(
-        failureMessage,
-        expectedSubjectAssignment.getAssignment().doubleValue(),
-        (Double) assignment,
-        0.000001);
+          failureMessage,
+          expectedSubjectAssignment.getAssignment().doubleValue(),
+          (Double) assignment,
+          0.000001);
     } else if (assignment instanceof String) {
       assertEquals(
-        failureMessage, expectedSubjectAssignment.getAssignment().stringValue(), assignment);
+          failureMessage, expectedSubjectAssignment.getAssignment().stringValue(), assignment);
     } else if (assignment instanceof JsonNode) {
       assertEquals(
-        failureMessage,
-        expectedSubjectAssignment.getAssignment().jsonValue().toString(),
-        assignment.toString());
+          failureMessage,
+          expectedSubjectAssignment.getAssignment().jsonValue().toString(),
+          assignment.toString());
     } else {
       throw new IllegalArgumentException(
-        "Unexpected assignment type " + assignment.getClass().getCanonicalName());
+          "Unexpected assignment type " + assignment.getClass().getCanonicalName());
     }
   }
 
@@ -427,9 +419,7 @@ public class EppoClientTest {
     setOverrideField("configurationStoreOverride", configurationStore);
   }
 
-  /**
-   * Uses reflection to set a static override field used for tests (e.g., httpClientOverride)
-   */
+  /** Uses reflection to set a static override field used for tests (e.g., httpClientOverride) */
   private <T> void setOverrideField(String fieldName, T override) {
     try {
       Field httpClientOverrideField = EppoClient.class.getDeclaredField(fieldName);

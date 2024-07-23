@@ -10,7 +10,7 @@ public class BanditNumericAttributeCoefficients implements BanditAttributeCoeffi
   private final Double missingValueCoefficient;
 
   public BanditNumericAttributeCoefficients(
-    String attributeKey, Double coefficient, Double missingValueCoefficient) {
+      String attributeKey, Double coefficient, Double missingValueCoefficient) {
     this.attributeKey = attributeKey;
     this.coefficient = coefficient;
     this.missingValueCoefficient = missingValueCoefficient;

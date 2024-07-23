@@ -1,19 +1,18 @@
 package cloud.eppo.ufc.dto;
 
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 public class BanditCategoricalAttributeCoefficients implements BanditAttributeCoefficients {
   private final Logger logger =
-    LoggerFactory.getLogger(BanditCategoricalAttributeCoefficients.class);
+      LoggerFactory.getLogger(BanditCategoricalAttributeCoefficients.class);
   private final String attributeKey;
   private final Double missingValueCoefficient;
   private final Map<String, Double> valueCoefficients;
 
   public BanditCategoricalAttributeCoefficients(
-    String attributeKey, Double missingValueCoefficient, Map<String, Double> valueCoefficients) {
+      String attributeKey, Double missingValueCoefficient, Map<String, Double> valueCoefficients) {
     this.attributeKey = attributeKey;
     this.missingValueCoefficient = missingValueCoefficient;
     this.valueCoefficients = valueCoefficients;

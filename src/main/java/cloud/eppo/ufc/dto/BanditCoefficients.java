@@ -10,7 +10,13 @@ public class BanditCoefficients {
   private final Map<String, BanditNumericAttributeCoefficients> actionNumericCoefficients;
   private final Map<String, BanditCategoricalAttributeCoefficients> actionCategoricalCoefficients;
 
-  public BanditCoefficients(String actionKey, Double intercept, Map<String, BanditNumericAttributeCoefficients> subjectNumericAttributeCoefficients, Map<String, BanditCategoricalAttributeCoefficients> subjectCategoricalAttributeCoefficients, Map<String, BanditNumericAttributeCoefficients> actionNumericAttributeCoefficients, Map<String, BanditCategoricalAttributeCoefficients> actionCategoricalAttributeCoefficients) {
+  public BanditCoefficients(
+      String actionKey,
+      Double intercept,
+      Map<String, BanditNumericAttributeCoefficients> subjectNumericAttributeCoefficients,
+      Map<String, BanditCategoricalAttributeCoefficients> subjectCategoricalAttributeCoefficients,
+      Map<String, BanditNumericAttributeCoefficients> actionNumericAttributeCoefficients,
+      Map<String, BanditCategoricalAttributeCoefficients> actionCategoricalAttributeCoefficients) {
     this.actionKey = actionKey;
     this.intercept = intercept;
     this.subjectNumericCoefficients = subjectNumericAttributeCoefficients;

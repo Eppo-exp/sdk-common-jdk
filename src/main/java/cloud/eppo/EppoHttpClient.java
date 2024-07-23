@@ -44,12 +44,12 @@ public class EppoHttpClient {
   // TODO: use this for Java, callback for Android; clean as needed
   public Response get(String path) {
     HttpUrl httpUrl =
-      HttpUrl.parse(baseUrl + path)
-        .newBuilder()
-        .addQueryParameter("apiKey", apiKey)
-        .addQueryParameter("sdkName", sdkName)
-        .addQueryParameter("sdkVersion", sdkVersion)
-        .build();
+        HttpUrl.parse(baseUrl + path)
+            .newBuilder()
+            .addQueryParameter("apiKey", apiKey)
+            .addQueryParameter("sdkName", sdkName)
+            .addQueryParameter("sdkVersion", sdkVersion)
+            .build();
 
     Request request = new Request.Builder().url(httpUrl).build();
     try {

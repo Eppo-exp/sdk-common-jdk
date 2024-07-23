@@ -22,11 +22,11 @@ public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTe
   }
 
   @Override
-  public AssignmentTestCase deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+  public AssignmentTestCase deserialize(JsonParser parser, DeserializationContext context)
+      throws IOException {
     JsonNode rootNode = parser.getCodec().readTree(parser);
     String flag = rootNode.get("flag").asText();
-    VariationType variationType =
-        VariationType.fromString(rootNode.get("variationType").asText());
+    VariationType variationType = VariationType.fromString(rootNode.get("variationType").asText());
     TestCaseValue defaultValue = deserializeTestCaseValue(rootNode.get("defaultValue"));
     List<SubjectAssignment> subjects = deserializeSubjectAssignments(rootNode.get("subjects"));
     return new AssignmentTestCase(flag, variationType, defaultValue, subjects);

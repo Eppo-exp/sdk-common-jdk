@@ -5,9 +5,7 @@ import cloud.eppo.ufc.dto.SubjectAttributes;
 import java.util.Date;
 import java.util.Map;
 
-/**
- * @noinspection unused
- */
+/** @noinspection unused */
 public class Assignment {
   private final String experiment;
   private final String featureFlag;

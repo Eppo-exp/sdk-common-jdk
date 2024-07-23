@@ -9,10 +9,10 @@ public class BanditModelData {
   private final Map<String, BanditCoefficients> coefficients;
 
   public BanditModelData(
-    Double gamma,
-    Double defaultActionScore,
-    Double actionProbabilityFloor,
-    Map<String, BanditCoefficients> coefficients) {
+      Double gamma,
+      Double defaultActionScore,
+      Double actionProbabilityFloor,
+      Map<String, BanditCoefficients> coefficients) {
     this.gamma = gamma;
     this.defaultActionScore = defaultActionScore;
     this.actionProbabilityFloor = actionProbabilityFloor;

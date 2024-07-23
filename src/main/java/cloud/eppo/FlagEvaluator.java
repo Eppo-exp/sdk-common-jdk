@@ -24,8 +24,7 @@ public class FlagEvaluator {
       String flagKey,
       String subjectKey,
       SubjectAttributes subjectAttributes,
-      boolean isConfigObfuscated
-  ) {
+      boolean isConfigObfuscated) {
     Date now = new Date();
 
     Variation variation = null;
@@ -144,7 +143,7 @@ public class FlagEvaluator {
       }
     }
 
-    // If here, matchesShard() was true for each shards
+    // If here, matchesShard() was true for each shard
     return true;
   }
 

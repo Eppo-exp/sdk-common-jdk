@@ -9,19 +9,20 @@ import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.SubjectAttributes;
 import cloud.eppo.ufc.dto.VariationType;
-import java.util.HashMap;
-import java.util.Map;
-
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EppoClient {
   private static final Logger log = LoggerFactory.getLogger(EppoClient.class);
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
+  private final ObjectMapper mapper =
+      new ObjectMapper()
+          .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
   private static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   private static final boolean DEFAULT_IS_GRACEFUL_MODE = true;
 
@@ -36,14 +37,10 @@ public class EppoClient {
 
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
-  /**
-   * @noinspection FieldMayBeFinal
-   */
+  /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  /**
-   * @noinspection FieldMayBeFinal
-   */
+  /** @noinspection FieldMayBeFinal */
   private static ConfigurationStore configurationStoreOverride = null;
 
   private EppoClient(
@@ -52,12 +49,9 @@ public class EppoClient {
       String sdkVersion,
       String host,
       AssignmentLogger assignmentLogger,
-      boolean isGracefulMode
-  ) {
+      boolean isGracefulMode) {
     ConfigurationStore configStore =
-        configurationStoreOverride == null
-            ? new ConfigurationStore()
-            : configurationStoreOverride;
+        configurationStoreOverride == null ? new ConfigurationStore() : configurationStoreOverride;
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     requestor = new ConfigurationRequestor(configStore, httpClient);
@@ -71,7 +65,8 @@ public class EppoClient {
     // TODO: caching initialization (such as setting an API-key-specific prefix
   }
 
-  private EppoHttpClient buildHttpClient(String host, String apiKey, String sdkName, String sdkVersion) {
+  private EppoHttpClient buildHttpClient(
+      String host, String apiKey, String sdkName, String sdkVersion) {
     EppoHttpClient httpClient;
     if (httpClientOverride != null) {
       // Test/Debug - Client is mocked entirely
@@ -89,14 +84,14 @@ public class EppoClient {
       String sdkVersion,
       String host,
       AssignmentLogger assignmentLogger,
-      boolean isGracefulMode
-  ) {
+      boolean isGracefulMode) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
     }
     if (sdkName == null || sdkVersion == null) {
-      throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing SDK name or version");
+      throw new IllegalArgumentException(
+          "Unable to initialize Eppo SDK due to missing SDK name or version");
     }
 
     if (instance != null) {
@@ -145,7 +140,8 @@ public class EppoClient {
     }
 
     if (!flag.isEnabled()) {
-      log.info("no assigned variation because the experiment or feature flag is disabled: " + flagKey);
+      log.info(
+          "no assigned variation because the experiment or feature flag is disabled: " + flagKey);
       return defaultValue;
     }
 
@@ -326,9 +322,9 @@ public class EppoClient {
   }
 
   /**
-   * Returns the assignment for the provided feature flag key and subject key as a {@link
-   * JsonNode}. If the flag is not found, does not match the requested type or is disabled,
-   * defaultValue is returned.
+   * Returns the assignment for the provided feature flag key and subject key as a {@link JsonNode}.
+   * If the flag is not found, does not match the requested type or is disabled, defaultValue is
+   * returned.
    *
    * @param flagKey the feature flag key
    * @param subjectKey the subject key
@@ -340,9 +336,9 @@ public class EppoClient {
   }
 
   /**
-   * Returns the assignment for the provided feature flag key and subject key as a {@link
-   * JsonNode}. If the flag is not found, does not match the requested type or is disabled,
-   * defaultValue is returned.
+   * Returns the assignment for the provided feature flag key and subject key as a {@link JsonNode}.
+   * If the flag is not found, does not match the requested type or is disabled, defaultValue is
+   * returned.
    *
    * @param flagKey the feature flag key
    * @param subjectKey the subject key
