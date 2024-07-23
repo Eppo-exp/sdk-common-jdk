@@ -17,6 +17,12 @@ public final class Utils {
   private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
+  public static void throwIfEmptyOrNull(String input, String errorMessage) {
+    if (input == null || input.isEmpty()) {
+      throw new IllegalArgumentException(errorMessage);
+    }
+  }
+
   public static String getMD5Hex(String input) {
     MessageDigest md;
     try {

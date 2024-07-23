@@ -1,7 +1,9 @@
 package cloud.eppo;
 
 import static cloud.eppo.Utils.getMD5Hex;
+import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
+import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
@@ -9,24 +11,28 @@ import cloud.eppo.ufc.dto.SubjectAttributes;
 import cloud.eppo.ufc.dto.VariationType;
 import java.util.HashMap;
 import java.util.Map;
+
+import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EppoClient {
   private static final Logger log = LoggerFactory.getLogger(EppoClient.class);
+  private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
   private static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   private static final boolean DEFAULT_IS_GRACEFUL_MODE = true;
 
   private final ConfigurationRequestor requestor;
   private final AssignmentLogger assignmentLogger;
   private final boolean isGracefulMode;
-  private static EppoClient instance;
+  private final String sdkName;
+  private final String sdkVersion;
+  private final boolean isConfigObfuscated;
 
-  // Field useful for toggling off obfuscation for development and testing (accessed via reflection)
-  /**
-   * @noinspection FieldMayBeFinal
-   */
-  private static boolean isConfigObfuscated = true;
+  private static EppoClient instance;
 
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
@@ -41,100 +47,81 @@ public class EppoClient {
   private static ConfigurationStore configurationStoreOverride = null;
 
   private EppoClient(
-      Application application,
       String apiKey,
+      String sdkName,
+      String sdkVersion,
       String host,
       AssignmentLogger assignmentLogger,
-      boolean isGracefulMode) {
-    EppoHttpClient httpClient = buildHttpClient(apiKey, host);
-    /*
-    String cacheFileNameSuffix =
-        safeCacheKey(apiKey); // Cache at a per-API key level (useful for development)
-    */
+      boolean isGracefulMode
+  ) {
     ConfigurationStore configStore =
         configurationStoreOverride == null
-            ? new ConfigurationStore(application, cacheFileNameSuffix)
+            ? new ConfigurationStore()
             : configurationStoreOverride;
+
+    EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     requestor = new ConfigurationRequestor(configStore, httpClient);
-    this.isGracefulMode = isGracefulMode;
     this.assignmentLogger = assignmentLogger;
+    this.isGracefulMode = isGracefulMode;
+    // Save SDK name and version to include in logger metadata
+    this.sdkName = sdkName;
+    this.sdkVersion = sdkVersion;
+    // For now, the configuration is only obfuscated for Android clients
+    this.isConfigObfuscated = sdkName.toLowerCase().contains("android");
+    // TODO: caching initialization (such as setting an API-key-specific prefix
   }
 
-  private EppoHttpClient buildHttpClient(String apiKey, String host) {
+  private EppoHttpClient buildHttpClient(String host, String apiKey, String sdkName, String sdkVersion) {
     EppoHttpClient httpClient;
     if (httpClientOverride != null) {
       // Test/Debug - Client is mocked entirely
       httpClient = httpClientOverride;
-    } else if (!isConfigObfuscated) {
-      // Test/Debug - Client should request unobfuscated configurations; done by changing SDK name
-      httpClient =
-          new EppoHttpClient(host, apiKey) {
-            @Override
-            protected String getSdkName() {
-              return "android-debug";
-            }
-          };
     } else {
       // Normal operation
-      httpClient = new EppoHttpClient(host, apiKey);
+      httpClient = new EppoHttpClient(host, apiKey, sdkName, sdkVersion);
     }
     return httpClient;
   }
 
-  /**
-   * @noinspection unused
-   */
-  public static EppoClient init(Application application, String apiKey) {
-    return init(application, apiKey, DEFAULT_HOST, null, null, DEFAULT_IS_GRACEFUL_MODE);
-  }
-
   public static EppoClient init(
-      Application application,
       String apiKey,
+      String sdkName,
+      String sdkVersion,
       String host,
-      InitializationCallback callback,
       AssignmentLogger assignmentLogger,
-      boolean isGracefulMode) {
-    if (application == null) {
-      throw new MissingApplicationException();
-    }
+      boolean isGracefulMode
+  ) {
 
     if (apiKey == null) {
-      throw new MissingApiKeyException();
+      throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
+    }
+    if (sdkName == null || sdkVersion == null) {
+      throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing SDK name or version");
     }
 
-    boolean shouldCreateInstance = instance == null;
-    if (!shouldCreateInstance && ActivityManager.isRunningInTestHarness()) {
-      // Always recreate for tests
-      Log.d(TAG, "Recreating instance on init() for test");
-      shouldCreateInstance = true;
-    } else {
-      Log.w(TAG, "Eppo Client instance already initialized");
+    if (instance != null) {
+      // TODO: also check we're not running a test
+      log.warn("Reinitializing an Eppo Client instance that was already initialized");
     }
-
-    if (shouldCreateInstance) {
-      instance = new EppoClient(application, apiKey, host, assignmentLogger, isGracefulMode);
-      instance.refreshConfiguration(callback);
-    }
+    instance = new EppoClient(apiKey, sdkName, sdkVersion, host, assignmentLogger, isGracefulMode);
+    instance.refreshConfiguration();
 
     return instance;
   }
 
   /**
    * Ability to ad-hoc kick off a configuration load. Will load from a filesystem cached file as
-   * well as fire off a HTTPS request for an updated configuration. If the cache load finishes
+   * well as fire off an HTTPS request for an updated configuration. If the cache load finishes
    * first, those assignments will be used until the fetch completes.
    *
    * <p>Deprecated, as we plan to make a more targeted and configurable way to do so in the future.
-   *
-   * @param callback methods to call when loading succeeds/fails. Note that the success callback
-   *     will be called as soon as either a configuration is loaded from the cache or
-   *     fetched--whichever finishes first. Error callback will called if both attempts fail.
    */
   @Deprecated
-  public void refreshConfiguration(InitializationCallback callback) {
-    requestor.load(callback);
+  public void refreshConfiguration() {
+    requestor.load();
   }
+
+  // TODO: async way to refresh for android
 
   protected EppoValue getTypedAssignment(
       String flagKey,
@@ -142,8 +129,9 @@ public class EppoClient {
       SubjectAttributes subjectAttributes,
       EppoValue defaultValue,
       VariationType expectedType) {
-    validateNotEmptyOrNull(flagKey, "flagKey must not be empty");
-    validateNotEmptyOrNull(subjectKey, "subjectKey must not be empty");
+
+    throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
+    throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
     String flagKeyForLookup = flagKey;
     if (isConfigObfuscated) {
@@ -152,20 +140,17 @@ public class EppoClient {
 
     FlagConfig flag = requestor.getConfiguration(flagKeyForLookup);
     if (flag == null) {
-      Log.w(TAG, "no configuration found for key: " + flagKey);
+      log.warn("no configuration found for key: " + flagKey);
       return defaultValue;
     }
 
     if (!flag.isEnabled()) {
-      Log.i(
-          TAG,
-          "no assigned variation because the experiment or feature flag is disabled: " + flagKey);
+      log.info("no assigned variation because the experiment or feature flag is disabled: " + flagKey);
       return defaultValue;
     }
 
     if (flag.getVariationType() != expectedType) {
-      Log.w(
-          TAG,
+      log.warn(
           "no assigned variation because the flag type doesn't match the requested type: "
               + flagKey
               + " has type "
@@ -182,8 +167,7 @@ public class EppoClient {
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
-      Log.w(
-          TAG,
+      log.warn(
           "no assigned variation because the flag type doesn't match the variation type: "
               + flagKey
               + " has type "
@@ -204,8 +188,8 @@ public class EppoClient {
       Map<String, String> extraLogging = evaluationResult.getExtraLogging();
       Map<String, String> metaData = new HashMap<>();
       metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
-      metaData.put("sdkLanguage", "Java (Android)");
-      metaData.put("sdkLibVersion", BuildConfig.EPPO_VERSION);
+      metaData.put("sdkLanguage", sdkName);
+      metaData.put("sdkLibVersion", sdkVersion);
 
       Assignment assignment =
           Assignment.createWithCurrentDate(
@@ -220,7 +204,7 @@ public class EppoClient {
       try {
         assignmentLogger.logAssignment(assignment);
       } catch (Exception e) {
-        Log.w(TAG, "Error logging assignment: " + e.getMessage(), e);
+        log.warn("Error logging assignment: " + e.getMessage(), e);
       }
     }
 
@@ -343,7 +327,7 @@ public class EppoClient {
 
   /**
    * Returns the assignment for the provided feature flag key and subject key as a {@link
-   * JSONObject}. If the flag is not found, does not match the requested type or is disabled,
+   * JsonNode}. If the flag is not found, does not match the requested type or is disabled,
    * defaultValue is returned.
    *
    * @param flagKey the feature flag key
@@ -351,13 +335,13 @@ public class EppoClient {
    * @param defaultValue the default value to return if the flag is not found
    * @return the JSON string value of the assignment
    */
-  public JSONObject getJSONAssignment(String flagKey, String subjectKey, JSONObject defaultValue) {
+  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
     return getJSONAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
   }
 
   /**
    * Returns the assignment for the provided feature flag key and subject key as a {@link
-   * JSONObject}. If the flag is not found, does not match the requested type or is disabled,
+   * JsonNode}. If the flag is not found, does not match the requested type or is disabled,
    * defaultValue is returned.
    *
    * @param flagKey the feature flag key
@@ -365,11 +349,11 @@ public class EppoClient {
    * @param defaultValue the default value to return if the flag is not found
    * @return the JSON string value of the assignment
    */
-  public JSONObject getJSONAssignment(
+  public JsonNode getJSONAssignment(
       String flagKey,
       String subjectKey,
       SubjectAttributes subjectAttributes,
-      JSONObject defaultValue) {
+      JsonNode defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -424,35 +408,35 @@ public class EppoClient {
     return this.getJSONStringAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
   }
 
-  @Nullable private JSONObject parseJsonString(String jsonString) {
+  private JsonNode parseJsonString(String jsonString) {
     try {
-      return new JSONObject(jsonString);
-    } catch (JSONException e) {
+      return mapper.readTree(jsonString);
+    } catch (JsonProcessingException e) {
       return null;
     }
   }
 
   private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
     if (this.isGracefulMode) {
-      Log.i(TAG, "error getting assignment value: " + e.getMessage());
+      log.info("error getting assignment value: " + e.getMessage());
       return defaultValue;
     }
     throw new RuntimeException(e);
   }
 
-  public static EppoClient getInstance() throws NotInitializedException {
+  public static EppoClient getInstance() {
     if (EppoClient.instance == null) {
-      throw new NotInitializedException();
+      throw new IllegalStateException("Eppo SDK has not been initialized");
     }
 
     return EppoClient.instance;
   }
 
   public static class Builder {
-    private Application application;
     private String apiKey;
+    private String sdkName;
+    private String sdkVersion;
     private String host = DEFAULT_HOST;
-    private InitializationCallback callback;
     private AssignmentLogger assignmentLogger;
     private boolean isGracefulMode = DEFAULT_IS_GRACEFUL_MODE;
 
@@ -461,18 +445,18 @@ public class EppoClient {
       return this;
     }
 
-    public Builder application(Application application) {
-      this.application = application;
+    public Builder sdkName(String sdkName) {
+      this.sdkName = sdkName;
+      return this;
+    }
+
+    public Builder sdkVersion(String sdkVersion) {
+      this.sdkVersion = sdkVersion;
       return this;
     }
 
     public Builder host(String host) {
       this.host = host;
-      return this;
-    }
-
-    public Builder callback(InitializationCallback callback) {
-      this.callback = callback;
       return this;
     }
 
@@ -487,7 +471,7 @@ public class EppoClient {
     }
 
     public EppoClient buildAndInit() {
-      return EppoClient.init(application, apiKey, host, callback, assignmentLogger, isGracefulMode);
+      return EppoClient.init(apiKey, sdkName, sdkVersion, host, assignmentLogger, isGracefulMode);
     }
   }
 }

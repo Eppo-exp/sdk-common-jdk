@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 // TODO: handle bandit stuff
-public class ConfigurationRequestor<T> {
+public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
   private final EppoHttpClient client;
@@ -23,7 +23,9 @@ public class ConfigurationRequestor<T> {
     log.debug("Fetching configuration");
     Response response = client.get("/api/flag-config/v1/config");
     try {
-      // TODO: make sure response succeeded?
+      if (!response.isSuccessful()) {
+        throw new RuntimeException("Failed to fetch configuration");
+      }
       configurationStore.setFlagsFromJsonString(response.body().string());
     } catch (IOException e) {
       // TODO: better exception handling?

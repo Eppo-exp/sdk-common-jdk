@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.ufc.dto.BanditParameters;
-import cloud.eppo.ufc.dto.BanditParametersResponse;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.FlagConfigResponse;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
@@ -20,34 +19,10 @@ public class ConfigurationStore {
   private ConcurrentHashMap<String, FlagConfig> flags;
   private ConcurrentHashMap<String, BanditParameters> banditParameters; // TODO: bandit stuff
   // TODO: another map of bandit flag variations to handle no action case
-  ConfigurationRequestor<FlagConfigResponse> FlagConfigRequestor;
-  ConfigurationRequestor<BanditParametersResponse> banditParametersRequestor;
   static ConfigurationStore instance = null;
 
-  public ConfigurationStore(
-      ConfigurationRequestor<FlagConfigResponse> FlagConfigRequestor,
-      ConfigurationRequestor<BanditParametersResponse> banditParametersRequestor) {
+  public ConfigurationStore() {
     // TODO: handle caching
-    this.FlagConfigRequestor = FlagConfigRequestor;
-    this.banditParametersRequestor = banditParametersRequestor;
-  }
-
-  public static ConfigurationStore init(
-      ConfigurationRequestor<FlagConfigResponse> FlagConfigRequestor,
-      ConfigurationRequestor<BanditParametersResponse> banditParametersRequestor) {
-    // TODO: handle caching
-    if (ConfigurationStore.instance == null) {
-      ConfigurationStore.instance =
-          new ConfigurationStore(
-              FlagConfigRequestor,
-              banditParametersRequestor);
-    }
-    return ConfigurationStore.instance;
-  }
-
-  /** This function is used to get initialized instance */
-  public static ConfigurationStore getInstance() {
-    return ConfigurationStore.instance;
   }
 
   public void setFlagsFromJsonString(String jsonString) throws JsonProcessingException {

@@ -20,10 +20,14 @@ public class EppoHttpClient {
 
   private final String baseUrl;
   private final String apiKey;
+  private final String sdkName;
+  private final String sdkVersion;
 
-  public EppoHttpClient(String baseUrl, String apiKey) {
+  public EppoHttpClient(String baseUrl, String apiKey, String sdkName, String sdkVersion) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
+    this.sdkName = sdkName;
+    this.sdkVersion = sdkVersion;
     this.client = buildOkHttpClient();
   }
 
@@ -43,8 +47,8 @@ public class EppoHttpClient {
       HttpUrl.parse(baseUrl + path)
         .newBuilder()
         .addQueryParameter("apiKey", apiKey)
-        .addQueryParameter("sdkName", getSdkName())
-        .addQueryParameter("sdkVersion", getSDkVersion())
+        .addQueryParameter("sdkName", sdkName)
+        .addQueryParameter("sdkVersion", sdkVersion)
         .build();
 
     Request request = new Request.Builder().url(httpUrl).build();
@@ -60,8 +64,8 @@ public class EppoHttpClient {
         HttpUrl.parse(baseUrl + path)
             .newBuilder()
             .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", getSdkName())
-            .addQueryParameter("sdkVersion", getSDkVersion())
+            .addQueryParameter("sdkName", sdkName)
+            .addQueryParameter("sdkVersion", sdkVersion)
             .build();
 
     Request request = new Request.Builder().url(httpUrl).build();
@@ -102,20 +106,6 @@ public class EppoHttpClient {
                 callback.onFailure("Unable to fetch from URL " + httpUrl);
               }
             });
-  }
-
-  /**
-   * SDK name pulled out into its own function, so it can be overridden by tests to force
-   * unobfuscated configurations
-   */
-  protected String getSdkName() {
-    // TODO: get SDK name (probably want to pass in constructor)
-    return "unknown sdk";
-  }
-
-  protected String getSDkVersion() {
-    // TODO: get SDK version (probably want to pass in constructor)
-    return "unknown version";
   }
 }
 
