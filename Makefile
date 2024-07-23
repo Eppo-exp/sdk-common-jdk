@@ -26,7 +26,6 @@ help: Makefile
 
 .PHONY: build
 build: test-data
-##TODO: build
 	./gradlew assemble
 
 ## test-data

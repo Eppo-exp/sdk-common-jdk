@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Configuration Store Class */
 public class ConfigurationStore {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationStore.class);
   private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());

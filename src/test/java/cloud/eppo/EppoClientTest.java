@@ -427,9 +427,11 @@ public class EppoClientTest {
     setOverrideField("configurationStoreOverride", configurationStore);
   }
 
+  /**
+   * Uses reflection to set a static override field used for tests (e.g., httpClientOverride)
+   */
   private <T> void setOverrideField(String fieldName, T override) {
     try {
-      // Use reflection to set the httpClientOverride field
       Field httpClientOverrideField = EppoClient.class.getDeclaredField(fieldName);
       httpClientOverrideField.setAccessible(true);
       httpClientOverrideField.set(null, override);

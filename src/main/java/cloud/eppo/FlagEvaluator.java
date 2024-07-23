@@ -24,7 +24,8 @@ public class FlagEvaluator {
       String flagKey,
       String subjectKey,
       SubjectAttributes subjectAttributes,
-      boolean isConfigObfuscated) {
+      boolean isConfigObfuscated
+  ) {
     Date now = new Date();
 
     Variation variation = null;
