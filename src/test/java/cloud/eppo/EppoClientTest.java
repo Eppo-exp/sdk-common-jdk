@@ -95,7 +95,7 @@ public class EppoClientTest {
 
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
-  public void testObfsucatedAssignments(File testFile) {
+  public void testObfuscatedAssignments(File testFile) {
     initClient(TEST_HOST, false, true, DUMMY_API_KEY);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCase(testCase);
