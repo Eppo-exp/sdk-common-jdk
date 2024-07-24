@@ -45,4 +45,4 @@ test-data:
 
 .PHONY: test
 test: test-data build
-	./gradlew check
+	./gradlew check --no-daemon
