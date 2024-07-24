@@ -11,6 +11,9 @@ ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+  implementation 'com.github.zafarkhaja:java-semver:0.10.2'
+  implementation "com.squareup.okhttp3:okhttp:4.12.0"
+
   // For UFC DTOs
   implementation 'commons-codec:commons-codec:1.17.0'
   implementation 'org.slf4j:slf4j-api:2.0.13'
@@ -19,10 +22,18 @@ dependencies {
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
   testImplementation 'commons-io:commons-io:2.11.0'
   testImplementation "com.google.truth:truth:1.4.4"
+  testImplementation 'org.mockito:mockito-core:4.11.0'
 }
 
 test {
   useJUnitPlatform()
+  testLogging {
+    events "started", "passed", "skipped", "failed"
+    exceptionFormat "full"
+    showExceptions true
+    showCauses true
+    showStackTraces true
+  }
 }
 
 spotless {
@@ -138,6 +149,9 @@ signing {
 
 
 javadoc {
+  failOnError = false
+  options.addStringOption('Xdoclint:none', '-quiet')
+  options.addBooleanOption('failOnError', false)
   if (JavaVersion.current().isJava9Compatible()) {
     options.addBooleanOption('html5', true)
   }

@@ -12,6 +12,7 @@ public class EppoModule {
     module.addDeserializer(EppoValue.class, new EppoValueDeserializer());
     module.addSerializer(EppoValue.class, new EppoValueSerializer());
     module.addSerializer(Date.class, new DateSerializer());
+    // TODO: add bandit deserializer
     return module;
   }
 }

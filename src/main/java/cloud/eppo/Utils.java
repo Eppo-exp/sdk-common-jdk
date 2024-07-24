@@ -2,6 +2,7 @@ package cloud.eppo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -15,6 +16,12 @@ import org.slf4j.LoggerFactory;
 public final class Utils {
   private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
+
+  public static void throwIfEmptyOrNull(String input, String errorMessage) {
+    if (input == null || input.isEmpty()) {
+      throw new IllegalArgumentException(errorMessage);
+    }
+  }
 
   public static String getMD5Hex(String input) {
     MessageDigest md;
@@ -61,6 +68,13 @@ public final class Utils {
 
   public static String getISODate(Date date) {
     return UTC_ISO_DATE_FORMAT.format(date);
+  }
+
+  public static String base64Encode(String input) {
+    if (input == null) {
+      return null;
+    }
+    return Base64.encodeBase64String(input.getBytes(StandardCharsets.UTF_8));
   }
 
   public static String base64Decode(String input) {

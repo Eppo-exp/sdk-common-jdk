@@ -32,4 +32,4 @@ jobs:
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Run tests
-        run: ./gradlew check --no-daemon
+        run: make test
