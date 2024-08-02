@@ -1,5 +1,8 @@
 {
   "createdAt": "2024-04-17T19:40:53.716Z",
+  "environment": {
+    "name": "Test"
+  },
   "flags": {
     "empty_flag": {
       "key": "empty_flag",
@@ -285,6 +288,10 @@
         "4": {
           "key": "4",
           "value": 4
+        },
+        "5": {
+          "key": "5",
+          "value": 5
         }
       },
       "allocations": [
@@ -371,6 +378,29 @@
           "splits": [
             {
               "variationKey": "4",
+              "shards": []
+            }
+          ],
+          "doLog": true
+        },
+        {
+          "key": "5-for-matches-null",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "attribute": "null_flag",
+                  "operator": "ONE_OF",
+                  "value": [
+                    "null"
+                  ]
+                }
+              ]
+            }
+          ],
+          "splits": [
+            {
+              "variationKey": "5",
               "shards": []
             }
           ],
@@ -1097,6 +1127,77 @@
         "two": {
           "key": "two",
           "value": "{ \"integer\": 2, \"string\": \"two\", \"float\": 2.0 }"
+        }
+      },
+      "allocations": [
+        {
+          "key": "50/50 split",
+          "rules": [],
+          "splits": [
+            {
+              "variationKey": "one",
+              "shards": [
+                {
+                  "salt": "traffic-json-flag",
+                  "ranges": [
+                    {
+                      "start": 0,
+                      "end": 10000
+                    }
+                  ]
+                },
+                {
+                  "salt": "split-json-flag",
+                  "ranges": [
+                    {
+                      "start": 0,
+                      "end": 5000
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "variationKey": "two",
+              "shards": [
+                {
+                  "salt": "traffic-json-flag",
+                  "ranges": [
+                    {
+                      "start": 0,
+                      "end": 10000
+                    }
+                  ]
+                },
+                {
+                  "salt": "split-json-flag",
+                  "ranges": [
+                    {
+                      "start": 5000,
+                      "end": 10000
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "doLog": true
+        }
+      ],
+      "totalShards": 10000
+    },
+    "json-array-config-flag": {
+      "key": "json-array-config-flag",
+      "enabled": true,
+      "variationType": "JSON",
+      "variations": {
+        "one": {
+          "key": "one",
+          "value": "[{ \"integer\": 1, \"string\": \"one\", \"float\": 1.0 }, { \"integer\": 2, \"string\": \"two\", \"float\": 2.0 }]"
+        },
+        "two": {
+          "key": "two",
+          "value": "[{ \"integer\": 3, \"string\": \"three\", \"float\": 3.0 }, { \"integer\": 4, \"string\": \"four\", \"float\": 4.0 }]"
         }
       },
       "allocations": [
