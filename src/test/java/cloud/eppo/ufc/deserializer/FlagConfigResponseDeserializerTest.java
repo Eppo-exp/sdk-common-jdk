@@ -37,6 +37,7 @@ public class FlagConfigResponseDeserializerTest {
     assertTrue(configResponse.getFlags().containsKey("new-user-onboarding"));
     assertTrue(configResponse.getFlags().containsKey("integer-flag"));
     assertTrue(configResponse.getFlags().containsKey("json-config-flag"));
+    assertTrue(configResponse.getFlags().containsKey("json-array-config-flag"));
 
     FlagConfig flagConfig = configResponse.getFlags().get("kill-switch");
     assertNotNull(flagConfig);
@@ -113,5 +114,20 @@ public class FlagConfigResponseDeserializerTest {
     Split offForAllSplit = offForAll.getSplits().iterator().next();
     assertEquals("off", offForAllSplit.getVariationKey());
     assertEquals(0, offForAllSplit.getShards().size());
+
+    // test for `json-array-config-flag` flag
+    FlagConfig jsonArrayConfigFlag = configResponse.getFlags().get("json-array-config-flag");
+    assertNotNull(jsonArrayConfigFlag);
+    jsonArrayConfigFlag.getVariations().forEach((key, variation) -> {
+      if (key.equals("one")) {
+        assertEquals("one", variation.getKey());
+        assertEquals("[{ \"integer\": 1, \"string\": \"one\", \"float\": 1.0 }, { \"integer\": 2, \"string\": \"two\", \"float\": 2.0 }]", variation.getValue().stringValue());
+      } else if (key.equals("two")) {
+        assertEquals("two", variation.getKey());
+        assertEquals("[{ \"integer\": 3, \"string\": \"three\", \"float\": 3.0 }, { \"integer\": 4, \"string\": \"four\", \"float\": 4.0 }]", variation.getValue().stringValue());
+      } else {
+        fail("Unexpected variation key: " + key);
+      }
+    });
   }
 }
