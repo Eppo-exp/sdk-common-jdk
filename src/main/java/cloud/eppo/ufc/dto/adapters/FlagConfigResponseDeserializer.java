@@ -1,6 +1,6 @@
 package cloud.eppo.ufc.dto.adapters;
 
-import static cloud.eppo.Utils.parseUtcISODateElement;
+import static cloud.eppo.Utils.parseUtcISODateNode;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
@@ -9,7 +9,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,32 +36,28 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
   @Override
   public FlagConfigResponse deserialize(JsonParser jp, DeserializationContext ctxt)
       throws IOException, JacksonException {
-    JsonNode rootElement = jp.getCodec().readTree(jp);
+    JsonNode rootNode = jp.getCodec().readTree(jp);
 
-    if (rootElement == null || !rootElement.isObject()) {
+    if (rootNode == null || !rootNode.isObject()) {
       log.warn("no top-level JSON object");
       return new FlagConfigResponse();
     }
-    ObjectNode rootObject = (ObjectNode) rootElement;
-    JsonNode flagsElement = rootObject.get("flags");
-    if (flagsElement == null) {
-      log.warn("no root-level flags property");
+    JsonNode flagsNode = rootNode.get("flags");
+    if (flagsNode == null || !flagsNode.isObject()) {
+      log.warn("no root-level flags object");
       return new FlagConfigResponse();
     }
+
     Map<String, FlagConfig> flags = new ConcurrentHashMap<>();
-    JsonNode flagsNode = flagsElement;
-    if (!flagsNode.isObject()) {
-      log.warn("root-level flags property is not a JSON object");
-      return new FlagConfigResponse();
-    }
+
     flagsNode.fields().forEachRemaining(field -> {
       FlagConfig flagConfig = deserializeFlag(field.getValue());
       flags.put(field.getKey(), flagConfig);
     });
 
     Map<String, BanditReference> banditReferences = new ConcurrentHashMap<>();
-    if (rootObject.has("banditReferences")) {
-      JsonNode banditReferencesNode = rootObject.get("banditReferences");
+    if (rootNode.has("banditReferences")) {
+      JsonNode banditReferencesNode = rootNode.get("banditReferences");
       if (!banditReferencesNode.isObject()) {
         log.warn("root-level banditReferences property is present but not a JSON object");
       }
@@ -107,8 +103,8 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
     for (JsonNode allocationNode : jsonNode) {
       String key = allocationNode.get("key").asText();
       Set<TargetingRule> rules = deserializeTargetingRules(allocationNode.get("rules"));
-      Date startAt = parseUtcISODateElement(allocationNode.get("startAt"));
-      Date endAt = parseUtcISODateElement(allocationNode.get("endAt"));
+      Date startAt = parseUtcISODateNode(allocationNode.get("startAt"));
+      Date endAt = parseUtcISODateNode(allocationNode.get("endAt"));
       List<Split> splits = deserializeSplits(allocationNode.get("splits"));
       boolean doLog = allocationNode.get("doLog").asBoolean();
       allocations.add(new Allocation(key, rules, startAt, endAt, splits, doLog));
