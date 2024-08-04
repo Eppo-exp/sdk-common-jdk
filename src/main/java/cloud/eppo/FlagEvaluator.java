@@ -9,7 +9,7 @@ import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.Shard;
 import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ public class FlagEvaluator {
       FlagConfig flag,
       String flagKey,
       String subjectKey,
-      SubjectAttributes subjectAttributes,
+      Attributes attributes,
       boolean isConfigObfuscated) {
     Date now = new Date();
 
@@ -51,15 +51,15 @@ public class FlagEvaluator {
 
       // For convenience, we will automatically include the subject key as the "id" attribute if
       // none is provided
-      SubjectAttributes subjectAttributesToEvaluate = new SubjectAttributes(subjectAttributes);
-      if (!subjectAttributesToEvaluate.containsKey("id")) {
-        subjectAttributesToEvaluate.put("id", subjectKey);
+      Attributes attributesToEvaluate = new Attributes(attributes);
+      if (!attributesToEvaluate.containsKey("id")) {
+        attributesToEvaluate.put("id", subjectKey);
       }
 
       if (allocation.getRules() != null
           && !allocation.getRules().isEmpty()
           && RuleEvaluator.findMatchingRule(
-                  subjectAttributesToEvaluate, allocation.getRules(), isConfigObfuscated)
+        attributesToEvaluate, allocation.getRules(), isConfigObfuscated)
               == null) {
         // Rules are defined, but none match
         continue;
@@ -90,7 +90,7 @@ public class FlagEvaluator {
     FlagEvaluationResult evaluationResult = new FlagEvaluationResult();
     evaluationResult.setFlagKey(flagKey);
     evaluationResult.setSubjectKey(subjectKey);
-    evaluationResult.setSubjectAttributes(subjectAttributes);
+    evaluationResult.setSubjectAttributes(attributes);
     evaluationResult.setAllocationKey(allocationKey);
     evaluationResult.setVariation(variation);
     evaluationResult.setExtraLogging(extraLogging);

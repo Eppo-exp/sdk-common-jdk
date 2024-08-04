@@ -1,7 +1,7 @@
 package cloud.eppo.logging;
 
 import cloud.eppo.Utils;
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 import java.util.Date;
 import java.util.Map;
 
@@ -13,7 +13,7 @@ public class Assignment {
   private final String variation;
   private final String subject;
   private final String timestamp;
-  private final SubjectAttributes subjectAttributes;
+  private final Attributes attributes;
   private final Map<String, String> extraLogging;
   private final Map<String, String> metaData;
 
@@ -24,7 +24,7 @@ public class Assignment {
       String variation,
       String subject,
       String timestamp,
-      SubjectAttributes subjectAttributes,
+      Attributes attributes,
       Map<String, String> extraLogging,
       Map<String, String> metaData) {
     this.experiment = experiment;
@@ -33,7 +33,7 @@ public class Assignment {
     this.variation = variation;
     this.subject = subject;
     this.timestamp = timestamp;
-    this.subjectAttributes = subjectAttributes;
+    this.attributes = attributes;
     this.extraLogging = extraLogging;
     this.metaData = metaData;
   }
@@ -44,7 +44,7 @@ public class Assignment {
       String allocation,
       String variation,
       String subject,
-      SubjectAttributes subjectAttributes,
+      Attributes attributes,
       Map<String, String> extraLogging,
       Map<String, String> metaData) {
     return new Assignment(
@@ -54,7 +54,7 @@ public class Assignment {
         variation,
         subject,
         Utils.getISODate(new Date()),
-        subjectAttributes,
+      attributes,
         extraLogging,
         metaData);
   }
@@ -83,8 +83,8 @@ public class Assignment {
     return timestamp;
   }
 
-  public SubjectAttributes getSubjectAttributes() {
-    return subjectAttributes;
+  public Attributes getSubjectAttributes() {
+    return attributes;
   }
 
   public Map<String, String> getExtraLogging() {

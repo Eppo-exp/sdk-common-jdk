@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Map;
 
@@ -8,7 +8,7 @@ public class FlagEvaluationResult {
 
   private String flagKey;
   private String subjectKey;
-  private SubjectAttributes subjectAttributes;
+  private Attributes attributes;
   private String allocationKey;
   private Variation variation;
   private Map<String, String> extraLogging;
@@ -30,12 +30,12 @@ public class FlagEvaluationResult {
     this.subjectKey = subjectKey;
   }
 
-  public SubjectAttributes getSubjectAttributes() {
-    return subjectAttributes;
+  public Attributes getSubjectAttributes() {
+    return attributes;
   }
 
-  public void setSubjectAttributes(SubjectAttributes subjectAttributes) {
-    this.subjectAttributes = subjectAttributes;
+  public void setSubjectAttributes(Attributes attributes) {
+    this.attributes = attributes;
   }
 
   public String getAllocationKey() {

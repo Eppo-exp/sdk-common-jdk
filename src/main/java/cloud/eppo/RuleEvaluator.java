@@ -5,7 +5,7 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;
 import com.github.zafarkhaja.semver.Version;
@@ -17,9 +17,9 @@ import java.util.regex.Pattern;
 public class RuleEvaluator {
 
   public static TargetingRule findMatchingRule(
-      SubjectAttributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {
+    Attributes attributes, Set<TargetingRule> rules, boolean isObfuscated) {
     for (TargetingRule rule : rules) {
-      if (allConditionsMatch(subjectAttributes, rule.getConditions(), isObfuscated)) {
+      if (allConditionsMatch(attributes, rule.getConditions(), isObfuscated)) {
         return rule;
       }
     }
@@ -27,11 +27,11 @@ public class RuleEvaluator {
   }
 
   private static boolean allConditionsMatch(
-      SubjectAttributes subjectAttributes,
+      Attributes attributes,
       Set<TargetingCondition> conditions,
       boolean isObfuscated) {
     for (TargetingCondition condition : conditions) {
-      if (!evaluateCondition(subjectAttributes, condition, isObfuscated)) {
+      if (!evaluateCondition(attributes, condition, isObfuscated)) {
         return false;
       }
     }
@@ -39,20 +39,20 @@ public class RuleEvaluator {
   }
 
   private static boolean evaluateCondition(
-      SubjectAttributes subjectAttributes, TargetingCondition condition, boolean isObfuscated) {
+    Attributes attributes, TargetingCondition condition, boolean isObfuscated) {
     EppoValue conditionValue = condition.getValue();
     String attributeKey = condition.getAttribute();
     EppoValue attributeValue = null;
     if (isObfuscated) {
       // attribute names are hashed
-      for (Map.Entry<String, EppoValue> entry : subjectAttributes.entrySet()) {
+      for (Map.Entry<String, EppoValue> entry : attributes.entrySet()) {
         if (getMD5Hex(entry.getKey()).equals(attributeKey)) {
           attributeValue = entry.getValue();
           break;
         }
       }
     } else {
-      attributeValue = subjectAttributes.get(attributeKey);
+      attributeValue = attributes.get(attributeKey);
     }
 
     // First we do any NULL check

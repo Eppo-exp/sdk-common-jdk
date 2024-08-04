@@ -22,7 +22,7 @@ public class ConfigurationRequestor {
     log.debug("Fetching configuration");
     Response response = client.get("/api/flag-config/v1/config");
     try {
-      if (!response.isSuccessful()) {
+      if (!response.isSuccessful() || response.body() == null) {
         throw new RuntimeException("Failed to fetch configuration");
       }
       configurationStore.setFlagsFromJsonString(response.body().string());

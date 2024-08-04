@@ -1,7 +1,7 @@
 package cloud.eppo.helpers;
 
 import cloud.eppo.ufc.dto.EppoValue;
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoValueDeserializer;
 import com.fasterxml.jackson.core.JsonParser;
@@ -38,21 +38,21 @@ public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTe
       for (JsonNode subjectAssignmentNode : jsonNode) {
         String subjectKey = subjectAssignmentNode.get("subjectKey").asText();
 
-        SubjectAttributes subjectAttributes = new SubjectAttributes();
+        Attributes attributes = new Attributes();
         JsonNode attributesNode = subjectAssignmentNode.get("subjectAttributes");
         if (attributesNode != null && attributesNode.isObject()) {
           for (Iterator<Map.Entry<String, JsonNode>> it = attributesNode.fields(); it.hasNext(); ) {
             Map.Entry<String, JsonNode> entry = it.next();
             String attributeName = entry.getKey();
             EppoValue attributeValue = eppoValueDeserializer.deserializeNode(entry.getValue());
-            subjectAttributes.put(attributeName, attributeValue);
+            attributes.put(attributeName, attributeValue);
           }
         }
 
         TestCaseValue assignment =
             deserializeTestCaseValue(subjectAssignmentNode.get("assignment"));
 
-        subjectAssignments.add(new SubjectAssignment(subjectKey, subjectAttributes, assignment));
+        subjectAssignments.add(new SubjectAssignment(subjectKey, attributes, assignment));
       }
     }
 
@@ -60,7 +60,7 @@ public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTe
   }
 
   private TestCaseValue deserializeTestCaseValue(JsonNode jsonNode) {
-    if (jsonNode != null && jsonNode.isObject()) {
+    if (jsonNode != null && (jsonNode.isObject() || jsonNode.isArray())) {
       return TestCaseValue.valueOf(jsonNode);
     } else {
       return TestCaseValue.copyOf(eppoValueDeserializer.deserializeNode(jsonNode));
