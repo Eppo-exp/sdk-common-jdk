@@ -30,7 +30,8 @@ public class ConfigurationRequestor {
     String flagConfigurationJsonString = requestBody("/api/flag-config/v1/config");
     configurationStore.setFlagsFromJsonString(flagConfigurationJsonString);
 
-    boolean needBanditParameters = loadedBanditModelVersions.containsAll(configurationStore.banditModelVersions());
+    Set<String> neededModelVersions = configurationStore.banditModelVersions();
+    boolean needBanditParameters = !loadedBanditModelVersions.containsAll(neededModelVersions);
     if (needBanditParameters) {
       String banditParametersJsonString = requestBody("/api/flag-config/v1/bandits");
       configurationStore.setBanditParametersFromJsonString(banditParametersJsonString);
