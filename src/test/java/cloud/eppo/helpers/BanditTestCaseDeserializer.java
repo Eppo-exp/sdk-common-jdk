@@ -39,7 +39,7 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
           Attributes categoricalAttributes = deserializeAttributes(attributesNode.get("categoricalAttributes"));
           attributes = new ContextAttributes(numericAttributes, categoricalAttributes);
         }
-        Map<String, DiscriminableAttributes> actions = deserializeActions(subjectAssignmentNode.get("actions"));
+        Actions actions = deserializeActions(subjectAssignmentNode.get("actions"));
         JsonNode assignmentNode = subjectAssignmentNode.get("assignment");
         String variationAssignment = assignmentNode.get("variation").asText();
         JsonNode actionAssignmentNode = assignmentNode.get("action");
@@ -65,8 +65,8 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
     return attributes;
   }
 
-  private Map<String, DiscriminableAttributes> deserializeActions(JsonNode jsonNode) {
-    Map<String, DiscriminableAttributes> actions = new HashMap<>();
+  private Actions deserializeActions(JsonNode jsonNode) {
+    BanditActions actions = new BanditActions();
     if (jsonNode != null && jsonNode.isArray()) {
       for (JsonNode actionNode : jsonNode) {
         String actionKey = actionNode.get("actionKey").asText();

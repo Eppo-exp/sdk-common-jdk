@@ -5,10 +5,7 @@ import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.ufc.dto.EppoValue;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.Attributes;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,6 +23,7 @@ public class EppoClient {
   private static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   private static final boolean DEFAULT_IS_GRACEFUL_MODE = true;
 
+  private final ConfigurationStore configurationStore;
   private final ConfigurationRequestor requestor;
   private final AssignmentLogger assignmentLogger;
   private final boolean isGracefulMode;
@@ -40,21 +38,18 @@ public class EppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  /** @noinspection FieldMayBeFinal */
-  private static ConfigurationStore configurationStoreOverride = null;
-
   private EppoClient(
       String apiKey,
       String sdkName,
       String sdkVersion,
       String host,
+      ConfigurationStore configurationStore,
       AssignmentLogger assignmentLogger,
       boolean isGracefulMode) {
-    ConfigurationStore configStore =
-        configurationStoreOverride == null ? new ConfigurationStore() : configurationStoreOverride;
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    requestor = new ConfigurationRequestor(configStore, httpClient);
+    this.configurationStore = configurationStore;
+    requestor = new ConfigurationRequestor(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
     this.isGracefulMode = isGracefulMode;
     // Save SDK name and version to include in logger metadata
@@ -98,7 +93,7 @@ public class EppoClient {
       // TODO: also check we're not running a test
       log.warn("Reinitializing an Eppo Client instance that was already initialized");
     }
-    instance = new EppoClient(apiKey, sdkName, sdkVersion, host, assignmentLogger, isGracefulMode);
+    instance = new EppoClient(apiKey, sdkName, sdkVersion, host, new ConfigurationStore(), assignmentLogger, isGracefulMode);
     instance.refreshConfiguration();
 
     return instance;
@@ -409,6 +404,24 @@ public class EppoClient {
       return mapper.readTree(jsonString);
     } catch (JsonProcessingException e) {
       return null;
+    }
+  }
+
+  public BanditResult getBanditAction(String flagKey, String subjectKey, DiscriminableAttributes subjectAttributes, Actions actions, String defaultValue) {
+    BanditResult result = new BanditResult(defaultValue, null);
+    try {
+      String assignedVariation = getStringAssignment(flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
+      result = new BanditResult(assignedVariation, null); // Update result to reflect that we've been assigned a variation
+      String banditKey = configurationStore.banditKeyForVariation(flagKey, assignedVariation);
+      if (banditKey != null) {
+        BanditParameters banditParameters = configurationStore.getBanditParameters(banditKey);
+        // TODO: evaluate bandit to get action
+        String assignedAction = null;
+        result = new BanditResult(assignedVariation, assignedAction); // Update result to reflect that we've been assigned an action
+      }
+      return result;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, result);
     }
   }
 

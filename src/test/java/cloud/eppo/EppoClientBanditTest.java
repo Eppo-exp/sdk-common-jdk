@@ -2,6 +2,8 @@ package cloud.eppo;
 
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.AssignmentLogger;
+import cloud.eppo.ufc.dto.Actions;
+import cloud.eppo.ufc.dto.BanditResult;
 import cloud.eppo.ufc.dto.ContextAttributes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -95,23 +97,21 @@ public class EppoClientBanditTest {
     for (SubjectBanditAssignment subjectAssignment : testCase.getSubjects()) {
       String subjectKey = subjectAssignment.getSubjectKey();
       ContextAttributes attributes = subjectAssignment.getSubjectAttributes();
-      // TODO: set via getBanditAction
-      String variationAssignment = null;
-      String actionAssignment = null;
-
-      assertBanditAssignment(flagKey, subjectAssignment, variationAssignment, actionAssignment);
+      Actions actions = subjectAssignment.getActions();
+      BanditResult assignment = eppoClient.getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
+      assertBanditAssignment(flagKey, subjectAssignment, assignment);
     }
   }
 
   /** Helper method for asserting a subject assignment with a useful failure message. */
-  private void assertBanditAssignment(String flagKey, SubjectBanditAssignment expectedSubjectAssignment, String variationAssignment, String actionAssignment) {
+  private void assertBanditAssignment(String flagKey, SubjectBanditAssignment expectedSubjectAssignment, BanditResult assignment) {
     String failureMessage =
         "Incorrect "
             + flagKey
             + " variation assignment for subject "
             + expectedSubjectAssignment.getSubjectKey();
 
-    assertEquals(failureMessage, expectedSubjectAssignment.getAssignment().getVariation(), variationAssignment);
+    assertEquals(expectedSubjectAssignment.getAssignment().getVariation(), assignment.getVariation(), failureMessage);
 
     failureMessage =
       "Incorrect "
@@ -119,7 +119,7 @@ public class EppoClientBanditTest {
         + " action assignment for subject "
         + expectedSubjectAssignment.getSubjectKey();
 
-    assertEquals(failureMessage, expectedSubjectAssignment.getAssignment().getAction(), actionAssignment);
+    assertEquals(expectedSubjectAssignment.getAssignment().getAction(), assignment.getAction(), failureMessage);
   }
 
   private static SimpleModule module() {

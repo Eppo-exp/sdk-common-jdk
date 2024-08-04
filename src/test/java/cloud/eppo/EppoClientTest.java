@@ -77,7 +77,6 @@ public class EppoClientTest {
   public void cleanUp() {
     // TODO: Clear any caches
     setHttpClientOverrideField(null);
-    setConfigurationStoreOverrideField(null);
   }
 
   @ParameterizedTest

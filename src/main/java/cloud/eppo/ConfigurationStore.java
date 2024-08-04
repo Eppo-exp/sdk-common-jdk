@@ -1,11 +1,12 @@
 package cloud.eppo;
 
-import cloud.eppo.ufc.dto.BanditParameters;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.FlagConfigResponse;
+import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,13 +15,14 @@ public class ConfigurationStore {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationStore.class);
   private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());
 
-  private ConcurrentHashMap<String, FlagConfig> flags;
-  private ConcurrentHashMap<String, BanditParameters> banditParameters; // TODO: bandit stuff
-  // TODO: another map of bandit flag variations to handle no action case
-  static ConfigurationStore instance = null;
+  private Map<String, FlagConfig> flags;
+  private Map<String, BanditReference> banditReferences;
+  private Map<String, BanditParameters> banditParameters;
 
   public ConfigurationStore() {
-    // TODO: handle caching
+    flags = new ConcurrentHashMap<>();
+    banditReferences = new ConcurrentHashMap<>();
+    banditParameters = new ConcurrentHashMap<>();
   }
 
   public void setFlagsFromJsonString(String jsonString) throws JsonProcessingException {
@@ -28,17 +30,15 @@ public class ConfigurationStore {
     if (config == null || config.getFlags() == null) {
       log.warn("Flags missing in configuration response");
       flags = new ConcurrentHashMap<>();
+      banditReferences = new ConcurrentHashMap<>();
     } else {
       // TODO: atomic flags to prevent clobbering like android does
       // Record that flags were set from a response so we don't later clobber them with a
       // slow cache read
       flags = new ConcurrentHashMap<>(config.getFlags());
+      banditReferences = new ConcurrentHashMap<>(config.getBanditReferences());
       log.debug("Loaded " + flags.size() + " flags from configuration response");
     }
-  }
-
-  public BanditParameters getBanditParameters(String banditKey) {
-    return this.banditParameters.get(banditKey);
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -49,5 +49,23 @@ public class ConfigurationStore {
       log.warn("Request for flag " + flagKey + " with empty flags");
     }
     return flags.get(flagKey);
+  }
+
+  public String banditKeyForVariation(String flagKey, String variationValue) {
+    // Note: In practice this double loop should be quite quick as the number of bandits and bandit variations will be small
+    //       Should this ever change, we can optimize things.
+    for (Map.Entry<String, BanditReference> banditEntry : banditReferences.entrySet()) {
+      BanditReference banditReference = banditEntry.getValue();
+      for (BanditFlagVariation banditFlagVariation : banditReference.getFlagVariations()) {
+        if (banditFlagVariation.getFlagKey().equals(flagKey) && banditFlagVariation.getVariationValue().equals(variationValue)) {
+          return banditEntry.getKey();
+        }
+      }
+    }
+    return null;
+  }
+
+  public BanditParameters getBanditParameters(String banditKey) {
+    return banditParameters.get(banditKey);
   }
 }
