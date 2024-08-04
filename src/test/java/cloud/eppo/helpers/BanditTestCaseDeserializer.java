@@ -44,7 +44,8 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
         String variationAssignment = assignmentNode.get("variation").asText();
         JsonNode actionAssignmentNode = assignmentNode.get("action");
         String actionAssignment = actionAssignmentNode.isNull() ? null : actionAssignmentNode.asText();
-        subjectAssignments.add(new SubjectBanditAssignment(subjectKey, attributes, actions, variationAssignment, actionAssignment));
+        BanditResult assignment = new BanditResult(variationAssignment, actionAssignment);
+        subjectAssignments.add(new SubjectBanditAssignment(subjectKey, attributes, actions, assignment));
       }
     }
 

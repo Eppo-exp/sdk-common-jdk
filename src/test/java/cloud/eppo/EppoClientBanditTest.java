@@ -111,7 +111,7 @@ public class EppoClientBanditTest {
             + " variation assignment for subject "
             + expectedSubjectAssignment.getSubjectKey();
 
-    assertEquals(failureMessage, expectedSubjectAssignment.getVariationAssignment(), variationAssignment);
+    assertEquals(failureMessage, expectedSubjectAssignment.getAssignment().getVariation(), variationAssignment);
 
     failureMessage =
       "Incorrect "
@@ -119,7 +119,7 @@ public class EppoClientBanditTest {
         + " action assignment for subject "
         + expectedSubjectAssignment.getSubjectKey();
 
-    assertEquals(failureMessage, expectedSubjectAssignment.getActionAssignment(), actionAssignment);
+    assertEquals(failureMessage, expectedSubjectAssignment.getAssignment().getAction(), actionAssignment);
   }
 
   private static SimpleModule module() {

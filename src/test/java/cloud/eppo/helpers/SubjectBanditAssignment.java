@@ -1,5 +1,6 @@
 package cloud.eppo.helpers;
 
+import cloud.eppo.ufc.dto.BanditResult;
 import cloud.eppo.ufc.dto.ContextAttributes;
 import cloud.eppo.ufc.dto.DiscriminableAttributes;
 
@@ -9,16 +10,14 @@ public class SubjectBanditAssignment {
   private final String subjectKey;
   private final ContextAttributes subjectAttributes;
   private final Map<String, DiscriminableAttributes> actions;
-  private final String variationAssignment;
-  private final String actionAssignment;
+  private final BanditResult assignment;
 
   public SubjectBanditAssignment(
-    String subjectKey, ContextAttributes attributes, Map<String, DiscriminableAttributes> actions, String variationAssignment, String actionAssignment) {
+    String subjectKey, ContextAttributes attributes, Map<String, DiscriminableAttributes> actions, BanditResult assignment) {
     this.subjectKey = subjectKey;
     this.subjectAttributes = attributes;
     this.actions = actions;
-    this.variationAssignment = variationAssignment;
-    this.actionAssignment = actionAssignment;
+    this.assignment = assignment;
   }
 
   public String getSubjectKey() {
@@ -33,11 +32,7 @@ public class SubjectBanditAssignment {
     return actions;
   }
 
-  public String getVariationAssignment() {
-    return variationAssignment;
-  }
-
-  public String getActionAssignment() {
-    return actionAssignment;
+  public BanditResult getAssignment() {
+    return assignment;
   }
 }
