@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import java.util.List;
+import java.util.Objects;
 
 public class EppoValue {
   protected final EppoValueType type;
@@ -106,5 +107,26 @@ public class EppoValue {
         throw new UnsupportedOperationException(
             "Cannot stringify Eppo Value type " + this.type.name());
     }
+  }
+
+  @Override
+  public boolean equals(Object otherObject) {
+    if (this == otherObject) {
+      return true;
+    }
+    if (otherObject == null || getClass() != otherObject.getClass()) {
+      return false;
+    }
+    EppoValue otherEppoValue = (EppoValue) otherObject;
+    return type == otherEppoValue.type &&
+      Objects.equals(boolValue, otherEppoValue.boolValue) &&
+      Objects.equals(doubleValue, otherEppoValue.doubleValue) &&
+      Objects.equals(stringValue, otherEppoValue.stringValue) &&
+      Objects.equals(stringArrayValue, otherEppoValue.stringArrayValue);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(type, boolValue, doubleValue, stringValue, stringArrayValue);
   }
 }

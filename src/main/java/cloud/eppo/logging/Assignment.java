@@ -6,56 +6,34 @@ import java.util.Date;
 import java.util.Map;
 
 public class Assignment {
+  private final Date timestamp;
   private final String experiment;
   private final String featureFlag;
   private final String allocation;
   private final String variation;
   private final String subject;
-  private final String timestamp;
   private final Attributes attributes;
   private final Map<String, String> extraLogging;
   private final Map<String, String> metaData;
 
-  private Assignment(
-      String experiment,
-      String featureFlag,
-      String allocation,
-      String variation,
-      String subject,
-      String timestamp,
-      Attributes attributes,
-      Map<String, String> extraLogging,
-      Map<String, String> metaData) {
+  public Assignment(
+    String experiment,
+    String featureFlag,
+    String allocation,
+    String variation,
+    String subject,
+    Attributes attributes,
+    Map<String, String> extraLogging,
+    Map<String, String> metaData) {
+    this.timestamp = new Date();
     this.experiment = experiment;
     this.featureFlag = featureFlag;
     this.allocation = allocation;
     this.variation = variation;
     this.subject = subject;
-    this.timestamp = timestamp;
     this.attributes = attributes;
     this.extraLogging = extraLogging;
     this.metaData = metaData;
-  }
-
-  public static Assignment createWithCurrentDate(
-      String experiment,
-      String featureFlag,
-      String allocation,
-      String variation,
-      String subject,
-      Attributes attributes,
-      Map<String, String> extraLogging,
-      Map<String, String> metaData) {
-    return new Assignment(
-        experiment,
-        featureFlag,
-        allocation,
-        variation,
-        subject,
-        Utils.getISODate(new Date()),
-      attributes,
-        extraLogging,
-        metaData);
   }
 
   public String getExperiment() {
@@ -78,7 +56,7 @@ public class Assignment {
     return subject;
   }
 
-  public String getTimestamp() {
+  public Date getTimestamp() {
     return timestamp;
   }
 

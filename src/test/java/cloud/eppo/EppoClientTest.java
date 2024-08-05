@@ -26,8 +26,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -374,18 +372,9 @@ public class EppoClientTest {
     assertEquals("alice", capturedAssignment.getSubject());
     assertEquals(attributes, capturedAssignment.getSubjectAttributes());
     assertEquals(new HashMap<>(), capturedAssignment.getExtraLogging());
-
-    try {
-      Date assertionDate = new Date();
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-      dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-      Date parsedTimestamp = dateFormat.parse(capturedAssignment.getTimestamp());
-      assertNotNull(parsedTimestamp);
-      assertTrue(parsedTimestamp.after(testStart));
-      assertTrue(parsedTimestamp.before(assertionDate));
-    } catch (ParseException ex) {
-      throw new RuntimeException(ex);
-    }
+    assertTrue(capturedAssignment.getTimestamp().after(testStart));
+    Date assertionDate = new Date();
+    assertTrue(capturedAssignment.getTimestamp().before(assertionDate));
 
     Map<String, String> expectedMeta = new HashMap<>();
     expectedMeta.put("obfuscated", "false");

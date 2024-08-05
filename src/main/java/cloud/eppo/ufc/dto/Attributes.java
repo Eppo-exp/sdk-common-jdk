@@ -25,6 +25,14 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
     return super.put(key, EppoValue.valueOf(value));
   }
 
+  public EppoValue put(String key, float value) {
+    return super.put(key, EppoValue.valueOf(value));
+  }
+
+  public EppoValue put(String key, double value) {
+    return super.put(key, EppoValue.valueOf(value));
+  }
+
   public EppoValue put(String key, boolean value) {
     return super.put(key, EppoValue.valueOf(value));
   }

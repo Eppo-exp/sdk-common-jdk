@@ -185,16 +185,16 @@ public class EppoClient {
       Map<String, String> extraLogging = evaluationResult.getExtraLogging();
       Map<String, String> metaData = buildLogMetaData();
 
-      Assignment assignment =
-          Assignment.createWithCurrentDate(
-              experimentKey,
-              flagKey,
-              allocationKey,
-              variationKey,
-              subjectKey,
-            attributes,
-              extraLogging,
-              metaData);
+      Assignment assignment = new Assignment(
+        experimentKey,
+        flagKey,
+        allocationKey,
+        variationKey,
+        subjectKey,
+        attributes,
+        extraLogging,
+        metaData
+      );
       try {
         assignmentLogger.logAssignment(assignment);
       } catch (Exception e) {
