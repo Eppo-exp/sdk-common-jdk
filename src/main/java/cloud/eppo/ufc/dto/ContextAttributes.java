@@ -25,7 +25,7 @@ public class ContextAttributes implements DiscriminableAttributes {
 
   @Override
   public Attributes getCategoricalAttributes() {
-    return numericAttributes;
+    return categoricalAttributes;
   }
 
   @Override
