@@ -5,6 +5,8 @@ import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
+import cloud.eppo.logging.BanditAssignment;
+import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,6 +28,7 @@ public class EppoClient {
   private final ConfigurationStore configurationStore;
   private final ConfigurationRequestor requestor;
   private final AssignmentLogger assignmentLogger;
+  private final BanditLogger banditLogger;
   private final boolean isGracefulMode;
   private final String sdkName;
   private final String sdkVersion;
@@ -45,12 +48,14 @@ public class EppoClient {
       String host,
       ConfigurationStore configurationStore,
       AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
       boolean isGracefulMode) {
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     this.configurationStore = configurationStore;
     requestor = new ConfigurationRequestor(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
+    this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
@@ -79,6 +84,7 @@ public class EppoClient {
       String sdkVersion,
       String host,
       AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
       boolean isGracefulMode) {
 
     if (apiKey == null) {
@@ -93,7 +99,7 @@ public class EppoClient {
       // TODO: also check we're not running a test
       log.warn("Reinitializing an Eppo Client instance that was already initialized");
     }
-    instance = new EppoClient(apiKey, sdkName, sdkVersion, host, new ConfigurationStore(), assignmentLogger, isGracefulMode);
+    instance = new EppoClient(apiKey, sdkName, sdkVersion, host, new ConfigurationStore(), assignmentLogger, banditLogger, isGracefulMode);
     instance.refreshConfiguration();
 
     return instance;
@@ -177,10 +183,7 @@ public class EppoClient {
       // allocation key
       String variationKey = evaluationResult.getVariation().getKey();
       Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-      Map<String, String> metaData = new HashMap<>();
-      metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
-      metaData.put("sdkLanguage", sdkName);
-      metaData.put("sdkLibVersion", sdkVersion);
+      Map<String, String> metaData = buildLogMetaData();
 
       Assignment assignment =
           Assignment.createWithCurrentDate(
@@ -416,13 +419,37 @@ public class EppoClient {
       if (banditKey != null && !actions.isEmpty()) {
         BanditParameters banditParameters = configurationStore.getBanditParameters(banditKey);
         BanditEvaluationResult banditResult = BanditEvaluator.evaluateBandit(flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
-        // TODO: log bandit action
+        if (banditLogger != null) {
+          BanditAssignment banditAssignment = new BanditAssignment(
+            flagKey,
+            banditKey,
+            subjectKey,
+            banditResult.getActionKey(),
+            banditResult.getActionWeight(),
+            banditResult.getOptimalityGap(),
+            banditParameters.getModelVersion(),
+            subjectAttributes.getNumericAttributes(),
+            subjectAttributes.getCategoricalAttributes(),
+            banditResult.getActionAttributes().getNumericAttributes(),
+            banditResult.getActionAttributes().getCategoricalAttributes(),
+            buildLogMetaData()
+          );
+          banditLogger.logBanditAssignment(banditAssignment);
+        }
         result = new BanditResult(assignedVariation, banditResult.getActionKey()); // Update result to reflect that we've been assigned an action
       }
       return result;
     } catch (Exception e) {
       return throwIfNotGraceful(e, result);
     }
+  }
+
+  private Map<String, String> buildLogMetaData() {
+    HashMap<String, String> metaData = new HashMap<>();
+    metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
+    metaData.put("sdkLanguage", sdkName);
+    metaData.put("sdkLibVersion", sdkVersion);
+    return metaData;
   }
 
   private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
@@ -447,6 +474,7 @@ public class EppoClient {
     private String sdkVersion;
     private String host = DEFAULT_HOST;
     private AssignmentLogger assignmentLogger;
+    private BanditLogger banditLogger;
     private boolean isGracefulMode = DEFAULT_IS_GRACEFUL_MODE;
 
     public Builder apiKey(String apiKey) {
@@ -474,13 +502,18 @@ public class EppoClient {
       return this;
     }
 
+    public Builder banditLogger(BanditLogger banditLogger) {
+      this.banditLogger = banditLogger;
+      return this;
+    }
+
     public Builder isGracefulMode(boolean isGracefulMode) {
       this.isGracefulMode = isGracefulMode;
       return this;
     }
 
     public EppoClient buildAndInit() {
-      return EppoClient.init(apiKey, sdkName, sdkVersion, host, assignmentLogger, isGracefulMode);
+      return EppoClient.init(apiKey, sdkName, sdkVersion, host, assignmentLogger, banditLogger, isGracefulMode);
     }
   }
 }
