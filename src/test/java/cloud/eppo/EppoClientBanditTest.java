@@ -58,7 +58,7 @@ public class EppoClientBanditTest {
 
   @ParameterizedTest
   @MethodSource("getBanditTestData")
-  public void testUnobfuscatedAssignments(File testFile) {
+  public void testUnobfuscatedBanditAssignments(File testFile) {
     initClient();
     BanditTestCase testCase = parseTestCaseFile(testFile);
     runBanditTestCase(testCase);
