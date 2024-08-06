@@ -131,7 +131,7 @@ public class EppoClient {
   protected EppoValue getTypedAssignment(
       String flagKey,
       String subjectKey,
-      Attributes attributes,
+      Attributes subjectAttributes,
       EppoValue defaultValue,
       VariationType expectedType) {
 
@@ -145,40 +145,37 @@ public class EppoClient {
 
     FlagConfig flag = requestor.getConfiguration(flagKeyForLookup);
     if (flag == null) {
-      log.warn("no configuration found for key: " + flagKey);
+      log.warn("no configuration found for key: {}", flagKey);
       return defaultValue;
     }
 
     if (!flag.isEnabled()) {
       log.info(
-          "no assigned variation because the experiment or feature flag is disabled: " + flagKey);
+          "no assigned variation because the experiment or feature flag is disabled: {}", flagKey);
       return defaultValue;
     }
 
     if (flag.getVariationType() != expectedType) {
       log.warn(
-          "no assigned variation because the flag type doesn't match the requested type: "
-              + flagKey
-              + " has type "
-              + flag.getVariationType()
-              + ", requested "
-              + expectedType);
+          "no assigned variation because the flag type doesn't match the requested type: {} has type {}, requested {}",
+          flagKey,
+          flag.getVariationType(),
+          expectedType);
       return defaultValue;
     }
 
     FlagEvaluationResult evaluationResult =
-        FlagEvaluator.evaluateFlag(flag, flagKey, subjectKey, attributes, isConfigObfuscated);
+        FlagEvaluator.evaluateFlag(
+            flag, flagKey, subjectKey, subjectAttributes, isConfigObfuscated);
     EppoValue assignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
       log.warn(
-          "no assigned variation because the flag type doesn't match the variation type: "
-              + flagKey
-              + " has type "
-              + flag.getVariationType()
-              + ", variation value is "
-              + assignedValue);
+          "no assigned variation because the flag type doesn't match the variation type: {} has type {}, variation value is {}",
+          flagKey,
+          flag.getVariationType(),
+          assignedValue);
       return defaultValue;
     }
 
@@ -200,13 +197,13 @@ public class EppoClient {
               allocationKey,
               variationKey,
               subjectKey,
-              attributes,
+              subjectAttributes,
               extraLogging,
               metaData);
       try {
         assignmentLogger.logAssignment(assignment);
       } catch (Exception e) {
-        log.warn("Error logging assignment: " + e.getMessage(), e);
+        log.warn("Error logging assignment: {}", e.getMessage(), e);
       }
     }
 
@@ -249,13 +246,13 @@ public class EppoClient {
   }
 
   public boolean getBooleanAssignment(
-      String flagKey, String subjectKey, Attributes attributes, boolean defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, boolean defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
-              attributes,
+              subjectAttributes,
               EppoValue.valueOf(defaultValue),
               VariationType.BOOLEAN);
       return value.booleanValue();
@@ -269,13 +266,13 @@ public class EppoClient {
   }
 
   public int getIntegerAssignment(
-      String flagKey, String subjectKey, Attributes attributes, int defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
-              attributes,
+              subjectAttributes,
               EppoValue.valueOf(defaultValue),
               VariationType.INTEGER);
       return Double.valueOf(value.doubleValue()).intValue();
@@ -289,13 +286,13 @@ public class EppoClient {
   }
 
   public Double getDoubleAssignment(
-      String flagKey, String subjectKey, Attributes attributes, double defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
-              attributes,
+              subjectAttributes,
               EppoValue.valueOf(defaultValue),
               VariationType.NUMERIC);
       return value.doubleValue();
@@ -309,13 +306,13 @@ public class EppoClient {
   }
 
   public String getStringAssignment(
-      String flagKey, String subjectKey, Attributes attributes, String defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
-              attributes,
+              subjectAttributes,
               EppoValue.valueOf(defaultValue),
               VariationType.STRING);
       return value.stringValue();
@@ -349,13 +346,13 @@ public class EppoClient {
    * @return the JSON string value of the assignment
    */
   public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes attributes, JsonNode defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
-              attributes,
+              subjectAttributes,
               EppoValue.valueOf(defaultValue.toString()),
               VariationType.JSON);
       return parseJsonString(value.stringValue());
@@ -375,11 +372,15 @@ public class EppoClient {
    * @return the JSON string value of the assignment
    */
   public String getJSONStringAssignment(
-      String flagKey, String subjectKey, Attributes attributes, String defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
-              flagKey, subjectKey, attributes, EppoValue.valueOf(defaultValue), VariationType.JSON);
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue),
+              VariationType.JSON);
       return value.stringValue();
     } catch (Exception e) {
       return throwIfNotGraceful(e, defaultValue);
@@ -468,7 +469,7 @@ public class EppoClient {
 
   private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
     if (this.isGracefulMode) {
-      log.info("error getting assignment value: " + e.getMessage());
+      log.info("error getting assignment value: {}", e.getMessage());
       return defaultValue;
     }
     throw new RuntimeException(e);

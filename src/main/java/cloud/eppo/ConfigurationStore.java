@@ -61,8 +61,7 @@ public class ConfigurationStore {
 
   public String banditKeyForVariation(String flagKey, String variationValue) {
     // Note: In practice this double loop should be quite quick as the number of bandits and bandit
-    // variations will be small
-    //       Should this ever change, we can optimize things.
+    // variations will be small. Should this ever change, we can optimize things.
     for (Map.Entry<String, BanditReference> banditEntry : banditReferences.entrySet()) {
       BanditReference banditReference = banditEntry.getValue();
       for (BanditFlagVariation banditFlagVariation : banditReference.getFlagVariations()) {

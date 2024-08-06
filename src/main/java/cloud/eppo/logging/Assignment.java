@@ -11,7 +11,7 @@ public class Assignment {
   private final String allocation;
   private final String variation;
   private final String subject;
-  private final Attributes attributes;
+  private final Attributes subjectAttributes;
   private final Map<String, String> extraLogging;
   private final Map<String, String> metaData;
 
@@ -21,7 +21,7 @@ public class Assignment {
       String allocation,
       String variation,
       String subject,
-      Attributes attributes,
+      Attributes subjectAttributes,
       Map<String, String> extraLogging,
       Map<String, String> metaData) {
     this.timestamp = new Date();
@@ -30,7 +30,7 @@ public class Assignment {
     this.allocation = allocation;
     this.variation = variation;
     this.subject = subject;
-    this.attributes = attributes;
+    this.subjectAttributes = subjectAttributes;
     this.extraLogging = extraLogging;
     this.metaData = metaData;
   }
@@ -60,7 +60,7 @@ public class Assignment {
   }
 
   public Attributes getSubjectAttributes() {
-    return attributes;
+    return subjectAttributes;
   }
 
   public Map<String, String> getExtraLogging() {

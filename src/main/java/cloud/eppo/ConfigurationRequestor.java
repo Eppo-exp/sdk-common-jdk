@@ -33,6 +33,10 @@ public class ConfigurationRequestor {
     if (needBanditParameters) {
       String banditParametersJsonString = requestBody("/api/flag-config/v1/bandits");
       configurationStore.setBanditParametersFromJsonString(banditParametersJsonString);
+      // Record the model versions that we just loaded, so we can compare when the store is later
+      // updated
+      loadedBanditModelVersions.clear();
+      loadedBanditModelVersions.addAll(configurationStore.banditModelVersions());
     }
   }
 

@@ -45,18 +45,18 @@ public class BanditEvaluator {
                 e -> {
                   String actionName = e.getKey();
                   DiscriminableAttributes actionAttributes = e.getValue();
-                  double actionScore = modelData.getDefaultActionScore();
 
                   // get all coefficients known to the model for this action
                   BanditCoefficients banditCoefficients =
                       modelData.getCoefficients().get(actionName);
 
                   if (banditCoefficients == null) {
-                    // Unknown action; return default score of 0
-                    return actionScore;
+                    // Unknown action; return the default action score
+                    return modelData.getDefaultActionScore();
                   }
 
-                  actionScore += banditCoefficients.getIntercept();
+                  // Score the action using the provided attributes
+                  double actionScore = banditCoefficients.getIntercept();
                   actionScore +=
                       scoreContextForCoefficients(
                           actionAttributes.getNumericAttributes(),
@@ -100,7 +100,9 @@ public class BanditEvaluator {
     for (Map.Entry<String, Double> actionScore : actionScores.entrySet()) {
       if (highestScore == null
           || actionScore.getValue() > highestScore
-          || actionScore.getValue().equals(highestScore)
+          || actionScore
+                  .getValue()
+                  .equals(highestScore) // note: we break ties for scores by action name
               && actionScore.getKey().compareTo(highestScoredAction) < 0) {
         highestScore = actionScore.getValue();
         highestScoredAction = actionScore.getKey();
@@ -116,7 +118,7 @@ public class BanditEvaluator {
         continue;
       }
 
-      // Compute weight and round to four decimal places
+      // Compute weight (probability)
       double unboundedProbability =
           1 / (actionScores.size() + (gamma * (highestScore - actionScore.getValue())));
       double boundedProbability = Math.max(unboundedProbability, actionProbabilityFloor);
@@ -135,8 +137,7 @@ public class BanditEvaluator {
       String flagKey, String subjectKey, Map<String, Double> actionWeights) {
     // Deterministically "shuffle" the actions
     // This way as action weights shift, a bunch of users who were on the edge of one action won't
-    // all be shifted to the
-    // same new action at the same time.
+    // all be shifted to the same new action at the same time.
     List<String> shuffledActionKeys =
         actionWeights.keySet().stream()
             .sorted(
