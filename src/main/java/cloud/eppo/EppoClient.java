@@ -420,16 +420,17 @@ public class EppoClient {
       String assignedVariation =
           getStringAssignment(
               flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
-      result =
-          new BanditResult(
-              assignedVariation,
-              null); // Update result to reflect that we've been assigned a variation
+
+      // Update result to reflect that we've been assigned a variation
+      result = new BanditResult(assignedVariation, null);
+
       String banditKey = configurationStore.banditKeyForVariation(flagKey, assignedVariation);
       if (banditKey != null && !actions.isEmpty()) {
         BanditParameters banditParameters = configurationStore.getBanditParameters(banditKey);
         BanditEvaluationResult banditResult =
             BanditEvaluator.evaluateBandit(
                 flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
+
         if (banditLogger != null) {
           BanditAssignment banditAssignment =
               new BanditAssignment(
@@ -445,13 +446,12 @@ public class EppoClient {
                   banditResult.getActionAttributes().getNumericAttributes(),
                   banditResult.getActionAttributes().getCategoricalAttributes(),
                   buildLogMetaData());
+
           banditLogger.logBanditAssignment(banditAssignment);
         }
-        result =
-            new BanditResult(
-                assignedVariation,
-                banditResult
-                    .getActionKey()); // Update result to reflect that we've been assigned an action
+
+        // Update result to reflect that we've been assigned an action
+        result = new BanditResult(assignedVariation, banditResult.getActionKey());
       }
       return result;
     } catch (Exception e) {
