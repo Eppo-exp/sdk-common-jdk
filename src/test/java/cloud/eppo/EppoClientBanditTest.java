@@ -24,10 +24,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class EppoClientBanditTest {
@@ -130,9 +127,9 @@ public class EppoClientBanditTest {
   }
 
   @Test
-  public void testBanditLogging() {
+  public void testBanditLogsAction() {
     String flagKey = "banner_bandit_flag";
-    String subjectKey = "bot";
+    String subjectKey = "bob";
     Attributes subjectAttributes = new Attributes();
     subjectAttributes.put("age", 25);
     subjectAttributes.put("country", "USA");
@@ -209,6 +206,55 @@ public class EppoClientBanditTest {
     assertEquals(expectedActionCategoricalAttributes, capturedBanditAssignment.getActionCategoricalAttributes());
 
     assertEquals("false", capturedBanditAssignment.getMetaData().get("obfuscated"));
+  }
+
+  @Test
+  public void testNoBanditLogsWhenNotBandit() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "anthony";
+    Attributes subjectAttributes = new Attributes();
+
+    BanditActions actions = new BanditActions();
+    actions.put("nike", new Attributes());
+    actions.put("adidas", new Attributes());
+
+    BanditResult banditResult = EppoClient.getInstance().getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "default");
+
+    // Verify assignment
+    assertEquals("control", banditResult.getVariation());
+    assertNull(banditResult.getAction());
+
+    // Assignment won't log because the "analysis" allocation has doLog set to false
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(0)).logAssignment(assignmentLogCaptor.capture());
+    // Bandit won't log because no bandit action was taken
+    ArgumentCaptor<BanditAssignment> banditLogCaptor = ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(0)).logBanditAssignment(banditLogCaptor.capture());
+  }
+
+  @Test
+  public void testNoBanditLogsWhenNoActions() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = new BanditActions();
+
+    BanditResult banditResult = EppoClient.getInstance().getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    // Verify assignment
+    assertEquals("banner_bandit", banditResult.getVariation());
+    assertNull(banditResult.getAction());
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+
+    // Verify bandit log
+    ArgumentCaptor<BanditAssignment> banditLogCaptor = ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(0)).logBanditAssignment(banditLogCaptor.capture());
   }
 
   private static SimpleModule module() {
