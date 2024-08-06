@@ -8,11 +8,7 @@ public class BanditTestCase {
   private final List<SubjectBanditAssignment> subjects;
   private String fileName;
 
-  public BanditTestCase(
-      String flag,
-      String defaultValue,
-      List<SubjectBanditAssignment> subjects
-  ) {
+  public BanditTestCase(String flag, String defaultValue, List<SubjectBanditAssignment> subjects) {
     this.flag = flag;
     this.defaultValue = defaultValue;
     this.subjects = subjects;

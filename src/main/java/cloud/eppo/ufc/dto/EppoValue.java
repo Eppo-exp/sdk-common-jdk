@@ -118,11 +118,11 @@ public class EppoValue {
       return false;
     }
     EppoValue otherEppoValue = (EppoValue) otherObject;
-    return type == otherEppoValue.type &&
-      Objects.equals(boolValue, otherEppoValue.boolValue) &&
-      Objects.equals(doubleValue, otherEppoValue.doubleValue) &&
-      Objects.equals(stringValue, otherEppoValue.stringValue) &&
-      Objects.equals(stringArrayValue, otherEppoValue.stringArrayValue);
+    return type == otherEppoValue.type
+        && Objects.equals(boolValue, otherEppoValue.boolValue)
+        && Objects.equals(doubleValue, otherEppoValue.doubleValue)
+        && Objects.equals(stringValue, otherEppoValue.stringValue)
+        && Objects.equals(stringArrayValue, otherEppoValue.stringArrayValue);
   }
 
   @Override

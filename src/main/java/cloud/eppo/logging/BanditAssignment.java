@@ -1,7 +1,6 @@
 package cloud.eppo.logging;
 
 import cloud.eppo.ufc.dto.Attributes;
-
 import java.util.Date;
 import java.util.Map;
 
@@ -32,8 +31,7 @@ public class BanditAssignment {
       Attributes subjectCategoricalAttributes,
       Attributes actionNumericAttributes,
       Attributes actionCategoricalAttributes,
-      Map<String, String> metaData
-    ) {
+      Map<String, String> metaData) {
     this.timestamp = new Date();
     this.featureFlag = featureFlag;
     this.bandit = bandit;

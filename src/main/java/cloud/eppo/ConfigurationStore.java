@@ -4,12 +4,10 @@ import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,12 +60,14 @@ public class ConfigurationStore {
   }
 
   public String banditKeyForVariation(String flagKey, String variationValue) {
-    // Note: In practice this double loop should be quite quick as the number of bandits and bandit variations will be small
+    // Note: In practice this double loop should be quite quick as the number of bandits and bandit
+    // variations will be small
     //       Should this ever change, we can optimize things.
     for (Map.Entry<String, BanditReference> banditEntry : banditReferences.entrySet()) {
       BanditReference banditReference = banditEntry.getValue();
       for (BanditFlagVariation banditFlagVariation : banditReference.getFlagVariations()) {
-        if (banditFlagVariation.getFlagKey().equals(flagKey) && banditFlagVariation.getVariationValue().equals(variationValue)) {
+        if (banditFlagVariation.getFlagKey().equals(flagKey)
+            && banditFlagVariation.getVariationValue().equals(variationValue)) {
           return banditEntry.getKey();
         }
       }
@@ -76,7 +76,9 @@ public class ConfigurationStore {
   }
 
   public Set<String> banditModelVersions() {
-    return banditReferences.values().stream().map(BanditReference::getModelVersion).collect(Collectors.toSet());
+    return banditReferences.values().stream()
+        .map(BanditReference::getModelVersion)
+        .collect(Collectors.toSet());
   }
 
   public void setBanditParametersFromJsonString(String jsonString) {

@@ -16,8 +16,8 @@ import cloud.eppo.helpers.SubjectAssignment;
 import cloud.eppo.helpers.TestCaseValue;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.Attributes;
+import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Stream;
-
 import okhttp3.*;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,7 +139,7 @@ public class EppoClientTest {
               eppoClient.getIntegerAssignment(
                   flagKey,
                   subjectKey,
-                attributes,
+                  attributes,
                   Double.valueOf(defaultValue.doubleValue()).intValue());
           assertAssignment(flagKey, subjectAssignment, intAssignment);
           break;
@@ -192,13 +191,13 @@ public class EppoClientTest {
             + expectedSubjectAssignment.getSubjectKey();
 
     if (assignment instanceof Boolean) {
-      assertEquals(expectedSubjectAssignment.getAssignment().booleanValue(), assignment, failureMessage);
+      assertEquals(
+          expectedSubjectAssignment.getAssignment().booleanValue(), assignment, failureMessage);
     } else if (assignment instanceof Integer) {
       assertEquals(
           Double.valueOf(expectedSubjectAssignment.getAssignment().doubleValue()).intValue(),
           assignment,
-          failureMessage
-        );
+          failureMessage);
     } else if (assignment instanceof Double) {
       assertEquals(
           expectedSubjectAssignment.getAssignment().doubleValue(),
@@ -212,8 +211,7 @@ public class EppoClientTest {
       assertEquals(
           expectedSubjectAssignment.getAssignment().jsonValue().toString(),
           assignment.toString(),
-          failureMessage
-        );
+          failureMessage);
     } else {
       throw new IllegalArgumentException(
           "Unexpected assignment type " + assignment.getClass().getCanonicalName());
@@ -236,12 +234,10 @@ public class EppoClientTest {
             any(VariationType.class));
 
     assertTrue(spyClient.getBooleanAssignment("experiment1", "subject1", true));
-    assertFalse(
-        spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
+    assertFalse(spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
 
     assertEquals(10, spyClient.getIntegerAssignment("experiment1", "subject1", 10));
-    assertEquals(
-        0, spyClient.getIntegerAssignment("experiment1", "subject1", new Attributes(), 0));
+    assertEquals(0, spyClient.getIntegerAssignment("experiment1", "subject1", new Attributes(), 0));
 
     assertEquals(1.2345, spyClient.getDoubleAssignment("experiment1", "subject1", 1.2345), 0.0001);
     assertEquals(
@@ -267,8 +263,7 @@ public class EppoClientTest {
     assertEquals(
         mapper.readTree("{}").toString(),
         spyClient
-            .getJSONAssignment(
-                "subject1", "experiment1", new Attributes(), mapper.readTree("{}"))
+            .getJSONAssignment("subject1", "experiment1", new Attributes(), mapper.readTree("{}"))
             .toString());
   }
 
@@ -292,33 +287,28 @@ public class EppoClientTest {
         () -> spyClient.getBooleanAssignment("experiment1", "subject1", true));
     assertThrows(
         RuntimeException.class,
-        () ->
-            spyClient.getBooleanAssignment(
-                "experiment1", "subject1", new Attributes(), false));
+        () -> spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
 
     assertThrows(
         RuntimeException.class,
         () -> spyClient.getIntegerAssignment("experiment1", "subject1", 10));
     assertThrows(
         RuntimeException.class,
-        () ->
-            spyClient.getIntegerAssignment("experiment1", "subject1", new Attributes(), 0));
+        () -> spyClient.getIntegerAssignment("experiment1", "subject1", new Attributes(), 0));
 
     assertThrows(
         RuntimeException.class,
         () -> spyClient.getDoubleAssignment("experiment1", "subject1", 1.2345));
     assertThrows(
         RuntimeException.class,
-        () ->
-            spyClient.getDoubleAssignment("experiment1", "subject1", new Attributes(), 0.0));
+        () -> spyClient.getDoubleAssignment("experiment1", "subject1", new Attributes(), 0.0));
 
     assertThrows(
         RuntimeException.class,
         () -> spyClient.getStringAssignment("experiment1", "subject1", "default"));
     assertThrows(
         RuntimeException.class,
-        () ->
-            spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
+        () -> spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
 
     assertThrows(
         RuntimeException.class,
@@ -353,8 +343,7 @@ public class EppoClientTest {
     attributes.put("age", EppoValue.valueOf(30));
     attributes.put("employer", EppoValue.valueOf("Eppo"));
     double assignment =
-        EppoClient.getInstance()
-            .getDoubleAssignment("numeric_flag", "alice", attributes, 0.0);
+        EppoClient.getInstance().getDoubleAssignment("numeric_flag", "alice", attributes, 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
 
@@ -389,28 +378,27 @@ public class EppoClientTest {
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     // Mock sync get
-    Response dummyResponse = new Response.Builder()
-      // Used by test
-      .code(200)
-      .body(ResponseBody.create(responseBody, MediaType.get("application/json")))
-      // Below properties are required to build the Response (but unused)
-      .request(new Request.Builder()
-        .url(TEST_HOST)
-        .build())
-      .protocol(Protocol.HTTP_1_1)
-      .message("OK")
-      .build();
+    Response dummyResponse =
+        new Response.Builder()
+            // Used by test
+            .code(200)
+            .body(ResponseBody.create(responseBody, MediaType.get("application/json")))
+            // Below properties are required to build the Response (but unused)
+            .request(new Request.Builder().url(TEST_HOST).build())
+            .protocol(Protocol.HTTP_1_1)
+            .message("OK")
+            .build();
     when(mockHttpClient.get(anyString())).thenReturn(dummyResponse);
 
     // Mock async get
     doAnswer(
-      invocation -> {
-        RequestCallback callback = invocation.getArgument(1);
-        callback.onSuccess(responseBody);
-        return null; // doAnswer doesn't require a return value
-      })
-      .when(mockHttpClient)
-      .get(anyString(), any(RequestCallback.class));
+            invocation -> {
+              RequestCallback callback = invocation.getArgument(1);
+              callback.onSuccess(responseBody);
+              return null; // doAnswer doesn't require a return value
+            })
+        .when(mockHttpClient)
+        .get(anyString(), any(RequestCallback.class));
 
     setHttpClientOverrideField(mockHttpClient);
   }

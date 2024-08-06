@@ -5,18 +5,19 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class BanditParametersResponseDeserializer extends StdDeserializer<BanditParametersResponse> {
-  private static final Logger log = LoggerFactory.getLogger(BanditParametersResponseDeserializer.class);
+public class BanditParametersResponseDeserializer
+    extends StdDeserializer<BanditParametersResponse> {
+  private static final Logger log =
+      LoggerFactory.getLogger(BanditParametersResponseDeserializer.class);
 
   // Note: public default constructor is required by Jackson
   public BanditParametersResponseDeserializer() {
@@ -28,7 +29,8 @@ public class BanditParametersResponseDeserializer extends StdDeserializer<Bandit
   }
 
   @Override
-  public BanditParametersResponse deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
+  public BanditParametersResponse deserialize(
+      JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
     JsonNode rootNode = jsonParser.getCodec().readTree(jsonParser);
     if (rootNode == null || !rootNode.isObject()) {
       log.warn("no top-level JSON object");

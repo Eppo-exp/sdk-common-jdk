@@ -1,16 +1,15 @@
 package cloud.eppo.ufc.deserializer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
 
 class BanditParametersResponseDeserializerTest {
   private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());

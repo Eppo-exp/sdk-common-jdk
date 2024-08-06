@@ -8,7 +8,7 @@ public class SubjectAssignment {
   private final TestCaseValue assignment;
 
   public SubjectAssignment(
-    String subjectKey, Attributes subjectAttributes, TestCaseValue assignment) {
+      String subjectKey, Attributes subjectAttributes, TestCaseValue assignment) {
     this.subjectKey = subjectKey;
     this.subjectAttributes = subjectAttributes;
     this.assignment = assignment;

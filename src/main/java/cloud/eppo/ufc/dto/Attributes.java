@@ -40,9 +40,9 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
   @Override
   public Attributes getNumericAttributes() {
     Map<String, EppoValue> numericValuesOnly =
-      super.entrySet().stream().filter(
-        entry -> entry.getValue().isNumeric()
-      ).collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        super.entrySet().stream()
+            .filter(entry -> entry.getValue().isNumeric())
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
     return new Attributes(numericValuesOnly);
   }
@@ -50,9 +50,9 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
   @Override
   public Attributes getCategoricalAttributes() {
     Map<String, EppoValue> nonNullNonNumericValuesOnly =
-      super.entrySet().stream().filter(
-        entry -> !entry.getValue().isNumeric() && !entry.getValue().isNull()
-      ).collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        super.entrySet().stream()
+            .filter(entry -> !entry.getValue().isNumeric() && !entry.getValue().isNull())
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
     return new Attributes(nonNullNonNumericValuesOnly);
   }

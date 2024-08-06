@@ -7,7 +7,8 @@ public class FlagConfigResponse {
   private final Map<String, FlagConfig> flags;
   private final Map<String, BanditReference> banditReferences;
 
-  public FlagConfigResponse(Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
+  public FlagConfigResponse(
+      Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
     this.flags = flags;
     this.banditReferences = banditReferences;
   }

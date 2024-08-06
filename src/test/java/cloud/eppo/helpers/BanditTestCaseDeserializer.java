@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-
 import java.io.IOException;
 import java.util.*;
 
@@ -23,7 +22,8 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
     JsonNode rootNode = parser.getCodec().readTree(parser);
     String flag = rootNode.get("flag").asText();
     String defaultValue = rootNode.get("defaultValue").asText();
-    List<SubjectBanditAssignment> subjects = deserializeSubjectBanditAssignments(rootNode.get("subjects"));
+    List<SubjectBanditAssignment> subjects =
+        deserializeSubjectBanditAssignments(rootNode.get("subjects"));
     return new BanditTestCase(flag, defaultValue, subjects);
   }
 
@@ -35,17 +35,21 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
         JsonNode attributesNode = subjectAssignmentNode.get("subjectAttributes");
         ContextAttributes attributes = new ContextAttributes();
         if (attributesNode != null && attributesNode.isObject()) {
-          Attributes numericAttributes = deserializeAttributes(attributesNode.get("numericAttributes"));
-          Attributes categoricalAttributes = deserializeAttributes(attributesNode.get("categoricalAttributes"));
+          Attributes numericAttributes =
+              deserializeAttributes(attributesNode.get("numericAttributes"));
+          Attributes categoricalAttributes =
+              deserializeAttributes(attributesNode.get("categoricalAttributes"));
           attributes = new ContextAttributes(numericAttributes, categoricalAttributes);
         }
         Actions actions = deserializeActions(subjectAssignmentNode.get("actions"));
         JsonNode assignmentNode = subjectAssignmentNode.get("assignment");
         String variationAssignment = assignmentNode.get("variation").asText();
         JsonNode actionAssignmentNode = assignmentNode.get("action");
-        String actionAssignment = actionAssignmentNode.isNull() ? null : actionAssignmentNode.asText();
+        String actionAssignment =
+            actionAssignmentNode.isNull() ? null : actionAssignmentNode.asText();
         BanditResult assignment = new BanditResult(variationAssignment, actionAssignment);
-        subjectAssignments.add(new SubjectBanditAssignment(subjectKey, attributes, actions, assignment));
+        subjectAssignments.add(
+            new SubjectBanditAssignment(subjectKey, attributes, actions, assignment));
       }
     }
 
@@ -71,8 +75,10 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
       for (JsonNode actionNode : jsonNode) {
         String actionKey = actionNode.get("actionKey").asText();
         Attributes numericAttributes = deserializeAttributes(actionNode.get("numericAttributes"));
-        Attributes categoricalAttributes = deserializeAttributes(actionNode.get("categoricalAttributes"));
-        ContextAttributes attributes = new ContextAttributes(numericAttributes, categoricalAttributes);
+        Attributes categoricalAttributes =
+            deserializeAttributes(actionNode.get("categoricalAttributes"));
+        ContextAttributes attributes =
+            new ContextAttributes(numericAttributes, categoricalAttributes);
         actions.put(actionKey, attributes);
       }
     }

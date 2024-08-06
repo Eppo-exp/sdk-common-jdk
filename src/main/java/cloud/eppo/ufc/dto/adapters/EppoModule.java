@@ -10,7 +10,8 @@ public class EppoModule {
   public static SimpleModule eppoModule() {
     SimpleModule module = new SimpleModule();
     module.addDeserializer(FlagConfigResponse.class, new FlagConfigResponseDeserializer());
-    module.addDeserializer(BanditParametersResponse.class, new BanditParametersResponseDeserializer());
+    module.addDeserializer(
+        BanditParametersResponse.class, new BanditParametersResponseDeserializer());
     module.addDeserializer(EppoValue.class, new EppoValueDeserializer());
     module.addSerializer(EppoValue.class, new EppoValueSerializer());
     module.addSerializer(Date.class, new DateSerializer());

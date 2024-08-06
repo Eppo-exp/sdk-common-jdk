@@ -1,5 +1,8 @@
 package cloud.eppo;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -8,6 +11,10 @@ import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,17 +27,10 @@ import org.mockito.MockedStatic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 public class EppoClientBanditTest {
   private static final Logger log = LoggerFactory.getLogger(EppoClientBanditTest.class);
-  private static final String DUMMY_BANDIT_API_KEY = "dummy-bandits-api-key"; // Will load bandit-flags-v1
+  private static final String DUMMY_BANDIT_API_KEY =
+      "dummy-bandits-api-key"; // Will load bandit-flags-v1
   private static final String TEST_HOST =
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
   private static final ObjectMapper mapper = new ObjectMapper().registerModule(module());
@@ -45,14 +45,14 @@ public class EppoClientBanditTest {
   public static void initClient() {
 
     new EppoClient.Builder()
-      .apiKey(DUMMY_BANDIT_API_KEY)
-      .sdkName("java")
-      .sdkVersion("3.0.0")
-      .isGracefulMode(false)
-      .host(TEST_HOST)
-      .assignmentLogger(mockAssignmentLogger)
-      .banditLogger(mockBanditLogger)
-      .buildAndInit();
+        .apiKey(DUMMY_BANDIT_API_KEY)
+        .sdkName("java")
+        .sdkVersion("3.0.0")
+        .isGracefulMode(false)
+        .host(TEST_HOST)
+        .assignmentLogger(mockAssignmentLogger)
+        .banditLogger(mockBanditLogger)
+        .buildAndInit();
 
     log.info("Test client initialized");
   }
@@ -104,28 +104,37 @@ public class EppoClientBanditTest {
       String subjectKey = subjectAssignment.getSubjectKey();
       ContextAttributes attributes = subjectAssignment.getSubjectAttributes();
       Actions actions = subjectAssignment.getActions();
-      BanditResult assignment = EppoClient.getInstance().getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
+      BanditResult assignment =
+          EppoClient.getInstance()
+              .getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
       assertBanditAssignment(flagKey, subjectAssignment, assignment);
     }
   }
 
   /** Helper method for asserting a subject assignment with a useful failure message. */
-  private void assertBanditAssignment(String flagKey, SubjectBanditAssignment expectedSubjectAssignment, BanditResult assignment) {
+  private void assertBanditAssignment(
+      String flagKey, SubjectBanditAssignment expectedSubjectAssignment, BanditResult assignment) {
     String failureMessage =
-      "Incorrect "
-        + flagKey
-        + " variation assignment for subject "
-        + expectedSubjectAssignment.getSubjectKey();
+        "Incorrect "
+            + flagKey
+            + " variation assignment for subject "
+            + expectedSubjectAssignment.getSubjectKey();
 
-    assertEquals(expectedSubjectAssignment.getAssignment().getVariation(), assignment.getVariation(), failureMessage);
+    assertEquals(
+        expectedSubjectAssignment.getAssignment().getVariation(),
+        assignment.getVariation(),
+        failureMessage);
 
     failureMessage =
-      "Incorrect "
-        + flagKey
-        + " action assignment for subject "
-        + expectedSubjectAssignment.getSubjectKey();
+        "Incorrect "
+            + flagKey
+            + " action assignment for subject "
+            + expectedSubjectAssignment.getSubjectKey();
 
-    assertEquals(expectedSubjectAssignment.getAssignment().getAction(), assignment.getAction(), failureMessage);
+    assertEquals(
+        expectedSubjectAssignment.getAssignment().getAction(),
+        assignment.getAction(),
+        failureMessage);
   }
 
   @Test
@@ -154,8 +163,9 @@ public class EppoClientBanditTest {
     rebookAttributes.put("loyalty_tier", "gold");
     actions.put("reebok", rebookAttributes);
 
-    BanditResult banditResult = EppoClient.getInstance().getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
-
+    BanditResult banditResult =
+        EppoClient.getInstance()
+            .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     // Verify assignment
     assertEquals("banner_bandit", banditResult.getVariation());
@@ -178,7 +188,8 @@ public class EppoClientBanditTest {
     assertEquals("false", capturedAssignment.getMetaData().get("obfuscated"));
 
     // Verify bandit log
-    ArgumentCaptor<BanditAssignment> banditLogCaptor = ArgumentCaptor.forClass(BanditAssignment.class);
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
     BanditAssignment capturedBanditAssignment = banditLogCaptor.getValue();
     assertTrue(capturedBanditAssignment.getTimestamp().after(testStart));
@@ -192,20 +203,26 @@ public class EppoClientBanditTest {
 
     Attributes expectedSubjectNumericAttributes = new Attributes();
     expectedSubjectNumericAttributes.put("age", 25);
-    assertEquals(expectedSubjectNumericAttributes, capturedBanditAssignment.getSubjectNumericAttributes());
+    assertEquals(
+        expectedSubjectNumericAttributes, capturedBanditAssignment.getSubjectNumericAttributes());
 
     Attributes expectedSubjectCategoricalAttributes = new Attributes();
     expectedSubjectCategoricalAttributes.put("country", "USA");
     expectedSubjectCategoricalAttributes.put("gender_identity", "female");
-    assertEquals(expectedSubjectCategoricalAttributes, capturedBanditAssignment.getSubjectCategoricalAttributes());
+    assertEquals(
+        expectedSubjectCategoricalAttributes,
+        capturedBanditAssignment.getSubjectCategoricalAttributes());
 
     Attributes expectedActionNumericAttributes = new Attributes();
     expectedActionNumericAttributes.put("brand_affinity", -1.0);
-    assertEquals(expectedActionNumericAttributes, capturedBanditAssignment.getActionNumericAttributes());
+    assertEquals(
+        expectedActionNumericAttributes, capturedBanditAssignment.getActionNumericAttributes());
 
     Attributes expectedActionCategoricalAttributes = new Attributes();
     expectedActionCategoricalAttributes.put("loyalty_tier", "bronze");
-    assertEquals(expectedActionCategoricalAttributes, capturedBanditAssignment.getActionCategoricalAttributes());
+    assertEquals(
+        expectedActionCategoricalAttributes,
+        capturedBanditAssignment.getActionCategoricalAttributes());
 
     assertEquals("false", capturedBanditAssignment.getMetaData().get("obfuscated"));
   }
@@ -220,7 +237,9 @@ public class EppoClientBanditTest {
     actions.put("nike", new Attributes());
     actions.put("adidas", new Attributes());
 
-    BanditResult banditResult = EppoClient.getInstance().getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "default");
+    BanditResult banditResult =
+        EppoClient.getInstance()
+            .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "default");
 
     // Verify assignment
     assertEquals("control", banditResult.getVariation());
@@ -230,7 +249,8 @@ public class EppoClientBanditTest {
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(0)).logAssignment(assignmentLogCaptor.capture());
     // Bandit won't log because no bandit action was taken
-    ArgumentCaptor<BanditAssignment> banditLogCaptor = ArgumentCaptor.forClass(BanditAssignment.class);
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(0)).logBanditAssignment(banditLogCaptor.capture());
   }
 
@@ -245,7 +265,9 @@ public class EppoClientBanditTest {
 
     BanditActions actions = new BanditActions();
 
-    BanditResult banditResult = EppoClient.getInstance().getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+    BanditResult banditResult =
+        EppoClient.getInstance()
+            .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     // Verify assignment
     assertEquals("banner_bandit", banditResult.getVariation());
@@ -255,23 +277,32 @@ public class EppoClientBanditTest {
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
 
     // Verify bandit log
-    ArgumentCaptor<BanditAssignment> banditLogCaptor = ArgumentCaptor.forClass(BanditAssignment.class);
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(0)).logBanditAssignment(banditLogCaptor.capture());
   }
 
   @Test
   public void testBanditErrorGracefulModeOff() {
-    EppoClient.getInstance().setIsGracefulFailureMode(false); // Should be set by @BeforeEach but repeated here for test clarity
+    EppoClient.getInstance()
+        .setIsGracefulFailureMode(
+            false); // Should be set by @BeforeEach but repeated here for test clarity
     try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
       // Configure the mock to throw an exception
-      mockedStatic.when(() -> BanditEvaluator.evaluateBandit(anyString(), anyString(), any(), any(), any()))
-        .thenThrow(new RuntimeException("Intentional Bandit Error"));
+      mockedStatic
+          .when(() -> BanditEvaluator.evaluateBandit(anyString(), anyString(), any(), any(), any()))
+          .thenThrow(new RuntimeException("Intentional Bandit Error"));
 
       // Assert that the exception is thrown when the method is called
       BanditActions actions = new BanditActions();
       actions.put("nike", new Attributes());
       actions.put("adidas", new Attributes());
-      assertThrows(RuntimeException.class, () -> EppoClient.getInstance().getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default"));
+      assertThrows(
+          RuntimeException.class,
+          () ->
+              EppoClient.getInstance()
+                  .getBanditAction(
+                      "banner_bandit_flag", "subject", new Attributes(), actions, "default"));
     }
   }
 
@@ -280,14 +311,18 @@ public class EppoClientBanditTest {
     EppoClient.getInstance().setIsGracefulFailureMode(true);
     try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
       // Configure the mock to throw an exception
-      mockedStatic.when(() -> BanditEvaluator.evaluateBandit(anyString(), anyString(), any(), any(), any()))
-        .thenThrow(new RuntimeException("Intentional Bandit Error"));
+      mockedStatic
+          .when(() -> BanditEvaluator.evaluateBandit(anyString(), anyString(), any(), any(), any()))
+          .thenThrow(new RuntimeException("Intentional Bandit Error"));
 
       // Assert that the exception is thrown when the method is called
       BanditActions actions = new BanditActions();
       actions.put("nike", new Attributes());
       actions.put("adidas", new Attributes());
-      BanditResult banditResult = EppoClient.getInstance().getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default");
+      BanditResult banditResult =
+          EppoClient.getInstance()
+              .getBanditAction(
+                  "banner_bandit_flag", "subject", new Attributes(), actions, "default");
       assertEquals("banner_bandit", banditResult.getVariation());
       assertNull(banditResult.getAction());
     }

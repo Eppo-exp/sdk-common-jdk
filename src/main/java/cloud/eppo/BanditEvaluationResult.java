@@ -15,16 +15,15 @@ public class BanditEvaluationResult {
   private final double optimalityGap;
 
   public BanditEvaluationResult(
-    String flagKey,
-    String subjectKey,
-    DiscriminableAttributes subjectAttributes,
-    String actionKey,
-    DiscriminableAttributes actionAttributes,
-    double actionScore,
-    double actionWeight,
-    double gamma,
-    double optimalityGap
-  ) {
+      String flagKey,
+      String subjectKey,
+      DiscriminableAttributes subjectAttributes,
+      String actionKey,
+      DiscriminableAttributes actionAttributes,
+      double actionScore,
+      double actionWeight,
+      double gamma,
+      double optimalityGap) {
     this.flagKey = flagKey;
     this.subjectKey = subjectKey;
     this.subjectAttributes = subjectAttributes;

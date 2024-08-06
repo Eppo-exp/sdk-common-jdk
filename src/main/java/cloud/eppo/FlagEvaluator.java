@@ -5,11 +5,11 @@ import static cloud.eppo.Utils.base64Decode;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.Shard;
 import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.HashMap;
@@ -59,7 +59,7 @@ public class FlagEvaluator {
       if (allocation.getRules() != null
           && !allocation.getRules().isEmpty()
           && RuleEvaluator.findMatchingRule(
-        attributesToEvaluate, allocation.getRules(), isConfigObfuscated)
+                  attributesToEvaluate, allocation.getRules(), isConfigObfuscated)
               == null) {
         // Rules are defined, but none match
         continue;

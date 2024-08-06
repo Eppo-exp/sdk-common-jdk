@@ -12,8 +12,7 @@ public class BanditFlagVariation {
       String flagKey,
       String allocationKey,
       String variationKey,
-      String variationValue
-  ) {
+      String variationValue) {
     this.banditKey = banditKey;
     this.flagKey = flagKey;
     this.allocationKey = allocationKey;

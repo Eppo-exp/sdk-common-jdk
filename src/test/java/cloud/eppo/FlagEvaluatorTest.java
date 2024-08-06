@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.OperatorType;
 import cloud.eppo.ufc.dto.Shard;
 import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;
 import cloud.eppo.ufc.dto.Variation;
@@ -353,8 +353,7 @@ public class FlagEvaluatorTest {
     assertEquals("A", result.getVariation().getValue().stringValue());
 
     result =
-        FlagEvaluator.evaluateFlag(
-            obfuscatedFlag, "flag", "subjectKey", new Attributes(), true);
+        FlagEvaluator.evaluateFlag(obfuscatedFlag, "flag", "subjectKey", new Attributes(), true);
     assertEquals("A", result.getVariation().getValue().stringValue());
   }
 

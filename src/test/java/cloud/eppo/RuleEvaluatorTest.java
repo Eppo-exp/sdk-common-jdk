@@ -3,9 +3,9 @@ package cloud.eppo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;
 import java.util.Arrays;
@@ -142,8 +142,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("price", 15);
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -156,8 +155,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("appVersion", "1.15.5");
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -183,8 +181,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("match", EppoValue.valueOf("test@example.com"));
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -210,8 +207,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("oneOf", EppoValue.valueOf("value3"));
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -237,8 +233,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("oneOf", EppoValue.valueOf("value1"));
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -251,8 +246,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("oneOf", EppoValue.valueOf(2));
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -265,8 +259,7 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("oneOf", EppoValue.valueOf(1.5));
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 
   @Test
@@ -279,7 +272,6 @@ public class RuleEvaluatorTest {
     Attributes attributes = new Attributes();
     attributes.put("oneOf", EppoValue.valueOf(true));
 
-    assertEquals(
-        targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
   }
 }

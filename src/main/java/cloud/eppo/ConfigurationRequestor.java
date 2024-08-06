@@ -1,11 +1,9 @@
 package cloud.eppo;
 
 import cloud.eppo.ufc.dto.FlagConfig;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-
 import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +39,7 @@ public class ConfigurationRequestor {
   private String requestBody(String route) {
     Response response = client.get(route);
     if (!response.isSuccessful() || response.body() == null) {
-      throw new RuntimeException("Failed to fetch from "+route);
+      throw new RuntimeException("Failed to fetch from " + route);
     }
     try {
       return response.body().string();

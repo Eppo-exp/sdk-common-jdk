@@ -1,6 +1,5 @@
 package cloud.eppo.logging;
 
-import cloud.eppo.Utils;
 import cloud.eppo.ufc.dto.Attributes;
 import java.util.Date;
 import java.util.Map;
@@ -17,14 +16,14 @@ public class Assignment {
   private final Map<String, String> metaData;
 
   public Assignment(
-    String experiment,
-    String featureFlag,
-    String allocation,
-    String variation,
-    String subject,
-    Attributes attributes,
-    Map<String, String> extraLogging,
-    Map<String, String> metaData) {
+      String experiment,
+      String featureFlag,
+      String allocation,
+      String variation,
+      String subject,
+      Attributes attributes,
+      Map<String, String> extraLogging,
+      Map<String, String> metaData) {
     this.timestamp = new Date();
     this.experiment = experiment;
     this.featureFlag = featureFlag;

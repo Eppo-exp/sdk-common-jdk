@@ -11,7 +11,7 @@ public class SubjectBanditAssignment {
   private final BanditResult assignment;
 
   public SubjectBanditAssignment(
-    String subjectKey, ContextAttributes attributes, Actions actions, BanditResult assignment) {
+      String subjectKey, ContextAttributes attributes, Actions actions, BanditResult assignment) {
     this.subjectKey = subjectKey;
     this.subjectAttributes = attributes;
     this.actions = actions;

@@ -9,7 +9,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,10 +49,13 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
 
     Map<String, FlagConfig> flags = new ConcurrentHashMap<>();
 
-    flagsNode.fields().forEachRemaining(field -> {
-      FlagConfig flagConfig = deserializeFlag(field.getValue());
-      flags.put(field.getKey(), flagConfig);
-    });
+    flagsNode
+        .fields()
+        .forEachRemaining(
+            field -> {
+              FlagConfig flagConfig = deserializeFlag(field.getValue());
+              flags.put(field.getKey(), flagConfig);
+            });
 
     Map<String, BanditReference> banditReferences = new ConcurrentHashMap<>();
     if (rootNode.has("banditReferences")) {
@@ -61,10 +63,13 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       if (!banditReferencesNode.isObject()) {
         log.warn("root-level banditReferences property is present but not a JSON object");
       }
-      banditReferencesNode.fields().forEachRemaining(field -> {
-        BanditReference banditReference = deserializeBanditReference(field.getValue());
-        banditReferences.put(field.getKey(), banditReference);
-      });
+      banditReferencesNode
+          .fields()
+          .forEachRemaining(
+              field -> {
+                BanditReference banditReference = deserializeBanditReference(field.getValue());
+                banditReferences.put(field.getKey(), banditReference);
+              });
     }
 
     return new FlagConfigResponse(flags, banditReferences);
@@ -187,7 +192,9 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
         String allocationKey = flagVariationNode.get("allocationKey").asText();
         String variationKey = flagVariationNode.get("variationKey").asText();
         String variationValue = flagVariationNode.get("variationValue").asText();
-        BanditFlagVariation flagVariation = new BanditFlagVariation(banditKey, flagKey, allocationKey, variationKey, variationValue);
+        BanditFlagVariation flagVariation =
+            new BanditFlagVariation(
+                banditKey, flagKey, allocationKey, variationKey, variationValue);
         flagVariations.add(flagVariation);
       }
     }
