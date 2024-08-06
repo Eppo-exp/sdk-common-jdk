@@ -363,8 +363,8 @@ public class EppoClientTest {
     assertEquals(subjectAttributes, capturedAssignment.getSubjectAttributes());
     assertEquals(new HashMap<>(), capturedAssignment.getExtraLogging());
     assertTrue(capturedAssignment.getTimestamp().after(testStart));
-    Date assertionDate = new Date();
-    assertTrue(capturedAssignment.getTimestamp().before(assertionDate));
+    Date inTheNearFuture = new Date(System.currentTimeMillis() + 1);
+    assertTrue(capturedAssignment.getTimestamp().before(inTheNearFuture));
 
     Map<String, String> expectedMeta = new HashMap<>();
     expectedMeta.put("obfuscated", "false");
