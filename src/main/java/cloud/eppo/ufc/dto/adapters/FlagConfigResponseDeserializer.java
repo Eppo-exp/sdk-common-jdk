@@ -62,14 +62,15 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       JsonNode banditReferencesNode = rootNode.get("banditReferences");
       if (!banditReferencesNode.isObject()) {
         log.warn("root-level banditReferences property is present but not a JSON object");
+      } else {
+        banditReferencesNode
+            .fields()
+            .forEachRemaining(
+                field -> {
+                  BanditReference banditReference = deserializeBanditReference(field.getValue());
+                  banditReferences.put(field.getKey(), banditReference);
+                });
       }
-      banditReferencesNode
-          .fields()
-          .forEachRemaining(
-              field -> {
-                BanditReference banditReference = deserializeBanditReference(field.getValue());
-                banditReferences.put(field.getKey(), banditReference);
-              });
     }
 
     return new FlagConfigResponse(flags, banditReferences);

@@ -4,13 +4,13 @@ import cloud.eppo.ufc.dto.Actions;
 import cloud.eppo.ufc.dto.BanditResult;
 import cloud.eppo.ufc.dto.ContextAttributes;
 
-public class SubjectBanditAssignment {
+public class BanditSubjectAssignment {
   private final String subjectKey;
   private final ContextAttributes subjectAttributes;
   private final Actions actions;
   private final BanditResult assignment;
 
-  public SubjectBanditAssignment(
+  public BanditSubjectAssignment(
       String subjectKey, ContextAttributes attributes, Actions actions, BanditResult assignment) {
     this.subjectKey = subjectKey;
     this.subjectAttributes = attributes;

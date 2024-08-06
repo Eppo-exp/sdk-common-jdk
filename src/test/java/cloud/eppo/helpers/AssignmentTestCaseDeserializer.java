@@ -38,21 +38,21 @@ public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTe
       for (JsonNode subjectAssignmentNode : jsonNode) {
         String subjectKey = subjectAssignmentNode.get("subjectKey").asText();
 
-        Attributes attributes = new Attributes();
+        Attributes subjectAttributes = new Attributes();
         JsonNode attributesNode = subjectAssignmentNode.get("subjectAttributes");
         if (attributesNode != null && attributesNode.isObject()) {
           for (Iterator<Map.Entry<String, JsonNode>> it = attributesNode.fields(); it.hasNext(); ) {
             Map.Entry<String, JsonNode> entry = it.next();
             String attributeName = entry.getKey();
             EppoValue attributeValue = eppoValueDeserializer.deserializeNode(entry.getValue());
-            attributes.put(attributeName, attributeValue);
+            subjectAttributes.put(attributeName, attributeValue);
           }
         }
 
         TestCaseValue assignment =
             deserializeTestCaseValue(subjectAssignmentNode.get("assignment"));
 
-        subjectAssignments.add(new SubjectAssignment(subjectKey, attributes, assignment));
+        subjectAssignments.add(new SubjectAssignment(subjectKey, subjectAttributes, assignment));
       }
     }
 

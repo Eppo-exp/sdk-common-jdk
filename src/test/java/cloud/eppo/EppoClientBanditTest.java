@@ -100,7 +100,7 @@ public class EppoClientBanditTest {
     String flagKey = testCase.getFlag();
     String defaultValue = testCase.getDefaultValue();
 
-    for (SubjectBanditAssignment subjectAssignment : testCase.getSubjects()) {
+    for (BanditSubjectAssignment subjectAssignment : testCase.getSubjects()) {
       String subjectKey = subjectAssignment.getSubjectKey();
       ContextAttributes attributes = subjectAssignment.getSubjectAttributes();
       Actions actions = subjectAssignment.getActions();
@@ -111,9 +111,9 @@ public class EppoClientBanditTest {
     }
   }
 
-  /** Helper method for asserting a subject assignment with a useful failure message. */
+  /** Helper method for asserting a bandit assignment with a useful failure message. */
   private void assertBanditAssignment(
-      String flagKey, SubjectBanditAssignment expectedSubjectAssignment, BanditResult assignment) {
+      String flagKey, BanditSubjectAssignment expectedSubjectAssignment, BanditResult assignment) {
     String failureMessage =
         "Incorrect "
             + flagKey
@@ -273,10 +273,11 @@ public class EppoClientBanditTest {
     assertEquals("banner_bandit", banditResult.getVariation());
     assertNull(banditResult.getAction());
 
+    // The variation assignment should have been logged
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
 
-    // Verify bandit log
+    // No bandit log since no actions to consider
     ArgumentCaptor<BanditAssignment> banditLogCaptor =
         ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(0)).logBanditAssignment(banditLogCaptor.capture());

@@ -5,10 +5,10 @@ import java.util.List;
 public class BanditTestCase {
   private final String flag;
   private final String defaultValue;
-  private final List<SubjectBanditAssignment> subjects;
+  private final List<BanditSubjectAssignment> subjects;
   private String fileName;
 
-  public BanditTestCase(String flag, String defaultValue, List<SubjectBanditAssignment> subjects) {
+  public BanditTestCase(String flag, String defaultValue, List<BanditSubjectAssignment> subjects) {
     this.flag = flag;
     this.defaultValue = defaultValue;
     this.subjects = subjects;
@@ -22,7 +22,7 @@ public class BanditTestCase {
     return defaultValue;
   }
 
-  public List<SubjectBanditAssignment> getSubjects() {
+  public List<BanditSubjectAssignment> getSubjects() {
     return subjects;
   }
 

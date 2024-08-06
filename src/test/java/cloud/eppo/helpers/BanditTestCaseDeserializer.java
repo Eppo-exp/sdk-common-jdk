@@ -22,13 +22,13 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
     JsonNode rootNode = parser.getCodec().readTree(parser);
     String flag = rootNode.get("flag").asText();
     String defaultValue = rootNode.get("defaultValue").asText();
-    List<SubjectBanditAssignment> subjects =
+    List<BanditSubjectAssignment> subjects =
         deserializeSubjectBanditAssignments(rootNode.get("subjects"));
     return new BanditTestCase(flag, defaultValue, subjects);
   }
 
-  private List<SubjectBanditAssignment> deserializeSubjectBanditAssignments(JsonNode jsonNode) {
-    List<SubjectBanditAssignment> subjectAssignments = new ArrayList<>();
+  private List<BanditSubjectAssignment> deserializeSubjectBanditAssignments(JsonNode jsonNode) {
+    List<BanditSubjectAssignment> subjectAssignments = new ArrayList<>();
     if (jsonNode != null && jsonNode.isArray()) {
       for (JsonNode subjectAssignmentNode : jsonNode) {
         String subjectKey = subjectAssignmentNode.get("subjectKey").asText();
@@ -49,24 +49,11 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
             actionAssignmentNode.isNull() ? null : actionAssignmentNode.asText();
         BanditResult assignment = new BanditResult(variationAssignment, actionAssignment);
         subjectAssignments.add(
-            new SubjectBanditAssignment(subjectKey, attributes, actions, assignment));
+            new BanditSubjectAssignment(subjectKey, attributes, actions, assignment));
       }
     }
 
     return subjectAssignments;
-  }
-
-  private Attributes deserializeAttributes(JsonNode jsonNode) {
-    Attributes attributes = new Attributes();
-    if (jsonNode != null && jsonNode.isObject()) {
-      for (Iterator<Map.Entry<String, JsonNode>> it = jsonNode.fields(); it.hasNext(); ) {
-        Map.Entry<String, JsonNode> entry = it.next();
-        String attributeName = entry.getKey();
-        EppoValue attributeValue = eppoValueDeserializer.deserializeNode(entry.getValue());
-        attributes.put(attributeName, attributeValue);
-      }
-    }
-    return attributes;
   }
 
   private Actions deserializeActions(JsonNode jsonNode) {
@@ -83,5 +70,18 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
       }
     }
     return actions;
+  }
+
+  private Attributes deserializeAttributes(JsonNode jsonNode) {
+    Attributes attributes = new Attributes();
+    if (jsonNode != null && jsonNode.isObject()) {
+      for (Iterator<Map.Entry<String, JsonNode>> it = jsonNode.fields(); it.hasNext(); ) {
+        Map.Entry<String, JsonNode> entry = it.next();
+        String attributeName = entry.getKey();
+        EppoValue attributeValue = eppoValueDeserializer.deserializeNode(entry.getValue());
+        attributes.put(attributeName, attributeValue);
+      }
+    }
+    return attributes;
   }
 }

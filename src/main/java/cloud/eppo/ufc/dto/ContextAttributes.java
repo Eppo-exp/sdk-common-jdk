@@ -5,9 +5,8 @@ import java.util.Map;
 
 public class ContextAttributes implements DiscriminableAttributes {
 
-  // TODO Not final and setters
-  private final Attributes numericAttributes;
-  private final Attributes categoricalAttributes;
+  private Attributes numericAttributes;
+  private Attributes categoricalAttributes;
 
   public ContextAttributes() {
     this(new Attributes(), new Attributes());
@@ -23,9 +22,17 @@ public class ContextAttributes implements DiscriminableAttributes {
     return numericAttributes;
   }
 
+  public void setNumericAttributes(Attributes numericAttributes) {
+    this.numericAttributes = numericAttributes;
+  }
+
   @Override
   public Attributes getCategoricalAttributes() {
     return categoricalAttributes;
+  }
+
+  public void setCategoricalAttributes(Attributes categoricalAttributes) {
+    this.categoricalAttributes = categoricalAttributes;
   }
 
   @Override

@@ -123,7 +123,7 @@ public class EppoClientTest {
 
     for (SubjectAssignment subjectAssignment : testCase.getSubjects()) {
       String subjectKey = subjectAssignment.getSubjectKey();
-      Attributes attributes = subjectAssignment.getSubjectAttributes();
+      Attributes subjectAttributes = subjectAssignment.getSubjectAttributes();
 
       // Depending on the variation type, we will need to change which assignment method we call and
       // how we get the default value
@@ -131,7 +131,7 @@ public class EppoClientTest {
         case BOOLEAN:
           boolean boolAssignment =
               eppoClient.getBooleanAssignment(
-                  flagKey, subjectKey, attributes, defaultValue.booleanValue());
+                  flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
           assertAssignment(flagKey, subjectAssignment, boolAssignment);
           break;
         case INTEGER:
@@ -139,26 +139,26 @@ public class EppoClientTest {
               eppoClient.getIntegerAssignment(
                   flagKey,
                   subjectKey,
-                  attributes,
+                  subjectAttributes,
                   Double.valueOf(defaultValue.doubleValue()).intValue());
           assertAssignment(flagKey, subjectAssignment, intAssignment);
           break;
         case NUMERIC:
           double doubleAssignment =
               eppoClient.getDoubleAssignment(
-                  flagKey, subjectKey, attributes, defaultValue.doubleValue());
+                  flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
           assertAssignment(flagKey, subjectAssignment, doubleAssignment);
           break;
         case STRING:
           String stringAssignment =
               eppoClient.getStringAssignment(
-                  flagKey, subjectKey, attributes, defaultValue.stringValue());
+                  flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
           assertAssignment(flagKey, subjectAssignment, stringAssignment);
           break;
         case JSON:
           JsonNode jsonAssignment =
               eppoClient.getJSONAssignment(
-                  flagKey, subjectKey, attributes, testCase.getDefaultValue().jsonValue());
+                  flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
           assertAssignment(flagKey, subjectAssignment, jsonAssignment);
           break;
         default:
@@ -339,11 +339,12 @@ public class EppoClientTest {
   public void testAssignmentEventCorrectlyCreated() {
     Date testStart = new Date();
     initClient();
-    Attributes attributes = new Attributes();
-    attributes.put("age", EppoValue.valueOf(30));
-    attributes.put("employer", EppoValue.valueOf("Eppo"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", EppoValue.valueOf(30));
+    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
     double assignment =
-        EppoClient.getInstance().getDoubleAssignment("numeric_flag", "alice", attributes, 0.0);
+        EppoClient.getInstance()
+            .getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
 
@@ -359,7 +360,7 @@ public class EppoClientTest {
             .getVariation()); // Note: unlike this test, typically variation keys will just be the
     // value for everything not JSON
     assertEquals("alice", capturedAssignment.getSubject());
-    assertEquals(attributes, capturedAssignment.getSubjectAttributes());
+    assertEquals(subjectAttributes, capturedAssignment.getSubjectAttributes());
     assertEquals(new HashMap<>(), capturedAssignment.getExtraLogging());
     assertTrue(capturedAssignment.getTimestamp().after(testStart));
     Date assertionDate = new Date();

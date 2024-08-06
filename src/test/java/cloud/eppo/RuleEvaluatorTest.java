@@ -89,12 +89,12 @@ public class RuleEvaluatorTest {
     addConditionToRule(TargetingRule, condition);
   }
 
-  public void addNameToSubjectAttribute(Attributes attributes) {
-    attributes.put("name", "test");
+  public void addNameToSubjectAttribute(Attributes subjectAttributes) {
+    subjectAttributes.put("name", "test");
   }
 
-  public void addPriceToSubjectAttribute(Attributes attributes) {
-    attributes.put("price", "30");
+  public void addPriceToSubjectAttribute(Attributes subjectAttributes) {
+    subjectAttributes.put("price", "30");
   }
 
   @Test
@@ -102,21 +102,21 @@ public class RuleEvaluatorTest {
     Set<TargetingRule> targetingRules = new HashSet<>();
     final TargetingRule targetingRuleWithEmptyConditions = createRule(new HashSet<>());
     targetingRules.add(targetingRuleWithEmptyConditions);
-    Attributes attributes = new Attributes();
-    addNameToSubjectAttribute(attributes);
+    Attributes subjectAttributes = new Attributes();
+    addNameToSubjectAttribute(subjectAttributes);
 
     assertEquals(
         targetingRuleWithEmptyConditions,
-        RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+        RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
   public void testMatchesAnyRuleWithEmptyRules() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    Attributes attributes = new Attributes();
-    addNameToSubjectAttribute(attributes);
+    Attributes subjectAttributes = new Attributes();
+    addNameToSubjectAttribute(subjectAttributes);
 
-    assertNull(RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertNull(RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -126,10 +126,10 @@ public class RuleEvaluatorTest {
     addNumericConditionToRule(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    addPriceToSubjectAttribute(attributes);
+    Attributes subjectAttributes = new Attributes();
+    addPriceToSubjectAttribute(subjectAttributes);
 
-    assertNull(RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertNull(RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -139,10 +139,11 @@ public class RuleEvaluatorTest {
     addNumericConditionToRule(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("price", 15);
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("price", 15);
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -152,10 +153,11 @@ public class RuleEvaluatorTest {
     addSemVerConditionToRule(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("appVersion", "1.15.5");
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("appVersion", "1.15.5");
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -165,10 +167,10 @@ public class RuleEvaluatorTest {
     addNumericConditionToRule(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("price", EppoValue.valueOf("abcd"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("price", EppoValue.valueOf("abcd"));
 
-    assertNull(RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertNull(RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -178,10 +180,11 @@ public class RuleEvaluatorTest {
     addRegexConditionToRule(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("match", EppoValue.valueOf("test@example.com"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("match", EppoValue.valueOf("test@example.com"));
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -191,10 +194,10 @@ public class RuleEvaluatorTest {
     addRegexConditionToRule(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("match", EppoValue.valueOf("123"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("match", EppoValue.valueOf("123"));
 
-    assertNull(RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertNull(RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -204,10 +207,11 @@ public class RuleEvaluatorTest {
     addNotOneOfTargetingCondition(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("oneOf", EppoValue.valueOf("value3"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("oneOf", EppoValue.valueOf("value3"));
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -217,10 +221,10 @@ public class RuleEvaluatorTest {
     addNotOneOfTargetingCondition(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("oneOf", EppoValue.valueOf("value1"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("oneOf", EppoValue.valueOf("value1"));
 
-    assertNull(RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertNull(RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -230,10 +234,11 @@ public class RuleEvaluatorTest {
     addOneOfConditionWithStrings(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("oneOf", EppoValue.valueOf("value1"));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("oneOf", EppoValue.valueOf("value1"));
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -243,10 +248,11 @@ public class RuleEvaluatorTest {
     addOneOfConditionWithIntegers(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("oneOf", EppoValue.valueOf(2));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("oneOf", EppoValue.valueOf(2));
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -256,10 +262,11 @@ public class RuleEvaluatorTest {
     addOneOfConditionWithDoubles(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("oneOf", EppoValue.valueOf(1.5));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("oneOf", EppoValue.valueOf(1.5));
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 
   @Test
@@ -269,9 +276,10 @@ public class RuleEvaluatorTest {
     addOneOfConditionWithBoolean(targetingRule);
     targetingRules.add(targetingRule);
 
-    Attributes attributes = new Attributes();
-    attributes.put("oneOf", EppoValue.valueOf(true));
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("oneOf", EppoValue.valueOf(true));
 
-    assertEquals(targetingRule, RuleEvaluator.findMatchingRule(attributes, targetingRules, false));
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
 }

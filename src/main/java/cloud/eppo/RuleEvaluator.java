@@ -17,9 +17,9 @@ import java.util.regex.Pattern;
 public class RuleEvaluator {
 
   public static TargetingRule findMatchingRule(
-      Attributes attributes, Set<TargetingRule> rules, boolean isObfuscated) {
+      Attributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {
     for (TargetingRule rule : rules) {
-      if (allConditionsMatch(attributes, rule.getConditions(), isObfuscated)) {
+      if (allConditionsMatch(subjectAttributes, rule.getConditions(), isObfuscated)) {
         return rule;
       }
     }
@@ -27,9 +27,9 @@ public class RuleEvaluator {
   }
 
   private static boolean allConditionsMatch(
-      Attributes attributes, Set<TargetingCondition> conditions, boolean isObfuscated) {
+      Attributes subjectAttributes, Set<TargetingCondition> conditions, boolean isObfuscated) {
     for (TargetingCondition condition : conditions) {
-      if (!evaluateCondition(attributes, condition, isObfuscated)) {
+      if (!evaluateCondition(subjectAttributes, condition, isObfuscated)) {
         return false;
       }
     }
@@ -37,20 +37,20 @@ public class RuleEvaluator {
   }
 
   private static boolean evaluateCondition(
-      Attributes attributes, TargetingCondition condition, boolean isObfuscated) {
+      Attributes subjectAttributes, TargetingCondition condition, boolean isObfuscated) {
     EppoValue conditionValue = condition.getValue();
     String attributeKey = condition.getAttribute();
     EppoValue attributeValue = null;
     if (isObfuscated) {
       // attribute names are hashed
-      for (Map.Entry<String, EppoValue> entry : attributes.entrySet()) {
+      for (Map.Entry<String, EppoValue> entry : subjectAttributes.entrySet()) {
         if (getMD5Hex(entry.getKey()).equals(attributeKey)) {
           attributeValue = entry.getValue();
           break;
         }
       }
     } else {
-      attributeValue = attributes.get(attributeKey);
+      attributeValue = subjectAttributes.get(attributeKey);
     }
 
     // First we do any NULL check
