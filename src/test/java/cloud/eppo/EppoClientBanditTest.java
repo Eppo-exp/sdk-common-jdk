@@ -16,6 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,9 +58,10 @@ public class EppoClientBanditTest {
   }
 
   @BeforeEach
-  public void restMocks() {
+  public void reset() {
     clearInvocations(mockAssignmentLogger);
     clearInvocations(mockBanditLogger);
+    EppoClient.getInstance().setIsGracefulFailureMode(false);
   }
 
   @ParameterizedTest
@@ -255,6 +257,40 @@ public class EppoClientBanditTest {
     // Verify bandit log
     ArgumentCaptor<BanditAssignment> banditLogCaptor = ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(0)).logBanditAssignment(banditLogCaptor.capture());
+  }
+
+  @Test
+  public void testBanditErrorGracefulModeOff() {
+    EppoClient.getInstance().setIsGracefulFailureMode(false); // Should be set by @BeforeEach but repeated here for test clarity
+    try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
+      // Configure the mock to throw an exception
+      mockedStatic.when(() -> BanditEvaluator.evaluateBandit(anyString(), anyString(), any(), any(), any()))
+        .thenThrow(new RuntimeException("Intentional Bandit Error"));
+
+      // Assert that the exception is thrown when the method is called
+      BanditActions actions = new BanditActions();
+      actions.put("nike", new Attributes());
+      actions.put("adidas", new Attributes());
+      assertThrows(RuntimeException.class, () -> EppoClient.getInstance().getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default"));
+    }
+  }
+
+  @Test
+  public void testBanditErrorGracefulModeOn() {
+    EppoClient.getInstance().setIsGracefulFailureMode(true);
+    try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
+      // Configure the mock to throw an exception
+      mockedStatic.when(() -> BanditEvaluator.evaluateBandit(anyString(), anyString(), any(), any(), any()))
+        .thenThrow(new RuntimeException("Intentional Bandit Error"));
+
+      // Assert that the exception is thrown when the method is called
+      BanditActions actions = new BanditActions();
+      actions.put("nike", new Attributes());
+      actions.put("adidas", new Attributes());
+      BanditResult banditResult = EppoClient.getInstance().getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default");
+      assertEquals("banner_bandit", banditResult.getVariation());
+      assertNull(banditResult.getAction());
+    }
   }
 
   private static SimpleModule module() {

@@ -29,10 +29,10 @@ public class EppoClient {
   private final ConfigurationRequestor requestor;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
-  private final boolean isGracefulMode;
   private final String sdkName;
   private final String sdkVersion;
   private final boolean isConfigObfuscated;
+  private boolean isGracefulMode;
 
   private static EppoClient instance;
 
@@ -466,6 +466,10 @@ public class EppoClient {
     }
 
     return EppoClient.instance;
+  }
+
+  public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
+    this.isGracefulMode = isGracefulFailureMode;
   }
 
   public static class Builder {
