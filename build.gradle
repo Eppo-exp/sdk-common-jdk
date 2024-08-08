@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '2.1.0-SNAPSHOT'
+version = '3.0.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 dependencies {
@@ -141,13 +141,14 @@ tasks.withType(PublishToMavenRepository) {
   }
 }
 
-signing {
-  sign publishing.publications.mavenJava
-  if (System.env['CI']) {
-    useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+if (!project.gradle.startParameter.taskNames.contains('publishToMavenLocal')) {
+  signing {
+    sign publishing.publications.mavenJava
+    if (System.env['CI']) {
+      useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+    }
   }
 }
-
 
 javadoc {
   failOnError = false
