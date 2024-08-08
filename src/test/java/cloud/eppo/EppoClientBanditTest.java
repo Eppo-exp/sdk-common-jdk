@@ -61,6 +61,7 @@ public class EppoClientBanditTest {
   public void reset() {
     clearInvocations(mockAssignmentLogger);
     clearInvocations(mockBanditLogger);
+    doNothing().when(mockBanditLogger).logBanditAssignment(any());
     EppoClient.getInstance().setIsGracefulFailureMode(false);
   }
 
@@ -327,6 +328,26 @@ public class EppoClientBanditTest {
       assertEquals("banner_bandit", banditResult.getVariation());
       assertNull(banditResult.getAction());
     }
+  }
+
+  @Test
+  public void testBanditLogErrorNonFatal() {
+    initClient();
+    doThrow(new RuntimeException("Mock Bandit Logging Error")).when(mockBanditLogger).logBanditAssignment(any());
+
+    BanditActions actions = new BanditActions();
+    actions.put("nike", new Attributes());
+    actions.put("adidas", new Attributes());
+    BanditResult banditResult =
+      EppoClient.getInstance()
+        .getBanditAction(
+          "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+    assertEquals("banner_bandit", banditResult.getVariation());
+    assertEquals("nike", banditResult.getAction());
+
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+      ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
   }
 
   private static SimpleModule module() {

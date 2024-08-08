@@ -432,22 +432,26 @@ public class EppoClient {
                 flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
 
         if (banditLogger != null) {
-          BanditAssignment banditAssignment =
+          try {
+            BanditAssignment banditAssignment =
               new BanditAssignment(
-                  flagKey,
-                  banditKey,
-                  subjectKey,
-                  banditResult.getActionKey(),
-                  banditResult.getActionWeight(),
-                  banditResult.getOptimalityGap(),
-                  banditParameters.getModelVersion(),
-                  subjectAttributes.getNumericAttributes(),
-                  subjectAttributes.getCategoricalAttributes(),
-                  banditResult.getActionAttributes().getNumericAttributes(),
-                  banditResult.getActionAttributes().getCategoricalAttributes(),
-                  buildLogMetaData());
+                flagKey,
+                banditKey,
+                subjectKey,
+                banditResult.getActionKey(),
+                banditResult.getActionWeight(),
+                banditResult.getOptimalityGap(),
+                banditParameters.getModelVersion(),
+                subjectAttributes.getNumericAttributes(),
+                subjectAttributes.getCategoricalAttributes(),
+                banditResult.getActionAttributes().getNumericAttributes(),
+                banditResult.getActionAttributes().getCategoricalAttributes(),
+                buildLogMetaData());
 
-          banditLogger.logBanditAssignment(banditAssignment);
+            banditLogger.logBanditAssignment(banditAssignment);
+          } catch (Exception e) {
+            log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
+          }
         }
 
         // Update result to reflect that we've been assigned an action

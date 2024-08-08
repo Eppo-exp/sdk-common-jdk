@@ -374,6 +374,20 @@ public class EppoClientTest {
     assertEquals(expectedMeta, capturedAssignment.getMetaData());
   }
 
+  @Test
+  public void testAssignmentLogErrorNonFatal() {
+    initClient();
+    doThrow(new RuntimeException("Mock Assignment Logging Error")).when(mockAssignmentLogger).logAssignment(any());
+    double assignment =
+      EppoClient.getInstance()
+        .getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
+
+    assertEquals(3.1415926, assignment, 0.0000001);
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+  }
+
   private void mockHttpResponse(String responseBody) {
     // Create a mock instance of EppoHttpClient
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
