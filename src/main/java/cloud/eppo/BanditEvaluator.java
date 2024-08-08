@@ -121,7 +121,8 @@ public class BanditEvaluator {
       // Compute weight (probability)
       double unboundedProbability =
           1 / (actionScores.size() + (gamma * (highestScore - actionScore.getValue())));
-      double boundedProbability = Math.max(unboundedProbability, actionProbabilityFloor);
+      double minimumProbability = actionProbabilityFloor / actionScores.size();
+      double boundedProbability = Math.max(unboundedProbability, minimumProbability);
       totalNonHighestWeight += boundedProbability;
 
       actionWeights.put(actionScore.getKey(), boundedProbability);
