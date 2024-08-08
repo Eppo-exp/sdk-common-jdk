@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import static cloud.eppo.Utils.parseUtcISODateElement;
+import static cloud.eppo.Utils.parseUtcISODateNode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -12,15 +12,15 @@ import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
   @Test
-  public void testParseUtcISODateElement() throws JsonProcessingException {
+  public void testParseUtcISODateNode() throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
     JsonNode jsonNode = mapper.readTree("\"2024-05-01T16:13:26.651Z\"");
-    Date parsedDate = parseUtcISODateElement(jsonNode);
+    Date parsedDate = parseUtcISODateNode(jsonNode);
     Date expectedDate = new Date(1714580006651L);
     assertEquals(expectedDate, parsedDate);
     jsonNode = mapper.readTree("null");
-    parsedDate = parseUtcISODateElement(jsonNode);
+    parsedDate = parseUtcISODateNode(jsonNode);
     assertNull(parsedDate);
-    assertNull(parseUtcISODateElement(null));
+    assertNull(parseUtcISODateNode(null));
   }
 }

@@ -5,11 +5,11 @@ import static cloud.eppo.Utils.base64Decode;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.Shard;
 import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.SubjectAttributes;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ public class FlagEvaluator {
       FlagConfig flag,
       String flagKey,
       String subjectKey,
-      SubjectAttributes subjectAttributes,
+      Attributes subjectAttributes,
       boolean isConfigObfuscated) {
     Date now = new Date();
 
@@ -51,7 +51,7 @@ public class FlagEvaluator {
 
       // For convenience, we will automatically include the subject key as the "id" attribute if
       // none is provided
-      SubjectAttributes subjectAttributesToEvaluate = new SubjectAttributes(subjectAttributes);
+      Attributes subjectAttributesToEvaluate = new Attributes(subjectAttributes);
       if (!subjectAttributesToEvaluate.containsKey("id")) {
         subjectAttributesToEvaluate.put("id", subjectKey);
       }
@@ -87,19 +87,9 @@ public class FlagEvaluator {
       }
     }
 
-    FlagEvaluationResult evaluationResult = new FlagEvaluationResult();
-    evaluationResult.setFlagKey(flagKey);
-    evaluationResult.setSubjectKey(subjectKey);
-    evaluationResult.setSubjectAttributes(subjectAttributes);
-    evaluationResult.setAllocationKey(allocationKey);
-    evaluationResult.setVariation(variation);
-    evaluationResult.setExtraLogging(extraLogging);
-    evaluationResult.setDoLog(doLog);
-
     if (isConfigObfuscated) {
-      // Need to unobfuscate the evaluation result
-      evaluationResult.setFlagKey(flagKey);
-      evaluationResult.setAllocationKey(base64Decode(allocationKey));
+      // Need to unobfuscate for the returned evaluation result
+      allocationKey = base64Decode(allocationKey);
       if (variation != null) {
         String key = base64Decode(variation.getKey());
         EppoValue decodedValue = EppoValue.nullValue();
@@ -123,11 +113,12 @@ public class FlagEvaluator {
                       + flag.getVariationType());
           }
         }
-        evaluationResult.setVariation(new Variation(key, decodedValue));
+        variation = new Variation(key, decodedValue);
       }
     }
 
-    return evaluationResult;
+    return new FlagEvaluationResult(
+        flagKey, subjectKey, subjectAttributes, allocationKey, variation, extraLogging, doLog);
   }
 
   private static boolean allShardsMatch(

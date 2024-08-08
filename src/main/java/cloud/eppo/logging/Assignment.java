@@ -1,62 +1,38 @@
 package cloud.eppo.logging;
 
-import cloud.eppo.Utils;
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 import java.util.Date;
 import java.util.Map;
 
-/** @noinspection unused */
 public class Assignment {
+  private final Date timestamp;
   private final String experiment;
   private final String featureFlag;
   private final String allocation;
   private final String variation;
   private final String subject;
-  private final String timestamp;
-  private final SubjectAttributes subjectAttributes;
+  private final Attributes subjectAttributes;
   private final Map<String, String> extraLogging;
   private final Map<String, String> metaData;
 
-  private Assignment(
+  public Assignment(
       String experiment,
       String featureFlag,
       String allocation,
       String variation,
       String subject,
-      String timestamp,
-      SubjectAttributes subjectAttributes,
+      Attributes subjectAttributes,
       Map<String, String> extraLogging,
       Map<String, String> metaData) {
+    this.timestamp = new Date();
     this.experiment = experiment;
     this.featureFlag = featureFlag;
     this.allocation = allocation;
     this.variation = variation;
     this.subject = subject;
-    this.timestamp = timestamp;
     this.subjectAttributes = subjectAttributes;
     this.extraLogging = extraLogging;
     this.metaData = metaData;
-  }
-
-  public static Assignment createWithCurrentDate(
-      String experiment,
-      String featureFlag,
-      String allocation,
-      String variation,
-      String subject,
-      SubjectAttributes subjectAttributes,
-      Map<String, String> extraLogging,
-      Map<String, String> metaData) {
-    return new Assignment(
-        experiment,
-        featureFlag,
-        allocation,
-        variation,
-        subject,
-        Utils.getISODate(new Date()),
-        subjectAttributes,
-        extraLogging,
-        metaData);
   }
 
   public String getExperiment() {
@@ -79,11 +55,11 @@ public class Assignment {
     return subject;
   }
 
-  public String getTimestamp() {
+  public Date getTimestamp() {
     return timestamp;
   }
 
-  public SubjectAttributes getSubjectAttributes() {
+  public Attributes getSubjectAttributes() {
     return subjectAttributes;
   }
 

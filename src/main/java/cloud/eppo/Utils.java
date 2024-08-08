@@ -40,7 +40,7 @@ public final class Utils {
     return hashText.toString();
   }
 
-  public static Date parseUtcISODateElement(JsonNode isoDateStringElement) {
+  public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
     if (isoDateStringElement == null || isoDateStringElement.isNull()) {
       return null;
     }

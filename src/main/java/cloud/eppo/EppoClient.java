@@ -5,10 +5,9 @@ import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.ufc.dto.EppoValue;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.SubjectAttributes;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.logging.BanditAssignment;
+import cloud.eppo.logging.BanditLogger;
+import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,12 +25,14 @@ public class EppoClient {
   private static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   private static final boolean DEFAULT_IS_GRACEFUL_MODE = true;
 
+  private final ConfigurationStore configurationStore;
   private final ConfigurationRequestor requestor;
   private final AssignmentLogger assignmentLogger;
-  private final boolean isGracefulMode;
+  private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
   private final boolean isConfigObfuscated;
+  private boolean isGracefulMode;
 
   private static EppoClient instance;
 
@@ -40,22 +41,21 @@ public class EppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  /** @noinspection FieldMayBeFinal */
-  private static ConfigurationStore configurationStoreOverride = null;
-
   private EppoClient(
       String apiKey,
       String sdkName,
       String sdkVersion,
       String host,
+      ConfigurationStore configurationStore,
       AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
       boolean isGracefulMode) {
-    ConfigurationStore configStore =
-        configurationStoreOverride == null ? new ConfigurationStore() : configurationStoreOverride;
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    requestor = new ConfigurationRequestor(configStore, httpClient);
+    this.configurationStore = configurationStore;
+    requestor = new ConfigurationRequestor(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
+    this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
@@ -84,6 +84,7 @@ public class EppoClient {
       String sdkVersion,
       String host,
       AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
       boolean isGracefulMode) {
 
     if (apiKey == null) {
@@ -98,7 +99,16 @@ public class EppoClient {
       // TODO: also check we're not running a test
       log.warn("Reinitializing an Eppo Client instance that was already initialized");
     }
-    instance = new EppoClient(apiKey, sdkName, sdkVersion, host, assignmentLogger, isGracefulMode);
+    instance =
+        new EppoClient(
+            apiKey,
+            sdkName,
+            sdkVersion,
+            host,
+            new ConfigurationStore(),
+            assignmentLogger,
+            banditLogger,
+            isGracefulMode);
     instance.refreshConfiguration();
 
     return instance;
@@ -121,7 +131,7 @@ public class EppoClient {
   protected EppoValue getTypedAssignment(
       String flagKey,
       String subjectKey,
-      SubjectAttributes subjectAttributes,
+      Attributes subjectAttributes,
       EppoValue defaultValue,
       VariationType expectedType) {
 
@@ -135,24 +145,22 @@ public class EppoClient {
 
     FlagConfig flag = requestor.getConfiguration(flagKeyForLookup);
     if (flag == null) {
-      log.warn("no configuration found for key: " + flagKey);
+      log.warn("no configuration found for key: {}", flagKey);
       return defaultValue;
     }
 
     if (!flag.isEnabled()) {
       log.info(
-          "no assigned variation because the experiment or feature flag is disabled: " + flagKey);
+          "no assigned variation because the experiment or feature flag is disabled: {}", flagKey);
       return defaultValue;
     }
 
     if (flag.getVariationType() != expectedType) {
       log.warn(
-          "no assigned variation because the flag type doesn't match the requested type: "
-              + flagKey
-              + " has type "
-              + flag.getVariationType()
-              + ", requested "
-              + expectedType);
+          "no assigned variation because the flag type doesn't match the requested type: {} has type {}, requested {}",
+          flagKey,
+          flag.getVariationType(),
+          expectedType);
       return defaultValue;
     }
 
@@ -164,12 +172,10 @@ public class EppoClient {
 
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
       log.warn(
-          "no assigned variation because the flag type doesn't match the variation type: "
-              + flagKey
-              + " has type "
-              + flag.getVariationType()
-              + ", variation value is "
-              + assignedValue);
+          "no assigned variation because the flag type doesn't match the variation type: {} has type {}, variation value is {}",
+          flagKey,
+          flag.getVariationType(),
+          assignedValue);
       return defaultValue;
     }
 
@@ -182,13 +188,10 @@ public class EppoClient {
       // allocation key
       String variationKey = evaluationResult.getVariation().getKey();
       Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-      Map<String, String> metaData = new HashMap<>();
-      metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
-      metaData.put("sdkLanguage", sdkName);
-      metaData.put("sdkLibVersion", sdkVersion);
+      Map<String, String> metaData = buildLogMetaData();
 
       Assignment assignment =
-          Assignment.createWithCurrentDate(
+          new Assignment(
               experimentKey,
               flagKey,
               allocationKey,
@@ -200,7 +203,7 @@ public class EppoClient {
       try {
         assignmentLogger.logAssignment(assignment);
       } catch (Exception e) {
-        log.warn("Error logging assignment: " + e.getMessage(), e);
+        log.warn("Error logging assignment: {}", e.getMessage(), e);
       }
     }
 
@@ -239,14 +242,11 @@ public class EppoClient {
   }
 
   public boolean getBooleanAssignment(String flagKey, String subjectKey, boolean defaultValue) {
-    return this.getBooleanAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
+    return this.getBooleanAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   public boolean getBooleanAssignment(
-      String flagKey,
-      String subjectKey,
-      SubjectAttributes subjectAttributes,
-      boolean defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, boolean defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -262,11 +262,11 @@ public class EppoClient {
   }
 
   public int getIntegerAssignment(String flagKey, String subjectKey, int defaultValue) {
-    return getIntegerAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
+    return getIntegerAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   public int getIntegerAssignment(
-      String flagKey, String subjectKey, SubjectAttributes subjectAttributes, int defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -282,11 +282,11 @@ public class EppoClient {
   }
 
   public Double getDoubleAssignment(String flagKey, String subjectKey, double defaultValue) {
-    return getDoubleAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
+    return getDoubleAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   public Double getDoubleAssignment(
-      String flagKey, String subjectKey, SubjectAttributes subjectAttributes, double defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -302,11 +302,11 @@ public class EppoClient {
   }
 
   public String getStringAssignment(String flagKey, String subjectKey, String defaultValue) {
-    return this.getStringAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
+    return this.getStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   public String getStringAssignment(
-      String flagKey, String subjectKey, SubjectAttributes subjectAttributes, String defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -332,7 +332,7 @@ public class EppoClient {
    * @return the JSON string value of the assignment
    */
   public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
-    return getJSONAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
+    return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   /**
@@ -346,10 +346,7 @@ public class EppoClient {
    * @return the JSON string value of the assignment
    */
   public JsonNode getJSONAssignment(
-      String flagKey,
-      String subjectKey,
-      SubjectAttributes subjectAttributes,
-      JsonNode defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -375,7 +372,7 @@ public class EppoClient {
    * @return the JSON string value of the assignment
    */
   public String getJSONStringAssignment(
-      String flagKey, String subjectKey, SubjectAttributes subjectAttributes, String defaultValue) {
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -401,7 +398,7 @@ public class EppoClient {
    * @return the JSON string value of the assignment
    */
   public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
-    return this.getJSONStringAssignment(flagKey, subjectKey, new SubjectAttributes(), defaultValue);
+    return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   private JsonNode parseJsonString(String jsonString) {
@@ -412,9 +409,71 @@ public class EppoClient {
     }
   }
 
+  public BanditResult getBanditAction(
+      String flagKey,
+      String subjectKey,
+      DiscriminableAttributes subjectAttributes,
+      Actions actions,
+      String defaultValue) {
+    BanditResult result = new BanditResult(defaultValue, null);
+    try {
+      String assignedVariation =
+          getStringAssignment(
+              flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
+
+      // Update result to reflect that we've been assigned a variation
+      result = new BanditResult(assignedVariation, null);
+
+      String banditKey = configurationStore.banditKeyForVariation(flagKey, assignedVariation);
+      if (banditKey != null && !actions.isEmpty()) {
+        BanditParameters banditParameters = configurationStore.getBanditParameters(banditKey);
+        BanditEvaluationResult banditResult =
+            BanditEvaluator.evaluateBandit(
+                flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
+
+        // Update result to reflect that we've been assigned an action
+        result = new BanditResult(assignedVariation, banditResult.getActionKey());
+
+        if (banditLogger != null) {
+          try {
+            BanditAssignment banditAssignment =
+                new BanditAssignment(
+                    flagKey,
+                    banditKey,
+                    subjectKey,
+                    banditResult.getActionKey(),
+                    banditResult.getActionWeight(),
+                    banditResult.getOptimalityGap(),
+                    banditParameters.getModelVersion(),
+                    subjectAttributes.getNumericAttributes(),
+                    subjectAttributes.getCategoricalAttributes(),
+                    banditResult.getActionAttributes().getNumericAttributes(),
+                    banditResult.getActionAttributes().getCategoricalAttributes(),
+                    buildLogMetaData());
+
+            banditLogger.logBanditAssignment(banditAssignment);
+          } catch (Exception e) {
+            log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
+          }
+        }
+      }
+      return result;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, result);
+    }
+  }
+
+  private Map<String, String> buildLogMetaData() {
+    HashMap<String, String> metaData = new HashMap<>();
+    metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
+    metaData.put("sdkLanguage", sdkName);
+    metaData.put("sdkLibVersion", sdkVersion);
+    return metaData;
+  }
+
   private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
     if (this.isGracefulMode) {
-      log.info("error getting assignment value: " + e.getMessage());
+      log.info("error getting assignment value: {}", e.getMessage());
       return defaultValue;
     }
     throw new RuntimeException(e);
@@ -428,12 +487,17 @@ public class EppoClient {
     return EppoClient.instance;
   }
 
+  public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
+    this.isGracefulMode = isGracefulFailureMode;
+  }
+
   public static class Builder {
     private String apiKey;
     private String sdkName;
     private String sdkVersion;
     private String host = DEFAULT_HOST;
     private AssignmentLogger assignmentLogger;
+    private BanditLogger banditLogger;
     private boolean isGracefulMode = DEFAULT_IS_GRACEFUL_MODE;
 
     public Builder apiKey(String apiKey) {
@@ -461,13 +525,19 @@ public class EppoClient {
       return this;
     }
 
+    public Builder banditLogger(BanditLogger banditLogger) {
+      this.banditLogger = banditLogger;
+      return this;
+    }
+
     public Builder isGracefulMode(boolean isGracefulMode) {
       this.isGracefulMode = isGracefulMode;
       return this;
     }
 
     public EppoClient buildAndInit() {
-      return EppoClient.init(apiKey, sdkName, sdkVersion, host, assignmentLogger, isGracefulMode);
+      return EppoClient.init(
+          apiKey, sdkName, sdkVersion, host, assignmentLogger, banditLogger, isGracefulMode);
     }
   }
 }

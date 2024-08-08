@@ -3,9 +3,9 @@ package cloud.eppo;
 import static cloud.eppo.Utils.base64Decode;
 import static cloud.eppo.Utils.getMD5Hex;
 
+import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.SubjectAttributes;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;
 import com.github.zafarkhaja.semver.Version;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class RuleEvaluator {
 
   public static TargetingRule findMatchingRule(
-      SubjectAttributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {
+      Attributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {
     for (TargetingRule rule : rules) {
       if (allConditionsMatch(subjectAttributes, rule.getConditions(), isObfuscated)) {
         return rule;
@@ -27,9 +27,7 @@ public class RuleEvaluator {
   }
 
   private static boolean allConditionsMatch(
-      SubjectAttributes subjectAttributes,
-      Set<TargetingCondition> conditions,
-      boolean isObfuscated) {
+      Attributes subjectAttributes, Set<TargetingCondition> conditions, boolean isObfuscated) {
     for (TargetingCondition condition : conditions) {
       if (!evaluateCondition(subjectAttributes, condition, isObfuscated)) {
         return false;
@@ -39,7 +37,7 @@ public class RuleEvaluator {
   }
 
   private static boolean evaluateCondition(
-      SubjectAttributes subjectAttributes, TargetingCondition condition, boolean isObfuscated) {
+      Attributes subjectAttributes, TargetingCondition condition, boolean isObfuscated) {
     EppoValue conditionValue = condition.getValue();
     String attributeKey = condition.getAttribute();
     EppoValue attributeValue = null;

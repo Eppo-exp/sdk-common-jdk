@@ -11,21 +11,38 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class BanditsDeserializer extends StdDeserializer<Map<String, BanditParameters>> {
+public class BanditParametersResponseDeserializer
+    extends StdDeserializer<BanditParametersResponse> {
+  private static final Logger log =
+      LoggerFactory.getLogger(BanditParametersResponseDeserializer.class);
+
   // Note: public default constructor is required by Jackson
-  public BanditsDeserializer() {
+  public BanditParametersResponseDeserializer() {
     this(null);
   }
 
-  protected BanditsDeserializer(Class<?> vc) {
+  protected BanditParametersResponseDeserializer(Class<?> vc) {
     super(vc);
   }
 
   @Override
-  public Map<String, BanditParameters> deserialize(
+  public BanditParametersResponse deserialize(
       JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
-    JsonNode banditsNode = jsonParser.getCodec().readTree(jsonParser);
+    JsonNode rootNode = jsonParser.getCodec().readTree(jsonParser);
+    if (rootNode == null || !rootNode.isObject()) {
+      log.warn("no top-level JSON object");
+      return new BanditParametersResponse();
+    }
+
+    JsonNode banditsNode = rootNode.get("bandits");
+    if (banditsNode == null || !banditsNode.isObject()) {
+      log.warn("no root-level bandits object");
+      return new BanditParametersResponse();
+    }
+
     Map<String, BanditParameters> bandits = new HashMap<>();
     banditsNode
         .iterator()
@@ -59,7 +76,8 @@ public class BanditsDeserializer extends StdDeserializer<Map<String, BanditParam
                   new BanditParameters(banditKey, updatedAt, modelName, modelVersion, modelData);
               bandits.put(banditKey, parameters);
             });
-    return bandits;
+
+    return new BanditParametersResponse(bandits);
   }
 
   private BanditCoefficients parseActionCoefficientsNode(JsonNode actionCoefficientsNode) {

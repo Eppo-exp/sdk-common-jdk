@@ -1,14 +1,14 @@
 package cloud.eppo.helpers;
 
-import cloud.eppo.ufc.dto.SubjectAttributes;
+import cloud.eppo.ufc.dto.Attributes;
 
 public class SubjectAssignment {
   private final String subjectKey;
-  private final SubjectAttributes subjectAttributes;
+  private final Attributes subjectAttributes;
   private final TestCaseValue assignment;
 
   public SubjectAssignment(
-      String subjectKey, SubjectAttributes subjectAttributes, TestCaseValue assignment) {
+      String subjectKey, Attributes subjectAttributes, TestCaseValue assignment) {
     this.subjectKey = subjectKey;
     this.subjectAttributes = subjectAttributes;
     this.assignment = assignment;
@@ -18,7 +18,7 @@ public class SubjectAssignment {
     return subjectKey;
   }
 
-  public SubjectAttributes getSubjectAttributes() {
+  public Attributes getSubjectAttributes() {
     return subjectAttributes;
   }
 
