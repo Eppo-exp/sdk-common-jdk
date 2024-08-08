@@ -431,6 +431,9 @@ public class EppoClient {
             BanditEvaluator.evaluateBandit(
                 flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
 
+        // Update result to reflect that we've been assigned an action
+        result = new BanditResult(assignedVariation, banditResult.getActionKey());
+
         if (banditLogger != null) {
           try {
             BanditAssignment banditAssignment =
@@ -453,9 +456,6 @@ public class EppoClient {
             log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
           }
         }
-
-        // Update result to reflect that we've been assigned an action
-        result = new BanditResult(assignedVariation, banditResult.getActionKey());
       }
       return result;
     } catch (Exception e) {
