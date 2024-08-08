@@ -437,19 +437,19 @@ public class EppoClient {
         if (banditLogger != null) {
           try {
             BanditAssignment banditAssignment =
-              new BanditAssignment(
-                flagKey,
-                banditKey,
-                subjectKey,
-                banditResult.getActionKey(),
-                banditResult.getActionWeight(),
-                banditResult.getOptimalityGap(),
-                banditParameters.getModelVersion(),
-                subjectAttributes.getNumericAttributes(),
-                subjectAttributes.getCategoricalAttributes(),
-                banditResult.getActionAttributes().getNumericAttributes(),
-                banditResult.getActionAttributes().getCategoricalAttributes(),
-                buildLogMetaData());
+                new BanditAssignment(
+                    flagKey,
+                    banditKey,
+                    subjectKey,
+                    banditResult.getActionKey(),
+                    banditResult.getActionWeight(),
+                    banditResult.getOptimalityGap(),
+                    banditParameters.getModelVersion(),
+                    subjectAttributes.getNumericAttributes(),
+                    subjectAttributes.getCategoricalAttributes(),
+                    banditResult.getActionAttributes().getNumericAttributes(),
+                    banditResult.getActionAttributes().getCategoricalAttributes(),
+                    buildLogMetaData());
 
             banditLogger.logBanditAssignment(banditAssignment);
           } catch (Exception e) {

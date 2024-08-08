@@ -377,10 +377,12 @@ public class EppoClientTest {
   @Test
   public void testAssignmentLogErrorNonFatal() {
     initClient();
-    doThrow(new RuntimeException("Mock Assignment Logging Error")).when(mockAssignmentLogger).logAssignment(any());
+    doThrow(new RuntimeException("Mock Assignment Logging Error"))
+        .when(mockAssignmentLogger)
+        .logAssignment(any());
     double assignment =
-      EppoClient.getInstance()
-        .getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
+        EppoClient.getInstance()
+            .getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
 

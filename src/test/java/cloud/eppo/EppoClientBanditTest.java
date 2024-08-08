@@ -333,20 +333,21 @@ public class EppoClientBanditTest {
   @Test
   public void testBanditLogErrorNonFatal() {
     initClient();
-    doThrow(new RuntimeException("Mock Bandit Logging Error")).when(mockBanditLogger).logBanditAssignment(any());
+    doThrow(new RuntimeException("Mock Bandit Logging Error"))
+        .when(mockBanditLogger)
+        .logBanditAssignment(any());
 
     BanditActions actions = new BanditActions();
     actions.put("nike", new Attributes());
     actions.put("adidas", new Attributes());
     BanditResult banditResult =
-      EppoClient.getInstance()
-        .getBanditAction(
-          "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+        EppoClient.getInstance()
+            .getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default");
     assertEquals("banner_bandit", banditResult.getVariation());
     assertEquals("nike", banditResult.getAction());
 
     ArgumentCaptor<BanditAssignment> banditLogCaptor =
-      ArgumentCaptor.forClass(BanditAssignment.class);
+        ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
   }
 
