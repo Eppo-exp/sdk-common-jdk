@@ -39,8 +39,8 @@ import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EppoClientTest {
-  private static final Logger log = LoggerFactory.getLogger(EppoClientTest.class);
+public class BaseEppoClientTest {
+  private static final Logger log = LoggerFactory.getLogger(BaseEppoClientTest.class);
   private static final String DUMMY_FLAG_API_KEY = "dummy-flags-api-key"; // Will load flags-v1
   private static final String TEST_HOST =
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
@@ -58,7 +58,7 @@ public class EppoClientTest {
       String host, boolean isGracefulMode, boolean isConfigObfuscated, String apiKey) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
-    new EppoClient.Builder()
+    new BaseEppoClient.Builder()
         .apiKey(apiKey)
         .sdkName(isConfigObfuscated ? "android" : "java")
         .sdkVersion("3.0.0")
@@ -118,7 +118,7 @@ public class EppoClientTest {
   private void runTestCase(AssignmentTestCase testCase) {
     String flagKey = testCase.getFlag();
     TestCaseValue defaultValue = testCase.getDefaultValue();
-    EppoClient eppoClient = EppoClient.getInstance();
+    BaseEppoClient eppoClient = BaseEppoClient.getInstance();
     assertFalse(testCase.getSubjects().isEmpty());
 
     for (SubjectAssignment subjectAssignment : testCase.getSubjects()) {
@@ -222,8 +222,8 @@ public class EppoClientTest {
   public void testErrorGracefulModeOn() throws JsonProcessingException {
     initClient(TEST_HOST, true, false, DUMMY_FLAG_API_KEY);
 
-    EppoClient realClient = EppoClient.getInstance();
-    EppoClient spyClient = spy(realClient);
+    BaseEppoClient realClient = BaseEppoClient.getInstance();
+    BaseEppoClient spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .getTypedAssignment(
@@ -271,8 +271,8 @@ public class EppoClientTest {
   public void testErrorGracefulModeOff() {
     initClient(TEST_HOST, false, false, DUMMY_FLAG_API_KEY);
 
-    EppoClient realClient = EppoClient.getInstance();
-    EppoClient spyClient = spy(realClient);
+    BaseEppoClient realClient = BaseEppoClient.getInstance();
+    BaseEppoClient spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .getTypedAssignment(
@@ -330,7 +330,7 @@ public class EppoClientTest {
     initClient(TEST_HOST, false, false, DUMMY_FLAG_API_KEY);
 
     String result =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getStringAssignment("dummy subject", "dummy flag", "not-populated");
     assertEquals("not-populated", result);
   }
@@ -343,7 +343,7 @@ public class EppoClientTest {
     subjectAttributes.put("age", EppoValue.valueOf(30));
     subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
     double assignment =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
@@ -381,7 +381,7 @@ public class EppoClientTest {
         .when(mockAssignmentLogger)
         .logAssignment(any());
     double assignment =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
@@ -431,7 +431,7 @@ public class EppoClientTest {
   /** Uses reflection to set a static override field used for tests (e.g., httpClientOverride) */
   private <T> void setOverrideField(String fieldName, T override) {
     try {
-      Field httpClientOverrideField = EppoClient.class.getDeclaredField(fieldName);
+      Field httpClientOverrideField = BaseEppoClient.class.getDeclaredField(fieldName);
       httpClientOverrideField.setAccessible(true);
       httpClientOverrideField.set(null, override);
       httpClientOverrideField.setAccessible(false);

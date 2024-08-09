@@ -27,8 +27,8 @@ import org.mockito.MockedStatic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EppoClientBanditTest {
-  private static final Logger log = LoggerFactory.getLogger(EppoClientBanditTest.class);
+public class BaseEppoClientBanditTest {
+  private static final Logger log = LoggerFactory.getLogger(BaseEppoClientBanditTest.class);
   private static final String DUMMY_BANDIT_API_KEY =
       "dummy-bandits-api-key"; // Will load bandit-flags-v1
   private static final String TEST_HOST =
@@ -44,7 +44,7 @@ public class EppoClientBanditTest {
   @BeforeAll
   public static void initClient() {
 
-    new EppoClient.Builder()
+    new BaseEppoClient.Builder()
         .apiKey(DUMMY_BANDIT_API_KEY)
         .sdkName("java")
         .sdkVersion("3.0.0")
@@ -62,7 +62,7 @@ public class EppoClientBanditTest {
     clearInvocations(mockAssignmentLogger);
     clearInvocations(mockBanditLogger);
     doNothing().when(mockBanditLogger).logBanditAssignment(any());
-    EppoClient.getInstance().setIsGracefulFailureMode(false);
+    BaseEppoClient.getInstance().setIsGracefulFailureMode(false);
   }
 
   @ParameterizedTest
@@ -106,7 +106,7 @@ public class EppoClientBanditTest {
       ContextAttributes attributes = subjectAssignment.getSubjectAttributes();
       Actions actions = subjectAssignment.getActions();
       BanditResult assignment =
-          EppoClient.getInstance()
+          BaseEppoClient.getInstance()
               .getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
       assertBanditAssignment(flagKey, subjectAssignment, assignment);
     }
@@ -165,7 +165,7 @@ public class EppoClientBanditTest {
     actions.put("reebok", rebookAttributes);
 
     BanditResult banditResult =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     // Verify assignment
@@ -239,7 +239,7 @@ public class EppoClientBanditTest {
     actions.put("adidas", new Attributes());
 
     BanditResult banditResult =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "default");
 
     // Verify assignment
@@ -267,7 +267,7 @@ public class EppoClientBanditTest {
     BanditActions actions = new BanditActions();
 
     BanditResult banditResult =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     // Verify assignment
@@ -286,7 +286,7 @@ public class EppoClientBanditTest {
 
   @Test
   public void testBanditErrorGracefulModeOff() {
-    EppoClient.getInstance()
+    BaseEppoClient.getInstance()
         .setIsGracefulFailureMode(
             false); // Should be set by @BeforeEach but repeated here for test clarity
     try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
@@ -302,7 +302,7 @@ public class EppoClientBanditTest {
       assertThrows(
           RuntimeException.class,
           () ->
-              EppoClient.getInstance()
+              BaseEppoClient.getInstance()
                   .getBanditAction(
                       "banner_bandit_flag", "subject", new Attributes(), actions, "default"));
     }
@@ -310,7 +310,7 @@ public class EppoClientBanditTest {
 
   @Test
   public void testBanditErrorGracefulModeOn() {
-    EppoClient.getInstance().setIsGracefulFailureMode(true);
+    BaseEppoClient.getInstance().setIsGracefulFailureMode(true);
     try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
       // Configure the mock to throw an exception
       mockedStatic
@@ -322,7 +322,7 @@ public class EppoClientBanditTest {
       actions.put("nike", new Attributes());
       actions.put("adidas", new Attributes());
       BanditResult banditResult =
-          EppoClient.getInstance()
+          BaseEppoClient.getInstance()
               .getBanditAction(
                   "banner_bandit_flag", "subject", new Attributes(), actions, "default");
       assertEquals("banner_bandit", banditResult.getVariation());
@@ -341,7 +341,7 @@ public class EppoClientBanditTest {
     actions.put("nike", new Attributes());
     actions.put("adidas", new Attributes());
     BanditResult banditResult =
-        EppoClient.getInstance()
+        BaseEppoClient.getInstance()
             .getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default");
     assertEquals("banner_bandit", banditResult.getVariation());
     assertEquals("nike", banditResult.getAction());
