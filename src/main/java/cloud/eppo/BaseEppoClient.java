@@ -17,8 +17,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EppoClient {
-  private static final Logger log = LoggerFactory.getLogger(EppoClient.class);
+public class BaseEppoClient {
+  private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
   private final ObjectMapper mapper =
       new ObjectMapper()
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
@@ -34,14 +34,14 @@ public class EppoClient {
   private final boolean isConfigObfuscated;
   private boolean isGracefulMode;
 
-  private static EppoClient instance;
+  private static BaseEppoClient instance;
 
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  private EppoClient(
+  private BaseEppoClient(
       String apiKey,
       String sdkName,
       String sdkVersion,
@@ -78,7 +78,7 @@ public class EppoClient {
     return httpClient;
   }
 
-  public static EppoClient init(
+  public static BaseEppoClient init(
       String apiKey,
       String sdkName,
       String sdkVersion,
@@ -100,7 +100,7 @@ public class EppoClient {
       log.warn("Reinitializing an Eppo Client instance that was already initialized");
     }
     instance =
-        new EppoClient(
+        new BaseEppoClient(
             apiKey,
             sdkName,
             sdkVersion,
@@ -479,12 +479,12 @@ public class EppoClient {
     throw new RuntimeException(e);
   }
 
-  public static EppoClient getInstance() {
-    if (EppoClient.instance == null) {
+  public static BaseEppoClient getInstance() {
+    if (BaseEppoClient.instance == null) {
       throw new IllegalStateException("Eppo SDK has not been initialized");
     }
 
-    return EppoClient.instance;
+    return BaseEppoClient.instance;
   }
 
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
@@ -535,8 +535,8 @@ public class EppoClient {
       return this;
     }
 
-    public EppoClient buildAndInit() {
-      return EppoClient.init(
+    public BaseEppoClient buildAndInit() {
+      return BaseEppoClient.init(
           apiKey, sdkName, sdkVersion, host, assignmentLogger, banditLogger, isGracefulMode);
     }
   }
