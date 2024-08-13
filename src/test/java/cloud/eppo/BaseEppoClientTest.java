@@ -6,8 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.helpers.AssignmentTestCase;
@@ -39,27 +38,30 @@ public class BaseEppoClientTest {
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
   private final ObjectMapper mapper = new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
 
+  private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
 
   // TODO: async init client tests
 
   private void initClient() {
-    initClient(TEST_HOST, false, false, DUMMY_FLAG_API_KEY);
+    initClient(false, false);
   }
 
-  private void initClient(
-      String host, boolean isGracefulMode, boolean isConfigObfuscated, String apiKey) {
+  private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
-    new BaseEppoClient.Builder()
-        .apiKey(apiKey)
-        .sdkName(isConfigObfuscated ? "android" : "java")
-        .sdkVersion("3.0.0")
-        .isGracefulMode(isGracefulMode)
-        .host(host)
-        .assignmentLogger(mockAssignmentLogger)
-        .buildAndInit();
+    eppoClient = new BaseEppoClient(
+      DUMMY_FLAG_API_KEY,
+      isConfigObfuscated ? "android" : "java",
+      "3.0.0",
+      TEST_HOST,
+      mockAssignmentLogger,
+      null,
+      isGracefulMode,
+      isConfigObfuscated
+    );
 
+    eppoClient.loadConfiguration();
     log.info("Test client initialized");
   }
 
@@ -72,17 +74,17 @@ public class BaseEppoClientTest {
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
   public void testUnobfuscatedAssignments(File testFile) {
-    initClient(TEST_HOST, false, false, DUMMY_FLAG_API_KEY);
+    initClient(false, false);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
-    runTestCase(testCase);
+    runTestCase(testCase, eppoClient);
   }
 
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
   public void testObfuscatedAssignments(File testFile) {
-    initClient(TEST_HOST, false, true, DUMMY_FLAG_API_KEY);
+    initClient(false, true);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
-    runTestCase(testCase);
+    runTestCase(testCase, eppoClient);
   }
 
   private static Stream<Arguments> getAssignmentTestData() {
@@ -91,9 +93,9 @@ public class BaseEppoClientTest {
 
   @Test
   public void testErrorGracefulModeOn() throws JsonProcessingException {
-    initClient(TEST_HOST, true, false, DUMMY_FLAG_API_KEY);
+    initClient(true, false);
 
-    BaseEppoClient realClient = BaseEppoClient.getInstance();
+    BaseEppoClient realClient = eppoClient;
     BaseEppoClient spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
@@ -140,9 +142,9 @@ public class BaseEppoClientTest {
 
   @Test
   public void testErrorGracefulModeOff() {
-    initClient(TEST_HOST, false, false, DUMMY_FLAG_API_KEY);
+    initClient(false, false);
 
-    BaseEppoClient realClient = BaseEppoClient.getInstance();
+    BaseEppoClient realClient = eppoClient;
     BaseEppoClient spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
@@ -198,10 +200,10 @@ public class BaseEppoClientTest {
 
     mockHttpResponse("{}");
 
-    initClient(TEST_HOST, false, false, DUMMY_FLAG_API_KEY);
+    initClient(false, false);
 
     String result =
-        BaseEppoClient.getInstance()
+        eppoClient
             .getStringAssignment("dummy subject", "dummy flag", "not-populated");
     assertEquals("not-populated", result);
   }
@@ -214,7 +216,7 @@ public class BaseEppoClientTest {
     subjectAttributes.put("age", EppoValue.valueOf(30));
     subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
     double assignment =
-        BaseEppoClient.getInstance()
+        eppoClient
             .getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
@@ -252,7 +254,7 @@ public class BaseEppoClientTest {
         .when(mockAssignmentLogger)
         .logAssignment(any());
     double assignment =
-        BaseEppoClient.getInstance()
+        eppoClient
             .getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
@@ -261,6 +263,7 @@ public class BaseEppoClientTest {
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
   }
 
+  @SuppressWarnings("SameParameterValue")
   private void mockHttpResponse(String responseBody) {
     // Create a mock instance of EppoHttpClient
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
@@ -281,12 +284,12 @@ public class BaseEppoClientTest {
     // Mock async get
     doAnswer(
             invocation -> {
-              RequestCallback callback = invocation.getArgument(1);
+              EppoHttpClientRequestCallback callback = invocation.getArgument(1);
               callback.onSuccess(responseBody);
               return null; // doAnswer doesn't require a return value
             })
         .when(mockHttpClient)
-        .get(anyString(), any(RequestCallback.class));
+        .get(anyString(), any(EppoHttpClientRequestCallback.class));
 
     setHttpClientOverrideField(mockHttpClient);
   }
@@ -295,11 +298,8 @@ public class BaseEppoClientTest {
     setOverrideField("httpClientOverride", httpClient);
   }
 
-  private void setConfigurationStoreOverrideField(ConfigurationStore configurationStore) {
-    setOverrideField("configurationStoreOverride", configurationStore);
-  }
-
   /** Uses reflection to set a static override field used for tests (e.g., httpClientOverride) */
+  @SuppressWarnings("SameParameterValue")
   private <T> void setOverrideField(String fieldName, T override) {
     try {
       Field httpClientOverrideField = BaseEppoClient.class.getDeclaredField(fieldName);

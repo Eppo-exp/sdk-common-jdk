@@ -2,9 +2,9 @@ package cloud.eppo.ufc.dto;
 
 public interface DiscriminableAttributes {
 
-  public Attributes getNumericAttributes();
+  Attributes getNumericAttributes();
 
-  public Attributes getCategoricalAttributes();
+  Attributes getCategoricalAttributes();
 
-  public Attributes getAllAttributes();
+  Attributes getAllAttributes();
 }

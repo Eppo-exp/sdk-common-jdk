@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AssignmentTestCase {
   private final String flag;
@@ -60,7 +59,7 @@ public class AssignmentTestCase {
     return fileName;
   }
 
-  private static ObjectMapper mapper = new ObjectMapper().registerModule(assignmentTestCaseModule());
+  private static final ObjectMapper mapper = new ObjectMapper().registerModule(assignmentTestCaseModule());
 
   public static SimpleModule assignmentTestCaseModule() {
     SimpleModule module = new SimpleModule();
@@ -92,10 +91,9 @@ public class AssignmentTestCase {
     return testCase;
   }
 
-  public static void runTestCase(AssignmentTestCase testCase) {
+  public static void runTestCase(AssignmentTestCase testCase, BaseEppoClient eppoClient) {
     String flagKey = testCase.getFlag();
     TestCaseValue defaultValue = testCase.getDefaultValue();
-    BaseEppoClient eppoClient = BaseEppoClient.getInstance();
     assertFalse(testCase.getSubjects().isEmpty());
 
     for (SubjectAssignment subjectAssignment : testCase.getSubjects()) {

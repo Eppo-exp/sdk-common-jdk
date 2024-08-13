@@ -3,7 +3,6 @@ package cloud.eppo;
 import static cloud.eppo.Utils.base64Encode;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
