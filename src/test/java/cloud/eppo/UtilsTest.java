@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Date;
 import org.junit.jupiter.api.Test;
 
-public class TestUtilsTest {
+public class UtilsTest {
   @Test
   public void testParseUtcISODateNode() throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
