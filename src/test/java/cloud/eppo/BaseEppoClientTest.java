@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.helpers.AssignmentTestCase;
@@ -36,7 +35,8 @@ public class BaseEppoClientTest {
   private static final String DUMMY_FLAG_API_KEY = "dummy-flags-api-key"; // Will load flags-v1
   private static final String TEST_HOST =
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
+  private final ObjectMapper mapper =
+      new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
 
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
@@ -50,16 +50,16 @@ public class BaseEppoClientTest {
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
-    eppoClient = new BaseEppoClient(
-      DUMMY_FLAG_API_KEY,
-      isConfigObfuscated ? "android" : "java",
-      "3.0.0",
-      TEST_HOST,
-      mockAssignmentLogger,
-      null,
-      isGracefulMode,
-      isConfigObfuscated
-    );
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            isConfigObfuscated ? "android" : "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            isGracefulMode,
+            isConfigObfuscated);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -202,9 +202,7 @@ public class BaseEppoClientTest {
 
     initClient(false, false);
 
-    String result =
-        eppoClient
-            .getStringAssignment("dummy subject", "dummy flag", "not-populated");
+    String result = eppoClient.getStringAssignment("dummy subject", "dummy flag", "not-populated");
     assertEquals("not-populated", result);
   }
 
@@ -216,8 +214,7 @@ public class BaseEppoClientTest {
     subjectAttributes.put("age", EppoValue.valueOf(30));
     subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
     double assignment =
-        eppoClient
-            .getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+        eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
 
@@ -254,8 +251,7 @@ public class BaseEppoClientTest {
         .when(mockAssignmentLogger)
         .logAssignment(any());
     double assignment =
-        eppoClient
-            .getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
+        eppoClient.getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
 
     assertEquals(3.1415926, assignment, 0.0000001);
 

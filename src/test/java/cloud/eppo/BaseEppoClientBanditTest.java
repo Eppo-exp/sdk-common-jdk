@@ -45,16 +45,16 @@ public class BaseEppoClientBanditTest {
 
   @BeforeAll
   public static void initClient() {
-    eppoClient = new BaseEppoClient(
-      DUMMY_BANDIT_API_KEY,
-      "java",
-      "3.0.0",
-      TEST_HOST,
-      mockAssignmentLogger,
-      mockBanditLogger,
-      false,
-      false
-    );
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_BANDIT_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            mockBanditLogger,
+            false,
+            false);
 
     eppoClient.loadConfiguration();
 
@@ -110,8 +110,7 @@ public class BaseEppoClientBanditTest {
       ContextAttributes attributes = subjectAssignment.getSubjectAttributes();
       Actions actions = subjectAssignment.getActions();
       BanditResult assignment =
-          eppoClient
-              .getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
+          eppoClient.getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
       assertBanditAssignment(flagKey, subjectAssignment, assignment);
     }
   }
@@ -170,8 +169,7 @@ public class BaseEppoClientBanditTest {
     actions.put("reebok", rebookAttributes);
 
     BanditResult banditResult =
-        eppoClient
-            .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     // Verify assignment
     assertEquals("banner_bandit", banditResult.getVariation());
@@ -244,8 +242,7 @@ public class BaseEppoClientBanditTest {
     actions.put("adidas", new Attributes());
 
     BanditResult banditResult =
-        eppoClient
-            .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "default");
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "default");
 
     // Verify assignment
     assertEquals("control", banditResult.getVariation());
@@ -272,8 +269,7 @@ public class BaseEppoClientBanditTest {
     BanditActions actions = new BanditActions();
 
     BanditResult banditResult =
-        eppoClient
-            .getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     // Verify assignment
     assertEquals("banner_bandit", banditResult.getVariation());
@@ -291,9 +287,8 @@ public class BaseEppoClientBanditTest {
 
   @Test
   public void testBanditErrorGracefulModeOff() {
-    eppoClient
-        .setIsGracefulFailureMode(
-            false); // Should be set by @BeforeEach but repeated here for test clarity
+    eppoClient.setIsGracefulFailureMode(
+        false); // Should be set by @BeforeEach but repeated here for test clarity
     try (MockedStatic<BanditEvaluator> mockedStatic = mockStatic(BanditEvaluator.class)) {
       // Configure the mock to throw an exception
       mockedStatic
@@ -307,9 +302,8 @@ public class BaseEppoClientBanditTest {
       assertThrows(
           RuntimeException.class,
           () ->
-              eppoClient
-                  .getBanditAction(
-                      "banner_bandit_flag", "subject", new Attributes(), actions, "default"));
+              eppoClient.getBanditAction(
+                  "banner_bandit_flag", "subject", new Attributes(), actions, "default"));
     }
   }
 
@@ -327,9 +321,8 @@ public class BaseEppoClientBanditTest {
       actions.put("nike", new Attributes());
       actions.put("adidas", new Attributes());
       BanditResult banditResult =
-          eppoClient
-              .getBanditAction(
-                  "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+          eppoClient.getBanditAction(
+              "banner_bandit_flag", "subject", new Attributes(), actions, "default");
       assertEquals("banner_bandit", banditResult.getVariation());
       assertNull(banditResult.getAction());
     }
@@ -346,8 +339,8 @@ public class BaseEppoClientBanditTest {
     actions.put("nike", new Attributes());
     actions.put("adidas", new Attributes());
     BanditResult banditResult =
-        eppoClient
-            .getBanditAction("banner_bandit_flag", "subject", new Attributes(), actions, "default");
+        eppoClient.getBanditAction(
+            "banner_bandit_flag", "subject", new Attributes(), actions, "default");
     assertEquals("banner_bandit", banditResult.getVariation());
     assertEquals("nike", banditResult.getAction());
 

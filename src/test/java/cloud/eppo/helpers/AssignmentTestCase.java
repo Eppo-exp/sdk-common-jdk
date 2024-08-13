@@ -1,21 +1,20 @@
 package cloud.eppo.helpers;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.ufc.dto.Attributes;
 import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.params.provider.Arguments;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.params.provider.Arguments;
 
 public class AssignmentTestCase {
   private final String flag;
@@ -59,7 +58,8 @@ public class AssignmentTestCase {
     return fileName;
   }
 
-  private static final ObjectMapper mapper = new ObjectMapper().registerModule(assignmentTestCaseModule());
+  private static final ObjectMapper mapper =
+      new ObjectMapper().registerModule(assignmentTestCaseModule());
 
   public static SimpleModule assignmentTestCaseModule() {
     SimpleModule module = new SimpleModule();
@@ -105,91 +105,91 @@ public class AssignmentTestCase {
       switch (testCase.getVariationType()) {
         case BOOLEAN:
           boolean boolAssignment =
-            eppoClient.getBooleanAssignment(
-              flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
+              eppoClient.getBooleanAssignment(
+                  flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
           assertAssignment(flagKey, subjectAssignment, boolAssignment);
           break;
         case INTEGER:
           int intAssignment =
-            eppoClient.getIntegerAssignment(
-              flagKey,
-              subjectKey,
-              subjectAttributes,
-              Double.valueOf(defaultValue.doubleValue()).intValue());
+              eppoClient.getIntegerAssignment(
+                  flagKey,
+                  subjectKey,
+                  subjectAttributes,
+                  Double.valueOf(defaultValue.doubleValue()).intValue());
           assertAssignment(flagKey, subjectAssignment, intAssignment);
           break;
         case NUMERIC:
           double doubleAssignment =
-            eppoClient.getDoubleAssignment(
-              flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
+              eppoClient.getDoubleAssignment(
+                  flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
           assertAssignment(flagKey, subjectAssignment, doubleAssignment);
           break;
         case STRING:
           String stringAssignment =
-            eppoClient.getStringAssignment(
-              flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
+              eppoClient.getStringAssignment(
+                  flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
           assertAssignment(flagKey, subjectAssignment, stringAssignment);
           break;
         case JSON:
           JsonNode jsonAssignment =
-            eppoClient.getJSONAssignment(
-              flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
+              eppoClient.getJSONAssignment(
+                  flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
           assertAssignment(flagKey, subjectAssignment, jsonAssignment);
           break;
         default:
           throw new UnsupportedOperationException(
-            "Unexpected variation type "
-              + testCase.getVariationType()
-              + " for "
-              + flagKey
-              + " test case");
+              "Unexpected variation type "
+                  + testCase.getVariationType()
+                  + " for "
+                  + flagKey
+                  + " test case");
       }
     }
   }
 
   /** Helper method for asserting a subject assignment with a useful failure message. */
   public static <T> void assertAssignment(
-    String flagKey, SubjectAssignment expectedSubjectAssignment, T assignment) {
+      String flagKey, SubjectAssignment expectedSubjectAssignment, T assignment) {
 
     if (assignment == null) {
       fail(
-        "Unexpected null "
-          + flagKey
-          + " assignment for subject "
-          + expectedSubjectAssignment.getSubjectKey());
+          "Unexpected null "
+              + flagKey
+              + " assignment for subject "
+              + expectedSubjectAssignment.getSubjectKey());
     }
 
     String failureMessage =
-      "Incorrect "
-        + flagKey
-        + " assignment for subject "
-        + expectedSubjectAssignment.getSubjectKey();
+        "Incorrect "
+            + flagKey
+            + " assignment for subject "
+            + expectedSubjectAssignment.getSubjectKey();
 
     if (assignment instanceof Boolean) {
       assertEquals(
-        expectedSubjectAssignment.getAssignment().booleanValue(), assignment, failureMessage);
+          expectedSubjectAssignment.getAssignment().booleanValue(), assignment, failureMessage);
     } else if (assignment instanceof Integer) {
       assertEquals(
-        Double.valueOf(expectedSubjectAssignment.getAssignment().doubleValue()).intValue(),
-        assignment,
-        failureMessage);
+          Double.valueOf(expectedSubjectAssignment.getAssignment().doubleValue()).intValue(),
+          assignment,
+          failureMessage);
     } else if (assignment instanceof Double) {
       assertEquals(
-        expectedSubjectAssignment.getAssignment().doubleValue(),
-        (Double) assignment,
-        0.000001,
-        failureMessage);
+          expectedSubjectAssignment.getAssignment().doubleValue(),
+          (Double) assignment,
+          0.000001,
+          failureMessage);
     } else if (assignment instanceof String) {
       assertEquals(
-        expectedSubjectAssignment.getAssignment().stringValue(), assignment, failureMessage);
+          expectedSubjectAssignment.getAssignment().stringValue(), assignment, failureMessage);
     } else if (assignment instanceof JsonNode) {
       assertEquals(
-        expectedSubjectAssignment.getAssignment().jsonValue().toString(),
-        assignment.toString(),
-        failureMessage);
+          expectedSubjectAssignment.getAssignment().jsonValue().toString(),
+          assignment.toString(),
+          failureMessage);
     } else {
       throw new IllegalArgumentException(
-        "Unexpected assignment type " + assignment.getClass().getCanonicalName());
+          "Unexpected assignment type " + assignment.getClass().getCanonicalName());
     }
   }
 }

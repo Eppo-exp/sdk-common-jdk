@@ -95,11 +95,13 @@ public class EppoHttpClient {
 
               @Override
               public void onFailure(Call call, IOException e) {
-                log.error("Http request failure: {} {}", e.getMessage(), Arrays.toString(e.getStackTrace()), e);
+                log.error(
+                    "Http request failure: {} {}",
+                    e.getMessage(),
+                    Arrays.toString(e.getStackTrace()),
+                    e);
                 callback.onFailure("Unable to fetch from URL " + httpUrl);
               }
             });
   }
 }
-
-

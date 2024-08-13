@@ -48,15 +48,14 @@ public class BaseEppoClient {
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
       boolean isGracefulMode,
-      boolean expectObfuscatedConfig
-    ) {
+      boolean expectObfuscatedConfig) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
     }
     if (sdkName == null || sdkVersion == null) {
       throw new IllegalArgumentException(
-        "Unable to initialize Eppo SDK due to missing SDK name or version");
+          "Unable to initialize Eppo SDK due to missing SDK name or version");
     }
     if (host == null) {
       host = DEFAULT_HOST;
