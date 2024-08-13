@@ -2,6 +2,8 @@ package cloud.eppo;
 
 import static cloud.eppo.helpers.AssignmentTestCase.parseTestCaseFile;
 import static cloud.eppo.helpers.AssignmentTestCase.runTestCase;
+import static cloud.eppo.helpers.TestUtils.mockHttpResponse;
+import static cloud.eppo.helpers.TestUtils.setBaseClientHttpClientOverrideField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,10 +19,8 @@ import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Stream;
-import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -68,7 +68,7 @@ public class BaseEppoClientTest {
   @BeforeEach
   public void cleanUp() {
     // TODO: Clear any caches
-    setHttpClientOverrideField(null);
+    setBaseClientHttpClientOverrideField(null);
   }
 
   @ParameterizedTest
@@ -198,7 +198,7 @@ public class BaseEppoClientTest {
   @Test
   public void testInvalidConfigJSON() {
 
-    mockHttpResponse("{}");
+    mockHttpResponse(TEST_HOST, "{}");
 
     initClient(false, false);
 
@@ -257,54 +257,6 @@ public class BaseEppoClientTest {
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private void mockHttpResponse(String responseBody) {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    // Mock sync get
-    Response dummyResponse =
-        new Response.Builder()
-            // Used by test
-            .code(200)
-            .body(ResponseBody.create(responseBody, MediaType.get("application/json")))
-            // Below properties are required to build the Response (but unused)
-            .request(new Request.Builder().url(TEST_HOST).build())
-            .protocol(Protocol.HTTP_1_1)
-            .message("OK")
-            .build();
-    when(mockHttpClient.get(anyString())).thenReturn(dummyResponse);
-
-    // Mock async get
-    doAnswer(
-            invocation -> {
-              EppoHttpClientRequestCallback callback = invocation.getArgument(1);
-              callback.onSuccess(responseBody);
-              return null; // doAnswer doesn't require a return value
-            })
-        .when(mockHttpClient)
-        .get(anyString(), any(EppoHttpClientRequestCallback.class));
-
-    setHttpClientOverrideField(mockHttpClient);
-  }
-
-  private void setHttpClientOverrideField(EppoHttpClient httpClient) {
-    setOverrideField("httpClientOverride", httpClient);
-  }
-
-  /** Uses reflection to set a static override field used for tests (e.g., httpClientOverride) */
-  @SuppressWarnings("SameParameterValue")
-  private <T> void setOverrideField(String fieldName, T override) {
-    try {
-      Field httpClientOverrideField = BaseEppoClient.class.getDeclaredField(fieldName);
-      httpClientOverrideField.setAccessible(true);
-      httpClientOverrideField.set(null, override);
-      httpClientOverrideField.setAccessible(false);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   // TODO: tests for the cache

@@ -24,7 +24,6 @@ public class BaseEppoClient {
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
 
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
-  protected static final boolean DEFAULT_IS_GRACEFUL_MODE = true;
   protected final ConfigurationRequestor requestor;
 
   private final ConfigurationStore configurationStore;
