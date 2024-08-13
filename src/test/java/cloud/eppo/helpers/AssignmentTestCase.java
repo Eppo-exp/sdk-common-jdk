@@ -21,7 +21,6 @@ public class AssignmentTestCase {
   private final VariationType variationType;
   private final TestCaseValue defaultValue;
   private final List<SubjectAssignment> subjects;
-  private String fileName;
 
   public AssignmentTestCase(
       String flag,
@@ -48,14 +47,6 @@ public class AssignmentTestCase {
 
   public List<SubjectAssignment> getSubjects() {
     return subjects;
-  }
-
-  public void setFileName(String fileName) {
-    this.fileName = fileName;
-  }
-
-  public String getFileName() {
-    return fileName;
   }
 
   private static final ObjectMapper mapper =
@@ -148,7 +139,7 @@ public class AssignmentTestCase {
   }
 
   /** Helper method for asserting a subject assignment with a useful failure message. */
-  public static <T> void assertAssignment(
+  private static <T> void assertAssignment(
       String flagKey, SubjectAssignment expectedSubjectAssignment, T assignment) {
 
     if (assignment == null) {

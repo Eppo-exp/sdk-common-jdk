@@ -1,5 +1,7 @@
 package cloud.eppo;
 
+import static cloud.eppo.helpers.BanditTestCase.parseBanditTestCaseFile;
+import static cloud.eppo.helpers.BanditTestCase.runBanditTestCase;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -9,13 +11,9 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +31,6 @@ public class BaseEppoClientBanditTest {
       "dummy-bandits-api-key"; // Will load bandit-flags-v1
   private static final String TEST_HOST =
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
-  private static final ObjectMapper mapper = new ObjectMapper().registerModule(module());
 
   private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
   private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
@@ -72,73 +69,12 @@ public class BaseEppoClientBanditTest {
   @ParameterizedTest
   @MethodSource("getBanditTestData")
   public void testUnobfuscatedBanditAssignments(File testFile) {
-    BanditTestCase testCase = parseTestCaseFile(testFile);
-    runBanditTestCase(testCase);
+    BanditTestCase testCase = parseBanditTestCaseFile(testFile);
+    runBanditTestCase(testCase, eppoClient);
   }
 
-  private static Stream<Arguments> getBanditTestData() {
-    File testCaseFolder = new File("src/test/resources/shared/ufc/bandit-tests");
-    File[] testCaseFiles = testCaseFolder.listFiles();
-    assertNotNull(testCaseFiles);
-    assertTrue(testCaseFiles.length > 0);
-    List<Arguments> arguments = new ArrayList<>();
-    for (File testCaseFile : testCaseFiles) {
-      arguments.add(Arguments.of(testCaseFile));
-    }
-    return arguments.stream();
-  }
-
-  private BanditTestCase parseTestCaseFile(File testCaseFile) {
-    BanditTestCase testCase;
-    try {
-      String json = FileUtils.readFileToString(testCaseFile, "UTF8");
-      testCase = mapper.readValue(json, BanditTestCase.class);
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    }
-    return testCase;
-  }
-
-  private void runBanditTestCase(BanditTestCase testCase) {
-    assertFalse(testCase.getSubjects().isEmpty());
-
-    String flagKey = testCase.getFlag();
-    String defaultValue = testCase.getDefaultValue();
-
-    for (BanditSubjectAssignment subjectAssignment : testCase.getSubjects()) {
-      String subjectKey = subjectAssignment.getSubjectKey();
-      ContextAttributes attributes = subjectAssignment.getSubjectAttributes();
-      Actions actions = subjectAssignment.getActions();
-      BanditResult assignment =
-          eppoClient.getBanditAction(flagKey, subjectKey, attributes, actions, defaultValue);
-      assertBanditAssignment(flagKey, subjectAssignment, assignment);
-    }
-  }
-
-  /** Helper method for asserting a bandit assignment with a useful failure message. */
-  private void assertBanditAssignment(
-      String flagKey, BanditSubjectAssignment expectedSubjectAssignment, BanditResult assignment) {
-    String failureMessage =
-        "Incorrect "
-            + flagKey
-            + " variation assignment for subject "
-            + expectedSubjectAssignment.getSubjectKey();
-
-    assertEquals(
-        expectedSubjectAssignment.getAssignment().getVariation(),
-        assignment.getVariation(),
-        failureMessage);
-
-    failureMessage =
-        "Incorrect "
-            + flagKey
-            + " action assignment for subject "
-            + expectedSubjectAssignment.getSubjectKey();
-
-    assertEquals(
-        expectedSubjectAssignment.getAssignment().getAction(),
-        assignment.getAction(),
-        failureMessage);
+  public static Stream<Arguments> getBanditTestData() {
+    return BanditTestCase.getBanditTestData();
   }
 
   @SuppressWarnings("ExtractMethodRecommender")
@@ -347,11 +283,5 @@ public class BaseEppoClientBanditTest {
     ArgumentCaptor<BanditAssignment> banditLogCaptor =
         ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
-  }
-
-  private static SimpleModule module() {
-    SimpleModule module = new SimpleModule();
-    module.addDeserializer(BanditTestCase.class, new BanditTestCaseDeserializer());
-    return module;
   }
 }
