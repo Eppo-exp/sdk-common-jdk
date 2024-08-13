@@ -62,11 +62,17 @@ java {
   withSourcesJar()
 }
 
+task testJar(type: Jar) {
+  archiveClassifier.set('tests')
+  from sourceSets.test.output
+}
+
 publishing {
   publications {
     mavenJava(MavenPublication) {
       artifactId = 'sdk-common-jvm'
       from components.java
+      artifact testJar // Include the test-jar in the published artifacts
       versionMapping {
         usage('java-api') {
           fromResolutionOf('runtimeClasspath')

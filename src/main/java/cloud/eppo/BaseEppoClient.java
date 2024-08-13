@@ -41,7 +41,7 @@ public class BaseEppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  private BaseEppoClient(
+  protected BaseEppoClient(
       String apiKey,
       String sdkName,
       String sdkVersion,
@@ -78,7 +78,7 @@ public class BaseEppoClient {
     return httpClient;
   }
 
-  public static BaseEppoClient init(
+  protected static BaseEppoClient init(
       String apiKey,
       String sdkName,
       String sdkVersion,
@@ -114,14 +114,6 @@ public class BaseEppoClient {
     return instance;
   }
 
-  /**
-   * Ability to ad-hoc kick off a configuration load. Will load from a filesystem cached file as
-   * well as fire off an HTTPS request for an updated configuration. If the cache load finishes
-   * first, those assignments will be used until the fetch completes.
-   *
-   * <p>Deprecated, as we plan to make a more targeted and configurable way to do so in the future.
-   */
-  @Deprecated
   public void refreshConfiguration() {
     requestor.load();
   }
