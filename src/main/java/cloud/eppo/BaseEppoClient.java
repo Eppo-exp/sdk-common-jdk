@@ -39,7 +39,7 @@ public class BaseEppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  public BaseEppoClient(
+  protected BaseEppoClient(
       String apiKey,
       String sdkName,
       String sdkVersion,
