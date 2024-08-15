@@ -32,8 +32,8 @@ public final class Utils {
   }
 
   /**
-   * Return the String representation of the zero-padded hexadecimal hash of a string input
-   * This is useful for comparing against other string hashes, such as obfuscated flag names.
+   * Return the String representation of the zero-padded hexadecimal hash of a string input This is
+   * useful for comparing against other string hashes, such as obfuscated flag names.
    */
   public static String getMD5Hex(String input) {
     // md5 the input
@@ -52,8 +52,9 @@ public final class Utils {
   }
 
   /**
-   * Return a deterministic pseudo-random integer based on the input that falls between 0 (inclusive) and a max value (exclusive)
-   * This is useful for randomly bucketing subjects or shuffling bandit actions
+   * Return a deterministic pseudo-random integer based on the input that falls between 0
+   * (inclusive) and a max value (exclusive) This is useful for randomly bucketing subjects or
+   * shuffling bandit actions
    */
   public static int getShard(String input, int maxShardValue) {
     // md5 the input
@@ -67,7 +68,7 @@ public final class Utils {
     }
 
     // Modulo into the shard space
-    return (int)(value % maxShardValue);
+    return (int) (value % maxShardValue);
   }
 
   public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {

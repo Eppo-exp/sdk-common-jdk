@@ -1,49 +1,49 @@
 package cloud.eppo;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.ufc.dto.Attributes;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProfileBaseEppoClientTest {
   private static final Logger log = LoggerFactory.getLogger(ProfileBaseEppoClientTest.class);
 
   private static final String DUMMY_FLAG_API_KEY = "dummy-flags-api-key"; // Will load flags-v1
   private static final String TEST_HOST =
-    "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
+      "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
 
   private static BaseEppoClient eppoClient;
-  private static final AssignmentLogger noOpAssignmentLogger = new AssignmentLogger() {
-    @Override
-    public void logAssignment(Assignment assignment) {
-      /* no-op */
-    }
-  };
+  private static final AssignmentLogger noOpAssignmentLogger =
+      new AssignmentLogger() {
+        @Override
+        public void logAssignment(Assignment assignment) {
+          /* no-op */
+        }
+      };
 
   @BeforeAll
   public static void initClient() {
     eppoClient =
-      new BaseEppoClient(
-        DUMMY_FLAG_API_KEY,
-        "java",
-        "3.0.0",
-        TEST_HOST,
-        noOpAssignmentLogger,
-        null,
-        false,
-        false);
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            noOpAssignmentLogger,
+            null,
+            false,
+            false);
 
     eppoClient.loadConfiguration();
 
@@ -63,8 +63,11 @@ public class ProfileBaseEppoClientTest {
 
     for (int i = 0; i < numIterations; i++) {
       String subjectKey = "subject" + i;
-      String assignedVariation = eppoClient.getStringAssignment("new-user-onboarding", subjectKey, subjectAttributes, "default");
-      AtomicInteger existingCount = variationCounts.computeIfAbsent(assignedVariation, k -> new AtomicInteger(0));
+      String assignedVariation =
+          eppoClient.getStringAssignment(
+              "new-user-onboarding", subjectKey, subjectAttributes, "default");
+      AtomicInteger existingCount =
+          variationCounts.computeIfAbsent(assignedVariation, k -> new AtomicInteger(0));
       existingCount.incrementAndGet();
     }
     long endTime = threadBean.getCurrentThreadCpuTime();
