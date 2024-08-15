@@ -4,6 +4,8 @@ import cloud.eppo.ufc.dto.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static cloud.eppo.Utils.getShard;
+
 public class BanditEvaluator {
 
   private static final int BANDIT_ASSIGNMENT_SHARDS = 10000; // hard-coded for now
@@ -144,7 +146,7 @@ public class BanditEvaluator {
             .sorted(
                 Comparator.comparingInt(
                         (String actionKey) ->
-                            ShardUtils.getShard(
+                            getShard(
                                 flagKey + "-" + subjectKey + "-" + actionKey,
                                 BANDIT_ASSIGNMENT_SHARDS))
                     .thenComparing(actionKey -> actionKey))
@@ -152,7 +154,7 @@ public class BanditEvaluator {
 
     // Select action from the shuffled actions, based on weight
     double assignedShard =
-        ShardUtils.getShard(flagKey + "-" + subjectKey, BANDIT_ASSIGNMENT_SHARDS);
+        getShard(flagKey + "-" + subjectKey, BANDIT_ASSIGNMENT_SHARDS);
     double assignmentWeightThreshold = assignedShard / (double) BANDIT_ASSIGNMENT_SHARDS;
     double cumulativeWeight = 0;
     String assignedAction = null;

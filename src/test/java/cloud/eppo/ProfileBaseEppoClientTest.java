@@ -1,7 +1,7 @@
 package cloud.eppo;
 
+import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.Attributes;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -16,18 +16,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class ProfileBaseEppoClientTest {
-  private static final Logger log = LoggerFactory.getLogger(BaseEppoClientTest.class);
+  private static final Logger log = LoggerFactory.getLogger(ProfileBaseEppoClientTest.class);
 
   private static final String DUMMY_FLAG_API_KEY = "dummy-flags-api-key"; // Will load flags-v1
   private static final String TEST_HOST =
     "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
 
   private static BaseEppoClient eppoClient;
-  private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
-  private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
+  private static final AssignmentLogger noOpAssignmentLogger = new AssignmentLogger() {
+    @Override
+    public void logAssignment(Assignment assignment) {
+      /* no-op */
+    }
+  };
 
   @BeforeAll
   public static void initClient() {
@@ -37,8 +40,8 @@ public class ProfileBaseEppoClientTest {
         "java",
         "3.0.0",
         TEST_HOST,
-        mockAssignmentLogger,
-        mockBanditLogger,
+        noOpAssignmentLogger,
+        null,
         false,
         false);
 
@@ -81,8 +84,8 @@ public class ProfileBaseEppoClientTest {
     // Expect ~12% yellow (20% of 60%)
     assertEquals(0.12, variationCounts.get("yellow").doubleValue() / numIterations, 0.02);
 
-    // Seeing ~150,000,000 - 188,000,000 for 10k iterations
-    long maxTotalTime = 20000 * numIterations;
+    // Seeing ~48,000,000 - ~54,000,000 for 10k iterations; let's fail if more than 75,000,000
+    long maxTotalTime = 7500 * numIterations;
     assertTrue(elapsedTime < maxTotalTime);
   }
 }

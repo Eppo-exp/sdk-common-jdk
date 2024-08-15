@@ -1,7 +1,7 @@
 package cloud.eppo;
 
-import static cloud.eppo.ShardUtils.getShard;
 import static cloud.eppo.Utils.base64Decode;
+import static cloud.eppo.Utils.getShard;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
