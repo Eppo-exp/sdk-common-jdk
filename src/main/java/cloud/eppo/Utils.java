@@ -31,13 +31,16 @@ public final class Utils {
       throw new RuntimeException("Error computing md5 hash", e);
     }
     byte[] messageDigest = md.digest(input.getBytes());
-    BigInteger no = new BigInteger(1, messageDigest);
-    StringBuilder hashText = new StringBuilder(no.toString(16));
-    while (hashText.length() < 32) {
-      hashText.insert(0, "0");
+    StringBuilder hexString = new StringBuilder(32);
+    for (byte b : messageDigest) {
+      String hex = Integer.toHexString(0xff & b);
+      if (hex.length() == 1) {
+        hexString.append('0');
+      }
+      hexString.append(hex);
     }
 
-    return hashText.toString();
+    return hexString.toString();
   }
 
   public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {

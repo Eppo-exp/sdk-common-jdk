@@ -81,15 +81,8 @@ public class ProfileBaseEppoClientTest {
     // Expect ~12% yellow (20% of 60%)
     assertEquals(0.12, variationCounts.get("yellow").doubleValue() / numIterations, 0.02);
 
-
-    //25988000
-    //26688000
-    //26415000
-    //26335000
-    //6282000
-
-    // Seeing ~26000000 - 27000000 for 10k iterations
-    long maxTotalTime = 30000 * numIterations;
+    // Seeing ~150,000,000 - 188,000,000 for 10k iterations
+    long maxTotalTime = 20000 * numIterations;
     assertTrue(elapsedTime < maxTotalTime);
   }
 }
