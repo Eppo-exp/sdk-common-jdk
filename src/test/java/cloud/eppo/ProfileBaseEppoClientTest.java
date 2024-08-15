@@ -88,8 +88,9 @@ public class ProfileBaseEppoClientTest {
     assertEquals(0.12, variationCounts.get("yellow").doubleValue() / numIterations, 0.02);
 
     // Seeing ~48,000,000 - ~54,000,000 for 10k iterations on a M2 Macbook Pro; let's fail if more
-    // than 100,000,000
-    long maxAllowedTime = 10000 * numIterations;
+    // than 150,000,000; giving a generous allowance for slower systems (like GitHub) but will still
+    // catch if things slow down considerably
+    long maxAllowedTime = 15000 * numIterations;
     assertTrue(
         elapsedTime < maxAllowedTime,
         "Cpu time of " + elapsedTime + " is more than the " + maxAllowedTime + " allowed");
