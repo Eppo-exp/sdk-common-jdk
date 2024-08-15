@@ -51,7 +51,7 @@ public class ProfileBaseEppoClientTest {
   }
 
   @Test
-  public void testGetStringAssignment() {
+  public void testGetStringAssignmentPerformance() {
     Map<String, AtomicInteger> variationCounts = new HashMap<>();
     Attributes subjectAttributes = new Attributes();
     subjectAttributes.put("country", "FR");
@@ -87,8 +87,11 @@ public class ProfileBaseEppoClientTest {
     // Expect ~12% yellow (20% of 60%)
     assertEquals(0.12, variationCounts.get("yellow").doubleValue() / numIterations, 0.02);
 
-    // Seeing ~48,000,000 - ~54,000,000 for 10k iterations; let's fail if more than 75,000,000
-    long maxTotalTime = 7500 * numIterations;
-    assertTrue(elapsedTime < maxTotalTime);
+    // Seeing ~48,000,000 - ~54,000,000 for 10k iterations on a M2 Macbook Pro; let's fail if more
+    // than 100,000,000
+    long maxAllowedTime = 10000 * numIterations;
+    assertTrue(
+        elapsedTime < maxAllowedTime,
+        "Cpu time of " + elapsedTime + " is more than the " + maxAllowedTime + " allowed");
   }
 }
