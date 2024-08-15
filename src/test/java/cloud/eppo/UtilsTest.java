@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import static cloud.eppo.Utils.*;
-import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
