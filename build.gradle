@@ -6,11 +6,14 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '2.1.0-SNAPSHOT'
+version = '3.0.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+  implementation 'com.github.zafarkhaja:java-semver:0.10.2'
+  implementation "com.squareup.okhttp3:okhttp:4.12.0"
+
   // For UFC DTOs
   implementation 'commons-codec:commons-codec:1.17.0'
   implementation 'org.slf4j:slf4j-api:2.0.13'
@@ -19,10 +22,19 @@ dependencies {
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
   testImplementation 'commons-io:commons-io:2.11.0'
   testImplementation "com.google.truth:truth:1.4.4"
+  testImplementation 'org.mockito:mockito-core:4.11.0'
+  testImplementation 'org.mockito:mockito-inline:4.11.0'
 }
 
 test {
   useJUnitPlatform()
+  testLogging {
+    events "started", "passed", "skipped", "failed"
+    exceptionFormat "full"
+    showExceptions true
+    showCauses true
+    showStackTraces true
+  }
 }
 
 spotless {
@@ -50,11 +62,17 @@ java {
   withSourcesJar()
 }
 
+tasks.register('testJar', Jar) {
+  archiveClassifier.set('tests')
+  from sourceSets.test.output
+}
+
 publishing {
   publications {
     mavenJava(MavenPublication) {
       artifactId = 'sdk-common-jvm'
       from components.java
+      artifact testJar // Include the test-jar in the published artifacts
       versionMapping {
         usage('java-api') {
           fromResolutionOf('runtimeClasspath')
@@ -102,7 +120,7 @@ publishing {
 
 // Custom task to ensure we can conditionally publish either a release or snapshot artifact
 // based on a command line switch. See github workflow files for more details on usage.
-task checkVersion {
+tasks.register('checkVersion') {
   doLast {
     if (!project.hasProperty('release') && !project.hasProperty('snapshot')) {
       throw new GradleException("You must specify either -Prelease or -Psnapshot")
@@ -123,21 +141,25 @@ tasks.named('publish').configure {
 }
 
 // Conditionally enable or disable publishing tasks
-tasks.withType(PublishToMavenRepository) {
+tasks.withType(PublishToMavenRepository).configureEach {
   onlyIf {
     project.ext.has('shouldPublish') && project.ext.shouldPublish
   }
 }
 
-signing {
-  sign publishing.publications.mavenJava
-  if (System.env['CI']) {
-    useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+if (!project.gradle.startParameter.taskNames.contains('publishToMavenLocal')) {
+  signing {
+    sign publishing.publications.mavenJava
+    if (System.env['CI']) {
+      useInMemoryPgpKeys(System.env.GPG_PRIVATE_KEY, System.env.GPG_PASSPHRASE)
+    }
   }
 }
 
-
 javadoc {
+  failOnError = false
+  options.addStringOption('Xdoclint:none', '-quiet')
+  options.addBooleanOption('failOnError', false)
   if (JavaVersion.current().isJava9Compatible()) {
     options.addBooleanOption('html5', true)
   }
