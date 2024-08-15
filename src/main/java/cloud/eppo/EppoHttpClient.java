@@ -59,7 +59,7 @@ public class EppoHttpClient {
     }
   }
 
-  public void get(String path, RequestCallback callback) {
+  public void get(String path, EppoHttpClientRequestCallback callback) {
     HttpUrl httpUrl =
         HttpUrl.parse(baseUrl + path)
             .newBuilder()
@@ -83,13 +83,11 @@ public class EppoHttpClient {
                     callback.onFailure("Failed to read response from URL " + httpUrl);
                   }
                 } else {
-                  switch (response.code()) {
-                    case HttpURLConnection.HTTP_FORBIDDEN:
-                      callback.onFailure("Invalid API key");
-                      break;
-                    default:
-                      log.debug("Fetch failed with status code: " + response.code());
-                      callback.onFailure("Bad response from URL " + httpUrl);
+                  if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+                    callback.onFailure("Invalid API key");
+                  } else {
+                    log.debug("Fetch failed with status code: {}", response.code());
+                    callback.onFailure("Bad response from URL " + httpUrl);
                   }
                 }
                 response.close();
@@ -98,19 +96,12 @@ public class EppoHttpClient {
               @Override
               public void onFailure(Call call, IOException e) {
                 log.error(
-                    "Http request failure: "
-                        + e.getMessage()
-                        + " "
-                        + Arrays.toString(e.getStackTrace()),
+                    "Http request failure: {} {}",
+                    e.getMessage(),
+                    Arrays.toString(e.getStackTrace()),
                     e);
                 callback.onFailure("Unable to fetch from URL " + httpUrl);
               }
             });
   }
-}
-
-interface RequestCallback {
-  void onSuccess(String responseBody);
-
-  void onFailure(String errorMessage);
 }

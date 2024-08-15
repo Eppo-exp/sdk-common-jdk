@@ -62,11 +62,17 @@ java {
   withSourcesJar()
 }
 
+tasks.register('testJar', Jar) {
+  archiveClassifier.set('tests')
+  from sourceSets.test.output
+}
+
 publishing {
   publications {
     mavenJava(MavenPublication) {
       artifactId = 'sdk-common-jvm'
       from components.java
+      artifact testJar // Include the test-jar in the published artifacts
       versionMapping {
         usage('java-api') {
           fromResolutionOf('runtimeClasspath')
@@ -114,7 +120,7 @@ publishing {
 
 // Custom task to ensure we can conditionally publish either a release or snapshot artifact
 // based on a command line switch. See github workflow files for more details on usage.
-task checkVersion {
+tasks.register('checkVersion') {
   doLast {
     if (!project.hasProperty('release') && !project.hasProperty('snapshot')) {
       throw new GradleException("You must specify either -Prelease or -Psnapshot")
@@ -135,7 +141,7 @@ tasks.named('publish').configure {
 }
 
 // Conditionally enable or disable publishing tasks
-tasks.withType(PublishToMavenRepository) {
+tasks.withType(PublishToMavenRepository).configureEach {
   onlyIf {
     project.ext.has('shouldPublish') && project.ext.shouldPublish
   }

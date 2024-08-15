@@ -22,11 +22,11 @@ public class BaseEppoClient {
   private final ObjectMapper mapper =
       new ObjectMapper()
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
-  private static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
-  private static final boolean DEFAULT_IS_GRACEFUL_MODE = true;
+
+  protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
+  protected final ConfigurationRequestor requestor;
 
   private final ConfigurationStore configurationStore;
-  private final ConfigurationRequestor requestor;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
@@ -34,25 +34,34 @@ public class BaseEppoClient {
   private final boolean isConfigObfuscated;
   private boolean isGracefulMode;
 
-  private static BaseEppoClient instance;
-
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
-  private BaseEppoClient(
+  protected BaseEppoClient(
       String apiKey,
       String sdkName,
       String sdkVersion,
       String host,
-      ConfigurationStore configurationStore,
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
-      boolean isGracefulMode) {
+      boolean isGracefulMode,
+      boolean expectObfuscatedConfig) {
+
+    if (apiKey == null) {
+      throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
+    }
+    if (sdkName == null || sdkVersion == null) {
+      throw new IllegalArgumentException(
+          "Unable to initialize Eppo SDK due to missing SDK name or version");
+    }
+    if (host == null) {
+      host = DEFAULT_HOST;
+    }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = configurationStore;
+    this.configurationStore = new ConfigurationStore();
     requestor = new ConfigurationRequestor(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
@@ -61,8 +70,10 @@ public class BaseEppoClient {
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
     // For now, the configuration is only obfuscated for Android clients
-    this.isConfigObfuscated = sdkName.toLowerCase().contains("android");
+    this.isConfigObfuscated = expectObfuscatedConfig;
+
     // TODO: caching initialization (such as setting an API-key-specific prefix
+    //       will probably involve passing in configurationStore to the constructor
   }
 
   private EppoHttpClient buildHttpClient(
@@ -78,51 +89,7 @@ public class BaseEppoClient {
     return httpClient;
   }
 
-  public static BaseEppoClient init(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
-      boolean isGracefulMode) {
-
-    if (apiKey == null) {
-      throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
-    }
-    if (sdkName == null || sdkVersion == null) {
-      throw new IllegalArgumentException(
-          "Unable to initialize Eppo SDK due to missing SDK name or version");
-    }
-
-    if (instance != null) {
-      // TODO: also check we're not running a test
-      log.warn("Reinitializing an Eppo Client instance that was already initialized");
-    }
-    instance =
-        new BaseEppoClient(
-            apiKey,
-            sdkName,
-            sdkVersion,
-            host,
-            new ConfigurationStore(),
-            assignmentLogger,
-            banditLogger,
-            isGracefulMode);
-    instance.refreshConfiguration();
-
-    return instance;
-  }
-
-  /**
-   * Ability to ad-hoc kick off a configuration load. Will load from a filesystem cached file as
-   * well as fire off an HTTPS request for an updated configuration. If the cache load finishes
-   * first, those assignments will be used until the fetch completes.
-   *
-   * <p>Deprecated, as we plan to make a more targeted and configurable way to do so in the future.
-   */
-  @Deprecated
-  public void refreshConfiguration() {
+  protected void loadConfiguration() {
     requestor.load();
   }
 
@@ -479,65 +446,7 @@ public class BaseEppoClient {
     throw new RuntimeException(e);
   }
 
-  public static BaseEppoClient getInstance() {
-    if (BaseEppoClient.instance == null) {
-      throw new IllegalStateException("Eppo SDK has not been initialized");
-    }
-
-    return BaseEppoClient.instance;
-  }
-
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
     this.isGracefulMode = isGracefulFailureMode;
-  }
-
-  public static class Builder {
-    private String apiKey;
-    private String sdkName;
-    private String sdkVersion;
-    private String host = DEFAULT_HOST;
-    private AssignmentLogger assignmentLogger;
-    private BanditLogger banditLogger;
-    private boolean isGracefulMode = DEFAULT_IS_GRACEFUL_MODE;
-
-    public Builder apiKey(String apiKey) {
-      this.apiKey = apiKey;
-      return this;
-    }
-
-    public Builder sdkName(String sdkName) {
-      this.sdkName = sdkName;
-      return this;
-    }
-
-    public Builder sdkVersion(String sdkVersion) {
-      this.sdkVersion = sdkVersion;
-      return this;
-    }
-
-    public Builder host(String host) {
-      this.host = host;
-      return this;
-    }
-
-    public Builder assignmentLogger(AssignmentLogger assignmentLogger) {
-      this.assignmentLogger = assignmentLogger;
-      return this;
-    }
-
-    public Builder banditLogger(BanditLogger banditLogger) {
-      this.banditLogger = banditLogger;
-      return this;
-    }
-
-    public Builder isGracefulMode(boolean isGracefulMode) {
-      this.isGracefulMode = isGracefulMode;
-      return this;
-    }
-
-    public BaseEppoClient buildAndInit() {
-      return BaseEppoClient.init(
-          apiKey, sdkName, sdkVersion, host, assignmentLogger, banditLogger, isGracefulMode);
-    }
   }
 }
