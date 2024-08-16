@@ -3,9 +3,9 @@ package cloud.eppo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import cloud.eppo.api.Attributes;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.ufc.dto.Attributes;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;

@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import cloud.eppo.ufc.dto.Attributes;
+import cloud.eppo.api.Attributes;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Map;
 

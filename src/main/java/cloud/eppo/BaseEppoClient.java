@@ -3,6 +3,7 @@ package cloud.eppo;
 import static cloud.eppo.Utils.getMD5Hex;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
+import cloud.eppo.api.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;

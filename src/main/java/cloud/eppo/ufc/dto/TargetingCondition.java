@@ -1,5 +1,7 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.EppoValue;
+
 public class TargetingCondition {
   private final OperatorType operator;
   private final String attribute;

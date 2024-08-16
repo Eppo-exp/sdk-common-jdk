@@ -1,5 +1,7 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.EppoValue;
+
 public class Variation {
   private final String key;
   private final EppoValue value;

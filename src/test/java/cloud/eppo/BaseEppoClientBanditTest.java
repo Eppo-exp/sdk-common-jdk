@@ -5,12 +5,14 @@ import static cloud.eppo.helpers.BanditTestCase.runBanditTestCase;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.BanditActions;
+import cloud.eppo.api.BanditResult;
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
-import cloud.eppo.ufc.dto.*;
 import java.io.File;
 import java.util.*;
 import java.util.stream.Stream;
@@ -139,6 +141,7 @@ public class BaseEppoClientBanditTest {
     assertEquals(subjectKey, capturedBanditAssignment.getSubject());
     assertEquals("adidas", capturedBanditAssignment.getAction());
     assertEquals(0.099, capturedBanditAssignment.getActionProbability(), 0.0002);
+    assertEquals(7.1, capturedBanditAssignment.getOptimalityGap(), 0.0002);
     assertEquals("v123", capturedBanditAssignment.getModelVersion());
 
     Attributes expectedSubjectNumericAttributes = new Attributes();

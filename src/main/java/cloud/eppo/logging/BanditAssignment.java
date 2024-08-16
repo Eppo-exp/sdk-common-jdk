@@ -1,6 +1,6 @@
 package cloud.eppo.logging;
 
-import cloud.eppo.ufc.dto.Attributes;
+import cloud.eppo.api.Attributes;
 import java.util.Date;
 import java.util.Map;
 

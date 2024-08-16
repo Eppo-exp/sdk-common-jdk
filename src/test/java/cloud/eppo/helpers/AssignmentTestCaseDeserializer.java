@@ -1,7 +1,7 @@
 package cloud.eppo.helpers;
 
-import cloud.eppo.ufc.dto.Attributes;
-import cloud.eppo.ufc.dto.EppoValue;
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.ufc.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoValueDeserializer;
 import com.fasterxml.jackson.core.JsonParser;

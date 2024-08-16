@@ -1,5 +1,8 @@
-package cloud.eppo.ufc.dto;
+package cloud.eppo.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -60,5 +63,44 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
   @Override
   public Attributes getAllAttributes() {
     return this;
+  }
+
+  /** Serializes the attributes to a JSON string, omitting attributes with a null value. */
+  public String serializeNonNullAttributesToJSONString() {
+    return serializeAttributesToJSONString(true);
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private String serializeAttributesToJSONString(boolean omitNulls) {
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode result = mapper.createObjectNode();
+
+    for (Map.Entry<String, EppoValue> entry : entrySet()) {
+      String attributeName = entry.getKey();
+      EppoValue attributeValue = entry.getValue();
+
+      if (attributeValue == null || attributeValue.isNull()) {
+        if (!omitNulls) {
+          result.putNull(attributeName);
+        }
+      } else {
+        if (attributeValue.isNumeric()) {
+          result.put(attributeName, attributeValue.doubleValue());
+          continue;
+        }
+        if (attributeValue.isBoolean()) {
+          result.put(attributeName, attributeValue.booleanValue());
+          continue;
+        }
+        // fall back put treating any other eppo values as a string
+        result.put(attributeName, attributeValue.toString());
+      }
+    }
+
+    try {
+      return mapper.writeValueAsString(result);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

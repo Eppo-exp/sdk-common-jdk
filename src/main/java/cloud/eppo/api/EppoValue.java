@@ -1,5 +1,6 @@
-package cloud.eppo.ufc.dto;
+package cloud.eppo.api;
 
+import cloud.eppo.ufc.dto.EppoValueType;
 import java.util.List;
 import java.util.Objects;
 

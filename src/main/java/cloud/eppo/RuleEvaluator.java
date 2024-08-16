@@ -3,8 +3,8 @@ package cloud.eppo;
 import static cloud.eppo.Utils.base64Decode;
 import static cloud.eppo.Utils.getMD5Hex;
 
-import cloud.eppo.ufc.dto.Attributes;
-import cloud.eppo.ufc.dto.EppoValue;
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.ufc.dto.OperatorType;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;

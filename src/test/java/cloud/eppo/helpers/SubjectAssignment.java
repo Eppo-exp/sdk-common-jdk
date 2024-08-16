@@ -1,6 +1,6 @@
 package cloud.eppo.helpers;
 
-import cloud.eppo.ufc.dto.Attributes;
+import cloud.eppo.api.Attributes;
 
 public class SubjectAssignment {
   private final String subjectKey;

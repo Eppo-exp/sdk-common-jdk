@@ -2,6 +2,10 @@ package cloud.eppo;
 
 import static cloud.eppo.Utils.getShard;
 
+import cloud.eppo.api.Actions;
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.DiscriminableAttributes;
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.ufc.dto.*;
 import java.util.*;
 import java.util.stream.Collectors;

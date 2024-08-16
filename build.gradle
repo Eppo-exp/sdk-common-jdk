@@ -6,8 +6,15 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '3.0.1-SNAPSHOT'
+version = '3.0.2-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+  withJavadocJar()
+  withSourcesJar()
+}
 
 dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
@@ -56,11 +63,6 @@ spotless {
     // fix formatting of type annotations
     formatAnnotations()
   }
-}
-
-java {
-  withJavadocJar()
-  withSourcesJar()
 }
 
 tasks.register('testJar', Jar) {

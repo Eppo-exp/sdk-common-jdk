@@ -3,7 +3,7 @@ package cloud.eppo.helpers;
 import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.BaseEppoClient;
-import cloud.eppo.ufc.dto.Attributes;
+import cloud.eppo.api.Attributes;
 import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
