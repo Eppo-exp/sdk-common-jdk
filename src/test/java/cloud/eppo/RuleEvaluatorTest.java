@@ -3,8 +3,8 @@ package cloud.eppo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import cloud.eppo.ufc.dto.Attributes;
-import cloud.eppo.ufc.dto.EppoValue;
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.ufc.dto.OperatorType;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;

@@ -1,7 +1,7 @@
 package cloud.eppo.ufc.dto.adapters;
 
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.ufc.dto.BanditParametersResponse;
-import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfigResponse;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.util.Date;

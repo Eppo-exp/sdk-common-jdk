@@ -1,6 +1,6 @@
 package cloud.eppo.ufc.dto.adapters;
 
-import cloud.eppo.ufc.dto.EppoValue;
+import cloud.eppo.api.EppoValue;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;

@@ -1,8 +1,8 @@
 package cloud.eppo.helpers;
 
-import cloud.eppo.ufc.dto.Actions;
-import cloud.eppo.ufc.dto.BanditResult;
-import cloud.eppo.ufc.dto.ContextAttributes;
+import cloud.eppo.api.Actions;
+import cloud.eppo.api.BanditResult;
+import cloud.eppo.api.ContextAttributes;
 
 public class BanditSubjectAssignment {
   private final String subjectKey;

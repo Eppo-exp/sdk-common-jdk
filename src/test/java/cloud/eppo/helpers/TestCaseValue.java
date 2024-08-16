@@ -1,6 +1,6 @@
 package cloud.eppo.helpers;
 
-import cloud.eppo.ufc.dto.EppoValue;
+import cloud.eppo.api.EppoValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 

@@ -4,10 +4,10 @@ import static cloud.eppo.Utils.base64Encode;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
-import cloud.eppo.ufc.dto.Attributes;
-import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.OperatorType;
 import cloud.eppo.ufc.dto.Shard;

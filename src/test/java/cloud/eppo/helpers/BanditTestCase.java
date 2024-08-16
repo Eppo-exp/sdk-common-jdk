@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import cloud.eppo.BaseEppoClient;
-import cloud.eppo.ufc.dto.Actions;
-import cloud.eppo.ufc.dto.BanditResult;
-import cloud.eppo.ufc.dto.ContextAttributes;
+import cloud.eppo.api.Actions;
+import cloud.eppo.api.BanditResult;
+import cloud.eppo.api.ContextAttributes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.File;

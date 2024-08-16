@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import cloud.eppo.ufc.dto.DiscriminableAttributes;
+import cloud.eppo.api.DiscriminableAttributes;
 
 public class BanditEvaluationResult {
 

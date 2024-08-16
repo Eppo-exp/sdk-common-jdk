@@ -3,10 +3,10 @@ package cloud.eppo;
 import static cloud.eppo.Utils.base64Decode;
 import static cloud.eppo.Utils.getShard;
 
+import cloud.eppo.api.Attributes;
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
-import cloud.eppo.ufc.dto.Attributes;
-import cloud.eppo.ufc.dto.EppoValue;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.Shard;
 import cloud.eppo.ufc.dto.Split;

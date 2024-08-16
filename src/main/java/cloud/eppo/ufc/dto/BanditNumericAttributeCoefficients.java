@@ -1,5 +1,6 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.EppoValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

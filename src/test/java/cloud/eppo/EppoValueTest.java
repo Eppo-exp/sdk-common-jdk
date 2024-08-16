@@ -2,7 +2,7 @@ package cloud.eppo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import cloud.eppo.ufc.dto.EppoValue;
+import cloud.eppo.api.EppoValue;
 import org.junit.jupiter.api.Test;
 
 public class EppoValueTest {

@@ -1,4 +1,4 @@
-package cloud.eppo.ufc.dto;
+package cloud.eppo.api;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +10,7 @@ public class BanditActions extends HashMap<String, DiscriminableAttributes> impl
     super();
   }
 
-  public BanditActions(Map<String, DiscriminableAttributes> actionsWithContext) {
+  public BanditActions(Map<String, ? extends DiscriminableAttributes> actionsWithContext) {
     super(actionsWithContext);
   }
 
