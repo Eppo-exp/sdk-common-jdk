@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ConfigurationStore {
 
-  private Configuration configuration;
+  private volatile Configuration configuration;
 
   public ConfigurationStore(final Configuration initialConfiguration) {
     if (initialConfiguration != null) {
