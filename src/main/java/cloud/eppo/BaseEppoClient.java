@@ -25,7 +25,7 @@ public class BaseEppoClient {
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
 
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
-  protected final ConfigurationRequestor requestor;
+  protected final ConfigurationRequester requester;
 
   private final ConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
@@ -66,7 +66,7 @@ public class BaseEppoClient {
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     this.configurationStore =
         new ConfigurationStore(initialFlagConfiguration, initialBanditParameters);
-    requestor = new ConfigurationRequestor(configurationStore, httpClient);
+    requester = new ConfigurationRequester(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
@@ -94,7 +94,7 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    requestor.load();
+    requester.load();
   }
 
   // TODO: async way to refresh for android
@@ -114,7 +114,7 @@ public class BaseEppoClient {
       flagKeyForLookup = getMD5Hex(flagKey);
     }
 
-    FlagConfig flag = requestor.getConfiguration(flagKeyForLookup);
+    FlagConfig flag = requester.getConfiguration(flagKeyForLookup);
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return defaultValue;

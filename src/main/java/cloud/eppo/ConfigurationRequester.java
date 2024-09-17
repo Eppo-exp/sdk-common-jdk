@@ -9,14 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // TODO: handle bandit stuff
-public class ConfigurationRequestor {
-  private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
+public class ConfigurationRequester {
+  private static final Logger log = LoggerFactory.getLogger(ConfigurationRequester.class);
 
   private final EppoHttpClient client;
   private final ConfigurationStore configurationStore;
   private final Set<String> loadedBanditModelVersions;
 
-  public ConfigurationRequestor(ConfigurationStore configurationStore, EppoHttpClient client) {
+  public ConfigurationRequester(ConfigurationStore configurationStore, EppoHttpClient client) {
     this.configurationStore = configurationStore;
     this.client = client;
     this.loadedBanditModelVersions = new HashSet<>();
