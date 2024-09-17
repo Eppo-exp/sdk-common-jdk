@@ -24,15 +24,17 @@ public class ConfigurationStore {
   }
 
   public ConfigurationStore(String initialFlagConfiguration, String initialBanditParameters) {
-    flags = new ConcurrentHashMap<>();
-    banditReferences = new ConcurrentHashMap<>();
-    banditParameters = new ConcurrentHashMap<>();
-
     if (initialFlagConfiguration != null) {
       setFlagsFromJsonString(initialFlagConfiguration);
+    } else {
+      flags = new ConcurrentHashMap<>();
+      banditReferences = new ConcurrentHashMap<>();
     }
+
     if (initialBanditParameters != null) {
       setBanditParametersFromJsonString(initialBanditParameters);
+    } else {
+      banditParameters = new ConcurrentHashMap<>();
     }
   }
 
