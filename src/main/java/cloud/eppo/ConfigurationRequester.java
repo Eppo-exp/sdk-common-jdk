@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.configuration.ConfigurationBuffer;
-import cloud.eppo.ufc.dto.FlagConfig;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,10 +23,11 @@ public class ConfigurationRequester {
   }
 
   // TODO: async loading for android
-  public void load() {
+  public void load(boolean isConfigObfuscated) {
     log.debug("Fetching configuration");
     String flagConfigurationJsonString = requestBody("/api/flag-config/v1/config");
-    ConfigurationBuffer buffer = new ConfigurationBuffer(flagConfigurationJsonString);
+    ConfigurationBuffer buffer =
+        new ConfigurationBuffer(flagConfigurationJsonString, isConfigObfuscated);
 
     Set<String> neededModelVersions = buffer.referencedBanditModelVersion();
     boolean needBanditParameters = !loadedBanditModelVersions.containsAll(neededModelVersions);
@@ -53,9 +53,5 @@ public class ConfigurationRequester {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public FlagConfig getConfiguration(String flagKey) {
-    return configurationStore.getFlag(flagKey);
   }
 }

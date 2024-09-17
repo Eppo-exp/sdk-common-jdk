@@ -1,5 +1,7 @@
 package cloud.eppo;
 
+import static cloud.eppo.Utils.getMD5Hex;
+
 import cloud.eppo.configuration.ConfigurationBuffer;
 import cloud.eppo.ufc.dto.*;
 import java.util.Map;
@@ -26,13 +28,18 @@ public class ConfigurationStore {
 
   public FlagConfig getFlag(String flagKey) {
     Map<String, FlagConfig> flags = configurationBuffer.getFlags();
+    String flagKeyForLookup = flagKey;
+    if (configurationBuffer.isConfigObfuscated()) {
+      flagKeyForLookup = getMD5Hex(flagKey);
+    }
+
     if (flags == null) {
       log.warn("Request for flag {} before flags have been loaded", flagKey);
       return null;
     } else if (flags.isEmpty()) {
       log.warn("Request for flag {} with empty flags", flagKey);
     }
-    return flags.get(flagKey);
+    return flags.get(flagKeyForLookup);
   }
 
   public String banditKeyForVariation(String flagKey, String variationValue) {
@@ -53,5 +60,9 @@ public class ConfigurationStore {
 
   public BanditParameters getBanditParameters(String banditKey) {
     return configurationBuffer.getBandits().get(banditKey);
+  }
+
+  public boolean isConfigObfuscated() {
+    return configurationBuffer.isConfigObfuscated();
   }
 }

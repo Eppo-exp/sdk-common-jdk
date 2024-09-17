@@ -62,6 +62,7 @@ public class BaseEppoClientTest {
             mockAssignmentLogger,
             null,
             isGracefulMode,
+            isConfigObfuscated,
             new ConfigurationBuffer(initialFlagConfiguration, isConfigObfuscated));
   }
 

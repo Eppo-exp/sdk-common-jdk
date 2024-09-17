@@ -1,6 +1,5 @@
 package cloud.eppo;
 
-import static cloud.eppo.Utils.getMD5Hex;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
@@ -33,7 +32,7 @@ public class BaseEppoClient {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private final boolean isConfigObfuscated;
+  private final boolean expectObfuscatedConfig;
   private boolean isGracefulMode;
 
   // Fields useful for testing in situations where we want to mock the http client or configuration
@@ -70,27 +69,6 @@ public class BaseEppoClient {
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
       boolean isGracefulMode,
-      ConfigurationBuffer initialConfiguration) {
-    this(
-        apiKey,
-        sdkName,
-        sdkVersion,
-        host,
-        assignmentLogger,
-        banditLogger,
-        isGracefulMode,
-        initialConfiguration != null && initialConfiguration.isConfigObfuscated(),
-        initialConfiguration);
-  }
-
-  private BaseEppoClient(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
-      boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       ConfigurationBuffer initialConfiguration) {
 
@@ -115,7 +93,7 @@ public class BaseEppoClient {
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
     // For now, the configuration is only obfuscated for Android clients
-    this.isConfigObfuscated = expectObfuscatedConfig;
+    this.expectObfuscatedConfig = expectObfuscatedConfig;
 
     // TODO: caching initialization (such as setting an API-key-specific prefix
     //       will probably involve passing in configurationStore to the constructor
@@ -135,7 +113,7 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    requester.load();
+    requester.load(expectObfuscatedConfig);
   }
 
   // TODO: async way to refresh for android
@@ -150,12 +128,7 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    String flagKeyForLookup = flagKey;
-    if (isConfigObfuscated) {
-      flagKeyForLookup = getMD5Hex(flagKey);
-    }
-
-    FlagConfig flag = requester.getConfiguration(flagKeyForLookup);
+    FlagConfig flag = configurationStore.getFlag(flagKey);
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return defaultValue;
@@ -178,7 +151,7 @@ public class BaseEppoClient {
 
     FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
-            flag, flagKey, subjectKey, subjectAttributes, isConfigObfuscated);
+            flag, flagKey, subjectKey, subjectAttributes, configurationStore.isConfigObfuscated());
     EppoValue assignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
@@ -477,7 +450,7 @@ public class BaseEppoClient {
 
   private Map<String, String> buildLogMetaData() {
     HashMap<String, String> metaData = new HashMap<>();
-    metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
+    metaData.put("obfuscated", Boolean.valueOf(configurationStore.isConfigObfuscated()).toString());
     metaData.put("sdkLanguage", sdkName);
     metaData.put("sdkLibVersion", sdkVersion);
     return metaData;

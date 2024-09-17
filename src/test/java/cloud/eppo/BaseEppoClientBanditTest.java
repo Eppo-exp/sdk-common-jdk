@@ -73,6 +73,7 @@ public class BaseEppoClientBanditTest {
             mockAssignmentLogger,
             mockBanditLogger,
             false,
+            false,
             new ConfigurationBuffer(initialFlagConfiguration, initialBanditParameters));
   }
 
