@@ -1,9 +1,6 @@
 package cloud.eppo;
 
-import cloud.eppo.configuration.ConfigurationBuffer;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,33 +11,29 @@ public class ConfigurationRequester {
 
   private final EppoHttpClient client;
   private final ConfigurationStore configurationStore;
-  private final Set<String> loadedBanditModelVersions;
 
   public ConfigurationRequester(ConfigurationStore configurationStore, EppoHttpClient client) {
     this.configurationStore = configurationStore;
     this.client = client;
-    this.loadedBanditModelVersions = new HashSet<>();
   }
 
   // TODO: async loading for android
   public void load(boolean isConfigObfuscated) {
+    // Grab hold of the last configuration in case its bandit models are useful
+    Configuration lastConfig = configurationStore.getConfiguration();
+
     log.debug("Fetching configuration");
     String flagConfigurationJsonString = requestBody("/api/flag-config/v1/config");
-    ConfigurationBuffer buffer =
-        new ConfigurationBuffer(flagConfigurationJsonString, isConfigObfuscated);
+    Configuration.Builder configBuilder =
+        new Configuration.Builder(flagConfigurationJsonString, isConfigObfuscated)
+            .banditParametersFrom(lastConfig);
 
-    Set<String> neededModelVersions = buffer.referencedBanditModelVersion();
-    boolean needBanditParameters = !loadedBanditModelVersions.containsAll(neededModelVersions);
-    if (needBanditParameters) {
+    if (configBuilder.requiresBanditModels()) {
       String banditParametersJsonString = requestBody("/api/flag-config/v1/bandits");
-      buffer.setBandits(banditParametersJsonString);
-      // Record the model versions that we just loaded, so we can compare when the store is later
-      // updated
-      loadedBanditModelVersions.clear();
-      loadedBanditModelVersions.addAll(buffer.loadedBanditModelVersions());
+      configBuilder.banditParameters(banditParametersJsonString);
     }
 
-    configurationStore.setConfiguration(buffer);
+    configurationStore.setConfiguration(configBuilder.build());
   }
 
   private String requestBody(String route) {

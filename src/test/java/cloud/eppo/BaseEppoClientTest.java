@@ -12,7 +12,6 @@ import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
-import cloud.eppo.configuration.ConfigurationBuffer;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -50,8 +49,10 @@ public class BaseEppoClientTest {
 
   private void initClientWithData(
       final String initialFlagConfiguration, boolean isGracefulMode, boolean isConfigObfuscated) {
-
     mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    Configuration initialConfig =
+        new Configuration.Builder(initialFlagConfiguration, isConfigObfuscated).build();
 
     eppoClient =
         new BaseEppoClient(
@@ -63,7 +64,7 @@ public class BaseEppoClientTest {
             null,
             isGracefulMode,
             isConfigObfuscated,
-            new ConfigurationBuffer(initialFlagConfiguration, isConfigObfuscated));
+            initialConfig);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
