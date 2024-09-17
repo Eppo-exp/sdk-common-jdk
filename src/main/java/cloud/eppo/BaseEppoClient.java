@@ -174,7 +174,7 @@ public class BaseEppoClient {
       // allocation key
       String variationKey = evaluationResult.getVariation().getKey();
       Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-      Map<String, String> metaData = buildLogMetaData(config);
+      Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
       Assignment assignment =
           new Assignment(
@@ -436,7 +436,7 @@ public class BaseEppoClient {
                     subjectAttributes.getCategoricalAttributes(),
                     banditResult.getActionAttributes().getNumericAttributes(),
                     banditResult.getActionAttributes().getCategoricalAttributes(),
-                    buildLogMetaData(config));
+                    buildLogMetaData(config.isConfigObfuscated()));
 
             banditLogger.logBanditAssignment(banditAssignment);
           } catch (Exception e) {
@@ -450,9 +450,9 @@ public class BaseEppoClient {
     }
   }
 
-  private Map<String, String> buildLogMetaData(Configuration config) {
+  private Map<String, String> buildLogMetaData(boolean isConfigObfuscated) {
     HashMap<String, String> metaData = new HashMap<>();
-    metaData.put("obfuscated", Boolean.valueOf(config.isConfigObfuscated()).toString());
+    metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
     metaData.put("sdkLanguage", sdkName);
     metaData.put("sdkLibVersion", sdkVersion);
     return metaData;
