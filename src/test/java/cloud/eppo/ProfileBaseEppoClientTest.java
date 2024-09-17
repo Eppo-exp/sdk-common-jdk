@@ -43,9 +43,7 @@ public class ProfileBaseEppoClientTest {
             noOpAssignmentLogger,
             null,
             false,
-            false,
-            null,
-            null);
+            false);
 
     eppoClient.loadConfiguration();
 

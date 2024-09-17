@@ -78,9 +78,7 @@ public class BaseEppoClientTest {
             mockAssignmentLogger,
             null,
             isGracefulMode,
-            isConfigObfuscated,
-            null,
-            null);
+            isConfigObfuscated);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");

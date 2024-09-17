@@ -48,6 +48,28 @@ public class BaseEppoClient {
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
       boolean isGracefulMode,
+      boolean expectObfuscatedConfig) {
+    this(
+        apiKey,
+        sdkName,
+        sdkVersion,
+        host,
+        assignmentLogger,
+        banditLogger,
+        isGracefulMode,
+        expectObfuscatedConfig,
+        null,
+        null);
+  }
+
+  protected BaseEppoClient(
+      String apiKey,
+      String sdkName,
+      String sdkVersion,
+      String host,
+      AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
+      boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       String initialFlagConfiguration,
       String initialBanditParameters) {
