@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,15 +77,13 @@ public class ConfigurationBuffer {
       throw new RuntimeException(e);
     }
 
-    ConcurrentHashMap<String, BanditParameters> banditParameters;
     if (config == null || config.getBandits() == null) {
       log.warn("Bandits missing in bandit parameters response");
-      banditParameters = new ConcurrentHashMap<>();
+      bandits = Collections.emptyMap();
     } else {
-      banditParameters = new ConcurrentHashMap<>(config.getBandits());
-      log.debug("Loaded {} bandit models from configuration response", banditParameters.size());
+      bandits = Collections.unmodifiableMap(config.getBandits());
+      log.debug("Loaded {} bandit models from configuration response", bandits.size());
     }
-    this.bandits = banditParameters;
   }
 
   public Map<String, FlagConfig> getFlags() {
