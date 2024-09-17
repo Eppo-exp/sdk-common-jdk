@@ -53,11 +53,30 @@ public class BaseEppoClientBanditTest {
             mockAssignmentLogger,
             mockBanditLogger,
             false,
-            false);
+            false,
+            null,
+            null);
 
     eppoClient.loadConfiguration();
 
     log.info("Test client initialized");
+  }
+
+  private void initClientWithData(
+      final String initialFlagConfiguration, final String initialBanditParameters) {
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_BANDIT_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            mockBanditLogger,
+            false,
+            false,
+            initialFlagConfiguration,
+            initialBanditParameters);
   }
 
   @BeforeEach
@@ -286,5 +305,101 @@ public class BaseEppoClientBanditTest {
     ArgumentCaptor<BanditAssignment> banditLogCaptor =
         ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
+  }
+
+  @Test
+  public void testWithInitialConfiguration() {
+    String flagConfig =
+        "{\"flags\": {\n"
+            + "  \"banner_bandit_flag\": {\n"
+            + "    \"key\": \"banner_bandit_flag\",\n"
+            + "    \"enabled\": true,\n"
+            + "    \"variationType\": \"STRING\",\n"
+            + "    \"variations\": {\n"
+            + "      \"banner_bandit\": {\n"
+            + "        \"key\": \"banner_bandit\",\n"
+            + "        \"value\": \"banner_bandit\"\n"
+            + "      }\n"
+            + "    },\n"
+            + "    \"allocations\": [\n"
+            + "      {\n"
+            + "        \"key\": \"all\",\n"
+            + "        \"rules\": [],\n"
+            + "        \"splits\": [\n"
+            + "          {\n"
+            + "            \"variationKey\": \"banner_bandit\",\n"
+            + "            \"shards\": []\n"
+            + "          }\n"
+            + "        ],\n"
+            + "        \"doLog\": true\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"totalShards\": 10000\n"
+            + "  }\n"
+            + "},\n"
+            + "\"banditReferences\": {\n"
+            + "    \"banner_bandit\": {\n"
+            + "      \"flagVariations\": [\n"
+            + "        {\n"
+            + "          \"key\": \"banner_bandit\",\n"
+            + "          \"flagKey\": \"banner_bandit_flag\",\n"
+            + "          \"allocationKey\": \"analysis\",\n"
+            + "          \"variationKey\": \"banner_bandit\",\n"
+            + "          \"variationValue\": \"banner_bandit\"\n"
+            + "        }\n"
+            + "      ],\n"
+            + "      \"modelVersion\": \"v123\"\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+
+    String banditConfig =
+        "{\n"
+            + "  \"bandits\": {\n"
+            + "    \"banner_bandit\": {\n"
+            + "      \"banditKey\": \"banner_bandit\",\n"
+            + "      \"modelName\": \"falcon\",\n"
+            + "      \"updatedAt\": \"2023-09-13T04:52:06.462Z\",\n"
+            + "      \"modelVersion\": \"v123\",\n"
+            + "      \"modelData\": {\n"
+            + "        \"gamma\": 1.0,\n"
+            + "        \"defaultActionScore\": 0.0,\n"
+            + "        \"actionProbabilityFloor\": 0.0,\n"
+            + "        \"coefficients\": {\n"
+            + "          \"adidas\": {\n"
+            + "            \"actionKey\": \"adidas\",\n"
+            + "            \"intercept\": 1000,\n"
+            + // Very large intercept make adidas win.
+            "            \"actionNumericCoefficients\": [],\n"
+            + "            \"actionCategoricalCoefficients\": [],\n"
+            + "            \"subjectNumericCoefficients\": [],\n"
+            + "            \"subjectCategoricalCoefficients\": []\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+
+    initClientWithData(flagConfig, banditConfig);
+
+    BanditActions actions = new BanditActions();
+    actions.put("nike", new Attributes());
+    actions.put("adidas", new Attributes());
+
+    BanditResult result =
+        eppoClient.getBanditAction(
+            "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+
+    assertEquals("banner_bandit", result.getVariation());
+    assertEquals("adidas", result.getAction());
+
+    //     Demonstrate that loaded configuration is different from the initial string passed above.
+    eppoClient.loadConfiguration();
+    BanditResult banditResult =
+        eppoClient.getBanditAction(
+            "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+    assertEquals("banner_bandit", banditResult.getVariation());
+    assertEquals("nike", banditResult.getAction());
   }
 }

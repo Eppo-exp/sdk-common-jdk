@@ -20,9 +20,20 @@ public class ConfigurationStore {
   private Map<String, BanditParameters> banditParameters;
 
   public ConfigurationStore() {
+    this(null, null);
+  }
+
+  public ConfigurationStore(String initialFlagConfiguration, String initialBanditParameters) {
     flags = new ConcurrentHashMap<>();
     banditReferences = new ConcurrentHashMap<>();
     banditParameters = new ConcurrentHashMap<>();
+
+    if (initialFlagConfiguration != null) {
+      setFlagsFromJsonString(initialFlagConfiguration);
+    }
+    if (initialBanditParameters != null) {
+      setBanditParametersFromJsonString(initialBanditParameters);
+    }
   }
 
   public void setFlagsFromJsonString(String jsonString) {

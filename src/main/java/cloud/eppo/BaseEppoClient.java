@@ -48,7 +48,9 @@ public class BaseEppoClient {
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
       boolean isGracefulMode,
-      boolean expectObfuscatedConfig) {
+      boolean expectObfuscatedConfig,
+      String initialFlagConfiguration,
+      String initialBanditParameters) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -62,7 +64,8 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = new ConfigurationStore();
+    this.configurationStore =
+        new ConfigurationStore(initialFlagConfiguration, initialBanditParameters);
     requestor = new ConfigurationRequestor(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;

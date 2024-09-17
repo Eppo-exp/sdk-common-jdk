@@ -47,6 +47,25 @@ public class BaseEppoClientTest {
     initClient(false, false);
   }
 
+  private void initClientWithData(
+      final String initialFlagConfiguration, boolean isGracefulMode, boolean isConfigObfuscated) {
+
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            isConfigObfuscated ? "android" : "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            isGracefulMode,
+            isConfigObfuscated,
+            initialFlagConfiguration,
+            null);
+  }
+
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
@@ -59,7 +78,9 @@ public class BaseEppoClientTest {
             mockAssignmentLogger,
             null,
             isGracefulMode,
-            isConfigObfuscated);
+            isConfigObfuscated,
+            null,
+            null);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -202,8 +223,62 @@ public class BaseEppoClientTest {
 
     initClient(false, false);
 
-    String result = eppoClient.getStringAssignment("dummy subject", "dummy flag", "not-populated");
+    String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
     assertEquals("not-populated", result);
+  }
+
+  @Test
+  public void testInvalidInitialConfigurationHandledGracefully() {
+    initClientWithData("{}", true, false);
+
+    String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
+    assertEquals("not-populated", result);
+  }
+
+  @Test
+  public void testWithInitialConfiguration() {
+    String flagConfig =
+        "{\"flags\": {\n"
+            + "  \"numeric_flag\": {\n"
+            + "    \"key\": \"numeric_flag\",\n"
+            + "    \"enabled\": true,\n"
+            + "    \"variationType\": \"NUMERIC\",\n"
+            + "    \"variations\": {\n"
+            + "      \"five\": {\n"
+            + "        \"key\": \"five\",\n"
+            + "        \"value\": 5\n"
+            + "      },\n"
+            + "      \"pi\": {\n"
+            + "        \"key\": \"pi\",\n"
+            + "        \"value\": 3.1415926\n"
+            + "      }\n"
+            + "    },\n"
+            + "    \"allocations\": [\n"
+            + "      {\n"
+            + "        \"key\": \"rollout\",\n"
+            + "        \"rules\": [],\n"
+            + "        \"splits\": [\n"
+            + "          {\n"
+            + "            \"variationKey\": \"five\",\n"
+            + "            \"shards\": []\n"
+            + "          }\n"
+            + "        ],\n"
+            + "        \"doLog\": true\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"totalShards\": 10000\n"
+            + "  }\n"
+            + "}}";
+
+    initClientWithData(flagConfig, false, false);
+
+    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(5, result);
+
+    // Demonstrate that loaded configuration is different than the initial string passed above.
+    eppoClient.loadConfiguration();
+    double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(3.1415926, updatedResult);
   }
 
   @Test
