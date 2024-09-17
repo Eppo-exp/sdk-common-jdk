@@ -1,5 +1,6 @@
 package cloud.eppo;
 
+import cloud.eppo.configuration.ConfigurationBuffer;
 import cloud.eppo.ufc.dto.FlagConfig;
 import java.io.IOException;
 import java.util.HashSet;
@@ -26,18 +27,20 @@ public class ConfigurationRequester {
   public void load() {
     log.debug("Fetching configuration");
     String flagConfigurationJsonString = requestBody("/api/flag-config/v1/config");
-    configurationStore.setFlagsFromJsonString(flagConfigurationJsonString);
+    ConfigurationBuffer buffer = new ConfigurationBuffer(flagConfigurationJsonString);
 
-    Set<String> neededModelVersions = configurationStore.banditModelVersions();
+    Set<String> neededModelVersions = buffer.referencedBanditModelVersion();
     boolean needBanditParameters = !loadedBanditModelVersions.containsAll(neededModelVersions);
     if (needBanditParameters) {
       String banditParametersJsonString = requestBody("/api/flag-config/v1/bandits");
-      configurationStore.setBanditParametersFromJsonString(banditParametersJsonString);
+      buffer.setBandits(banditParametersJsonString);
       // Record the model versions that we just loaded, so we can compare when the store is later
       // updated
       loadedBanditModelVersions.clear();
-      loadedBanditModelVersions.addAll(configurationStore.banditModelVersions());
+      loadedBanditModelVersions.addAll(buffer.loadedBanditModelVersions());
     }
+
+    configurationStore.setConfiguration(buffer);
   }
 
   private String requestBody(String route) {

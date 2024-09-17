@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.BanditActions;
 import cloud.eppo.api.BanditResult;
+import cloud.eppo.configuration.ConfigurationBuffer;
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -72,9 +73,7 @@ public class BaseEppoClientBanditTest {
             mockAssignmentLogger,
             mockBanditLogger,
             false,
-            false,
-            initialFlagConfiguration,
-            initialBanditParameters);
+            new ConfigurationBuffer(initialFlagConfiguration, initialBanditParameters));
   }
 
   @BeforeEach

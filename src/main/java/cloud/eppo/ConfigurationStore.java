@@ -1,68 +1,31 @@
 package cloud.eppo;
 
+import cloud.eppo.configuration.ConfigurationBuffer;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigurationStore {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationStore.class);
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());
 
-  private Map<String, FlagConfig> flags;
-  private Map<String, BanditReference> banditReferences;
-  private Map<String, BanditParameters> banditParameters;
+  private ConfigurationBuffer configurationBuffer;
 
-  public ConfigurationStore() {
-    this(null, null);
-  }
-
-  public ConfigurationStore(String initialFlagConfiguration, String initialBanditParameters) {
-    if (initialFlagConfiguration != null) {
-      setFlagsFromJsonString(initialFlagConfiguration);
+  public ConfigurationStore(final ConfigurationBuffer initialConfiguration) {
+    if (initialConfiguration != null) {
+      this.configurationBuffer = initialConfiguration;
     } else {
-      flags = new ConcurrentHashMap<>();
-      banditReferences = new ConcurrentHashMap<>();
-    }
-
-    if (initialBanditParameters != null) {
-      setBanditParametersFromJsonString(initialBanditParameters);
-    } else {
-      banditParameters = new ConcurrentHashMap<>();
+      configurationBuffer = new ConfigurationBuffer();
     }
   }
 
-  public void setFlagsFromJsonString(String jsonString) {
-    FlagConfigResponse config;
-
-    try {
-      config = mapper.readValue(jsonString, FlagConfigResponse.class);
-    } catch (JsonProcessingException e) {
-      log.error("Unable to parse flag configuration response");
-      throw new RuntimeException(e);
-    }
-
-    if (config == null || config.getFlags() == null) {
-      log.warn("Flags missing in configuration response");
-      flags = new ConcurrentHashMap<>();
-      banditReferences = new ConcurrentHashMap<>();
-    } else {
-      // TODO: atomic flags to prevent clobbering like android does
-      // Record that flags were set from a response so we don't later clobber them with a
-      // slow cache read
-      flags = new ConcurrentHashMap<>(config.getFlags());
-      banditReferences = new ConcurrentHashMap<>(config.getBanditReferences());
-      log.debug("Loaded {} flags from configuration response", flags.size());
-    }
+  public void setConfiguration(@NotNull final ConfigurationBuffer configuration) {
+    configurationBuffer = configuration;
   }
 
   public FlagConfig getFlag(String flagKey) {
+    Map<String, FlagConfig> flags = configurationBuffer.getFlags();
     if (flags == null) {
       log.warn("Request for flag {} before flags have been loaded", flagKey);
       return null;
@@ -75,7 +38,8 @@ public class ConfigurationStore {
   public String banditKeyForVariation(String flagKey, String variationValue) {
     // Note: In practice this double loop should be quite quick as the number of bandits and bandit
     // variations will be small. Should this ever change, we can optimize things.
-    for (Map.Entry<String, BanditReference> banditEntry : banditReferences.entrySet()) {
+    for (Map.Entry<String, BanditReference> banditEntry :
+        configurationBuffer.getBanditReferences().entrySet()) {
       BanditReference banditReference = banditEntry.getValue();
       for (BanditFlagVariation banditFlagVariation : banditReference.getFlagVariations()) {
         if (banditFlagVariation.getFlagKey().equals(flagKey)
@@ -87,32 +51,7 @@ public class ConfigurationStore {
     return null;
   }
 
-  public Set<String> banditModelVersions() {
-    return banditReferences.values().stream()
-        .map(BanditReference::getModelVersion)
-        .collect(Collectors.toSet());
-  }
-
-  public void setBanditParametersFromJsonString(String jsonString) {
-    BanditParametersResponse config;
-
-    try {
-      config = mapper.readValue(jsonString, BanditParametersResponse.class);
-    } catch (JsonProcessingException e) {
-      log.error("Unable to parse bandit parameters response");
-      throw new RuntimeException(e);
-    }
-
-    if (config == null || config.getBandits() == null) {
-      log.warn("Bandit missing in bandit parameters response");
-      banditParameters = new ConcurrentHashMap<>();
-    } else {
-      banditParameters = new ConcurrentHashMap<>(config.getBandits());
-      log.debug("Loaded {} bandit models from configuration response", banditParameters.size());
-    }
-  }
-
   public BanditParameters getBanditParameters(String banditKey) {
-    return banditParameters.get(banditKey);
+    return configurationBuffer.getBandits().get(banditKey);
   }
 }

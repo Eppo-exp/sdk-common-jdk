@@ -4,6 +4,7 @@ import static cloud.eppo.Utils.getMD5Hex;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.configuration.ConfigurationBuffer;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
@@ -58,7 +59,6 @@ public class BaseEppoClient {
         banditLogger,
         isGracefulMode,
         expectObfuscatedConfig,
-        null,
         null);
   }
 
@@ -70,9 +70,29 @@ public class BaseEppoClient {
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
       boolean isGracefulMode,
+      ConfigurationBuffer initialConfiguration) {
+    this(
+        apiKey,
+        sdkName,
+        sdkVersion,
+        host,
+        assignmentLogger,
+        banditLogger,
+        isGracefulMode,
+        initialConfiguration != null && initialConfiguration.isConfigObfuscated(),
+        initialConfiguration);
+  }
+
+  private BaseEppoClient(
+      String apiKey,
+      String sdkName,
+      String sdkVersion,
+      String host,
+      AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
+      boolean isGracefulMode,
       boolean expectObfuscatedConfig,
-      String initialFlagConfiguration,
-      String initialBanditParameters) {
+      ConfigurationBuffer initialConfiguration) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -86,8 +106,7 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore =
-        new ConfigurationStore(initialFlagConfiguration, initialBanditParameters);
+    this.configurationStore = new ConfigurationStore(initialConfiguration);
     requester = new ConfigurationRequester(configurationStore, httpClient);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
