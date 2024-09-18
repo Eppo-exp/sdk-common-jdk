@@ -8,7 +8,7 @@ public class ConfigurationStore {
 
   public ConfigurationStore(final Configuration initialConfiguration) {
     if (initialConfiguration != null) {
-      this.configuration = initialConfiguration;
+      configuration = initialConfiguration;
     } else {
       configuration = Configuration.emptyConfig();
     }
