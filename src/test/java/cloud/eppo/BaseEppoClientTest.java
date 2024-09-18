@@ -19,8 +19,10 @@ import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,10 +43,33 @@ public class BaseEppoClientTest {
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
 
+  private File initialFlagConfigFile =
+      new File("src/test/resources/static/initial-flag-config.json");
+
   // TODO: async init client tests
 
   private void initClient() {
     initClient(false, false);
+  }
+
+  private void initClientWithData(
+      final String initialFlagConfiguration, boolean isGracefulMode, boolean isConfigObfuscated) {
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    Configuration initialConfig =
+        new Configuration.Builder(initialFlagConfiguration, isConfigObfuscated).build();
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            isConfigObfuscated ? "android" : "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            isGracefulMode,
+            isConfigObfuscated,
+            initialConfig);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
@@ -202,8 +227,35 @@ public class BaseEppoClientTest {
 
     initClient(false, false);
 
-    String result = eppoClient.getStringAssignment("dummy subject", "dummy flag", "not-populated");
+    String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
     assertEquals("not-populated", result);
+  }
+
+  @Test
+  public void testInvalidInitialConfigurationHandledGracefully() {
+    initClientWithData("{}", true, false);
+
+    String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
+    assertEquals("not-populated", result);
+  }
+
+  @Test
+  public void testWithInitialConfiguration() {
+    try {
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
+
+      initClientWithData(flagConfig, false, false);
+
+      double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(5, result);
+
+      // Demonstrate that loaded configuration is different from the initial string passed above.
+      eppoClient.loadConfiguration();
+      double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(3.1415926, updatedResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test

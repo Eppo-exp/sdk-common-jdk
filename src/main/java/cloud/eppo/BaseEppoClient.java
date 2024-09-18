@@ -1,6 +1,5 @@
 package cloud.eppo;
 
-import static cloud.eppo.Utils.getMD5Hex;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
@@ -32,7 +31,6 @@ public class BaseEppoClient {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private final boolean isConfigObfuscated;
   private boolean isGracefulMode;
 
   // Fields useful for testing in situations where we want to mock the http client or configuration
@@ -49,6 +47,28 @@ public class BaseEppoClient {
       BanditLogger banditLogger,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig) {
+    this(
+        apiKey,
+        sdkName,
+        sdkVersion,
+        host,
+        assignmentLogger,
+        banditLogger,
+        isGracefulMode,
+        expectObfuscatedConfig,
+        null);
+  }
+
+  protected BaseEppoClient(
+      String apiKey,
+      String sdkName,
+      String sdkVersion,
+      String host,
+      AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
+      boolean isGracefulMode,
+      boolean expectObfuscatedConfig,
+      Configuration initialConfiguration) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -62,16 +82,16 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = new ConfigurationStore();
-    requestor = new ConfigurationRequestor(configurationStore, httpClient);
+    this.configurationStore = new ConfigurationStore(initialConfiguration);
+
+    // For now, the configuration is only obfuscated for Android clients
+    requestor = new ConfigurationRequestor(configurationStore, httpClient, expectObfuscatedConfig);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-    // For now, the configuration is only obfuscated for Android clients
-    this.isConfigObfuscated = expectObfuscatedConfig;
 
     // TODO: caching initialization (such as setting an API-key-specific prefix
     //       will probably involve passing in configurationStore to the constructor
@@ -106,12 +126,9 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    String flagKeyForLookup = flagKey;
-    if (isConfigObfuscated) {
-      flagKeyForLookup = getMD5Hex(flagKey);
-    }
+    Configuration config = configurationStore.getConfiguration();
 
-    FlagConfig flag = requestor.getConfiguration(flagKeyForLookup);
+    FlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return defaultValue;
@@ -134,7 +151,7 @@ public class BaseEppoClient {
 
     FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
-            flag, flagKey, subjectKey, subjectAttributes, isConfigObfuscated);
+            flag, flagKey, subjectKey, subjectAttributes, config.isConfigObfuscated());
     EppoValue assignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
@@ -156,7 +173,7 @@ public class BaseEppoClient {
       // allocation key
       String variationKey = evaluationResult.getVariation().getKey();
       Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-      Map<String, String> metaData = buildLogMetaData();
+      Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
       Assignment assignment =
           new Assignment(
@@ -384,6 +401,7 @@ public class BaseEppoClient {
       Actions actions,
       String defaultValue) {
     BanditResult result = new BanditResult(defaultValue, null);
+    final Configuration config = configurationStore.getConfiguration();
     try {
       String assignedVariation =
           getStringAssignment(
@@ -392,9 +410,9 @@ public class BaseEppoClient {
       // Update result to reflect that we've been assigned a variation
       result = new BanditResult(assignedVariation, null);
 
-      String banditKey = configurationStore.banditKeyForVariation(flagKey, assignedVariation);
+      String banditKey = config.banditKeyForVariation(flagKey, assignedVariation);
       if (banditKey != null && !actions.isEmpty()) {
-        BanditParameters banditParameters = configurationStore.getBanditParameters(banditKey);
+        BanditParameters banditParameters = config.getBanditParameters(banditKey);
         BanditEvaluationResult banditResult =
             BanditEvaluator.evaluateBandit(
                 flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
@@ -417,7 +435,7 @@ public class BaseEppoClient {
                     subjectAttributes.getCategoricalAttributes(),
                     banditResult.getActionAttributes().getNumericAttributes(),
                     banditResult.getActionAttributes().getCategoricalAttributes(),
-                    buildLogMetaData());
+                    buildLogMetaData(config.isConfigObfuscated()));
 
             banditLogger.logBanditAssignment(banditAssignment);
           } catch (Exception e) {
@@ -431,7 +449,7 @@ public class BaseEppoClient {
     }
   }
 
-  private Map<String, String> buildLogMetaData() {
+  private Map<String, String> buildLogMetaData(boolean isConfigObfuscated) {
     HashMap<String, String> metaData = new HashMap<>();
     metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
     metaData.put("sdkLanguage", sdkName);

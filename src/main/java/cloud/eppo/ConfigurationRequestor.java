@@ -1,9 +1,6 @@
 package cloud.eppo;
 
-import cloud.eppo.ufc.dto.FlagConfig;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,45 +11,45 @@ public class ConfigurationRequestor {
 
   private final EppoHttpClient client;
   private final ConfigurationStore configurationStore;
-  private final Set<String> loadedBanditModelVersions;
+  private final boolean expectObfuscatedConfig;
 
-  public ConfigurationRequestor(ConfigurationStore configurationStore, EppoHttpClient client) {
+  public ConfigurationRequestor(
+      ConfigurationStore configurationStore,
+      EppoHttpClient client,
+      boolean expectObfuscatedConfig) {
     this.configurationStore = configurationStore;
     this.client = client;
-    this.loadedBanditModelVersions = new HashSet<>();
+    this.expectObfuscatedConfig = expectObfuscatedConfig;
   }
 
   // TODO: async loading for android
   public void load() {
-    log.debug("Fetching configuration");
-    String flagConfigurationJsonString = requestBody("/api/flag-config/v1/config");
-    configurationStore.setFlagsFromJsonString(flagConfigurationJsonString);
+    // Grab hold of the last configuration in case its bandit models are useful
+    Configuration lastConfig = configurationStore.getConfiguration();
 
-    Set<String> neededModelVersions = configurationStore.banditModelVersions();
-    boolean needBanditParameters = !loadedBanditModelVersions.containsAll(neededModelVersions);
-    if (needBanditParameters) {
-      String banditParametersJsonString = requestBody("/api/flag-config/v1/bandits");
-      configurationStore.setBanditParametersFromJsonString(banditParametersJsonString);
-      // Record the model versions that we just loaded, so we can compare when the store is later
-      // updated
-      loadedBanditModelVersions.clear();
-      loadedBanditModelVersions.addAll(configurationStore.banditModelVersions());
+    log.debug("Fetching configuration");
+    byte[] flagConfigurationJsonBytes = requestBody("/api/flag-config/v1/config");
+    Configuration.Builder configBuilder =
+        new Configuration.Builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
+            .banditParametersFromConfig(lastConfig);
+
+    if (configBuilder.requiresBanditModels()) {
+      byte[] banditParametersJsonBytes = requestBody("/api/flag-config/v1/bandits");
+      configBuilder.banditParameters(banditParametersJsonBytes);
     }
+
+    configurationStore.setConfiguration(configBuilder.build());
   }
 
-  private String requestBody(String route) {
+  private byte[] requestBody(String route) {
     Response response = client.get(route);
     if (!response.isSuccessful() || response.body() == null) {
       throw new RuntimeException("Failed to fetch from " + route);
     }
     try {
-      return response.body().string();
+      return response.body().bytes();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public FlagConfig getConfiguration(String flagKey) {
-    return configurationStore.getFlag(flagKey);
   }
 }

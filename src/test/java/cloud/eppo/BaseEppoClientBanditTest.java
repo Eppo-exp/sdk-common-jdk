@@ -14,8 +14,10 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,12 @@ public class BaseEppoClientBanditTest {
 
   private static BaseEppoClient eppoClient;
 
+  private File initialFlagConfigFile =
+      new File("src/test/resources/static/initial-flag-config-with-bandit.json");
+
+  private File initialBanditParamFile =
+      new File("src/test/resources/static/initial-bandit-parameters.json");
+
   // TODO: possibly consolidate code between this and the non-bandit test
 
   @BeforeAll
@@ -58,6 +66,26 @@ public class BaseEppoClientBanditTest {
     eppoClient.loadConfiguration();
 
     log.info("Test client initialized");
+  }
+
+  private void initClientWithData(
+      final String initialFlagConfiguration, final String initialBanditParameters) {
+
+    Configuration initialConfig =
+        new Configuration.Builder(initialFlagConfiguration, false)
+            .banditParameters(initialBanditParameters)
+            .build();
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_BANDIT_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            mockBanditLogger,
+            false,
+            false,
+            initialConfig);
   }
 
   @BeforeEach
@@ -286,5 +314,36 @@ public class BaseEppoClientBanditTest {
     ArgumentCaptor<BanditAssignment> banditLogCaptor =
         ArgumentCaptor.forClass(BanditAssignment.class);
     verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
+  }
+
+  @Test
+  public void testWithInitialConfiguration() {
+    try {
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
+      String banditConfig = FileUtils.readFileToString(initialBanditParamFile, "UTF8");
+
+      initClientWithData(flagConfig, banditConfig);
+
+      BanditActions actions = new BanditActions();
+      actions.put("nike", new Attributes());
+      actions.put("adidas", new Attributes());
+
+      BanditResult result =
+          eppoClient.getBanditAction(
+              "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+
+      assertEquals("banner_bandit", result.getVariation());
+      assertEquals("adidas", result.getAction());
+
+      // Demonstrate that loaded configuration is different from the initial string passed above.
+      eppoClient.loadConfiguration();
+      BanditResult banditResult =
+          eppoClient.getBanditAction(
+              "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+      assertEquals("banner_bandit", banditResult.getVariation());
+      assertEquals("nike", banditResult.getAction());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
