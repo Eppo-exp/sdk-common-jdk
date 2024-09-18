@@ -24,14 +24,13 @@ public class BaseEppoClient {
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
 
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
-  protected final ConfigurationRequester requester;
+  protected final ConfigurationRequestor requestor;
 
   private final ConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private final boolean expectObfuscatedConfig;
   private boolean isGracefulMode;
 
   // Fields useful for testing in situations where we want to mock the http client or configuration
@@ -84,15 +83,15 @@ public class BaseEppoClient {
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     this.configurationStore = new ConfigurationStore(initialConfiguration);
-    requester = new ConfigurationRequester(configurationStore, httpClient);
+
+    // For now, the configuration is only obfuscated for Android clients
+    requestor = new ConfigurationRequestor(configurationStore, httpClient, expectObfuscatedConfig);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-    // For now, the configuration is only obfuscated for Android clients
-    this.expectObfuscatedConfig = expectObfuscatedConfig;
 
     // TODO: caching initialization (such as setting an API-key-specific prefix
     //       will probably involve passing in configurationStore to the constructor
@@ -112,7 +111,7 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    requester.load(expectObfuscatedConfig);
+    requestor.load();
   }
 
   // TODO: async way to refresh for android

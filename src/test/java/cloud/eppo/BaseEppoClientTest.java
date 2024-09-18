@@ -19,8 +19,10 @@ import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,6 +42,9 @@ public class BaseEppoClientTest {
 
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
+
+  private File initialFlagConfigFile =
+      new File("src/test/resources/static/initial-flag-config.json");
 
   // TODO: async init client tests
 
@@ -236,48 +241,21 @@ public class BaseEppoClientTest {
 
   @Test
   public void testWithInitialConfiguration() {
-    String flagConfig =
-        "{\"flags\": {\n"
-            + "  \"numeric_flag\": {\n"
-            + "    \"key\": \"numeric_flag\",\n"
-            + "    \"enabled\": true,\n"
-            + "    \"variationType\": \"NUMERIC\",\n"
-            + "    \"variations\": {\n"
-            + "      \"five\": {\n"
-            + "        \"key\": \"five\",\n"
-            + "        \"value\": 5\n"
-            + "      },\n"
-            + "      \"pi\": {\n"
-            + "        \"key\": \"pi\",\n"
-            + "        \"value\": 3.1415926\n"
-            + "      }\n"
-            + "    },\n"
-            + "    \"allocations\": [\n"
-            + "      {\n"
-            + "        \"key\": \"rollout\",\n"
-            + "        \"rules\": [],\n"
-            + "        \"splits\": [\n"
-            + "          {\n"
-            + "            \"variationKey\": \"five\",\n"
-            + "            \"shards\": []\n"
-            + "          }\n"
-            + "        ],\n"
-            + "        \"doLog\": true\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"totalShards\": 10000\n"
-            + "  }\n"
-            + "}}";
+    try {
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-    initClientWithData(flagConfig, false, false);
+      initClientWithData(flagConfig, false, false);
 
-    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(5, result);
+      double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(5, result);
 
-    // Demonstrate that loaded configuration is different than the initial string passed above.
-    eppoClient.loadConfiguration();
-    double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(3.1415926, updatedResult);
+      // Demonstrate that loaded configuration is different from the initial string passed above.
+      eppoClient.loadConfiguration();
+      double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(3.1415926, updatedResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test

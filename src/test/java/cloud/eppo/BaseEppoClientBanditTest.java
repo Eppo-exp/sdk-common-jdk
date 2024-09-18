@@ -14,8 +14,10 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,12 @@ public class BaseEppoClientBanditTest {
   private static final Date testStart = new Date();
 
   private static BaseEppoClient eppoClient;
+
+  private File initialFlagConfigFile =
+      new File("src/test/resources/static/initial-flag-config-with-bandit.json");
+
+  private File initialBanditParamFile =
+      new File("src/test/resources/static/initial-bandit-parameters.json");
 
   // TODO: possibly consolidate code between this and the non-bandit test
 
@@ -310,97 +318,32 @@ public class BaseEppoClientBanditTest {
 
   @Test
   public void testWithInitialConfiguration() {
-    String flagConfig =
-        "{\"flags\": {\n"
-            + "  \"banner_bandit_flag\": {\n"
-            + "    \"key\": \"banner_bandit_flag\",\n"
-            + "    \"enabled\": true,\n"
-            + "    \"variationType\": \"STRING\",\n"
-            + "    \"variations\": {\n"
-            + "      \"banner_bandit\": {\n"
-            + "        \"key\": \"banner_bandit\",\n"
-            + "        \"value\": \"banner_bandit\"\n"
-            + "      }\n"
-            + "    },\n"
-            + "    \"allocations\": [\n"
-            + "      {\n"
-            + "        \"key\": \"all\",\n"
-            + "        \"rules\": [],\n"
-            + "        \"splits\": [\n"
-            + "          {\n"
-            + "            \"variationKey\": \"banner_bandit\",\n"
-            + "            \"shards\": []\n"
-            + "          }\n"
-            + "        ],\n"
-            + "        \"doLog\": true\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"totalShards\": 10000\n"
-            + "  }\n"
-            + "},\n"
-            + "\"banditReferences\": {\n"
-            + "    \"banner_bandit\": {\n"
-            + "      \"flagVariations\": [\n"
-            + "        {\n"
-            + "          \"key\": \"banner_bandit\",\n"
-            + "          \"flagKey\": \"banner_bandit_flag\",\n"
-            + "          \"allocationKey\": \"analysis\",\n"
-            + "          \"variationKey\": \"banner_bandit\",\n"
-            + "          \"variationValue\": \"banner_bandit\"\n"
-            + "        }\n"
-            + "      ],\n"
-            + "      \"modelVersion\": \"v123\"\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+    try {
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
+      String banditConfig = FileUtils.readFileToString(initialBanditParamFile, "UTF8");
 
-    String banditConfig =
-        "{\n"
-            + "  \"bandits\": {\n"
-            + "    \"banner_bandit\": {\n"
-            + "      \"banditKey\": \"banner_bandit\",\n"
-            + "      \"modelName\": \"falcon\",\n"
-            + "      \"updatedAt\": \"2023-09-13T04:52:06.462Z\",\n"
-            + "      \"modelVersion\": \"v123\",\n"
-            + "      \"modelData\": {\n"
-            + "        \"gamma\": 1.0,\n"
-            + "        \"defaultActionScore\": 0.0,\n"
-            + "        \"actionProbabilityFloor\": 0.0,\n"
-            + "        \"coefficients\": {\n"
-            + "          \"adidas\": {\n"
-            + "            \"actionKey\": \"adidas\",\n"
-            + "            \"intercept\": 1000,\n"
-            + // Very large intercept make adidas win.
-            "            \"actionNumericCoefficients\": [],\n"
-            + "            \"actionCategoricalCoefficients\": [],\n"
-            + "            \"subjectNumericCoefficients\": [],\n"
-            + "            \"subjectCategoricalCoefficients\": []\n"
-            + "          }\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+      initClientWithData(flagConfig, banditConfig);
 
-    initClientWithData(flagConfig, banditConfig);
+      BanditActions actions = new BanditActions();
+      actions.put("nike", new Attributes());
+      actions.put("adidas", new Attributes());
 
-    BanditActions actions = new BanditActions();
-    actions.put("nike", new Attributes());
-    actions.put("adidas", new Attributes());
+      BanditResult result =
+          eppoClient.getBanditAction(
+              "banner_bandit_flag", "subject", new Attributes(), actions, "default");
 
-    BanditResult result =
-        eppoClient.getBanditAction(
-            "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+      assertEquals("banner_bandit", result.getVariation());
+      assertEquals("adidas", result.getAction());
 
-    assertEquals("banner_bandit", result.getVariation());
-    assertEquals("adidas", result.getAction());
-
-    //     Demonstrate that loaded configuration is different from the initial string passed above.
-    eppoClient.loadConfiguration();
-    BanditResult banditResult =
-        eppoClient.getBanditAction(
-            "banner_bandit_flag", "subject", new Attributes(), actions, "default");
-    assertEquals("banner_bandit", banditResult.getVariation());
-    assertEquals("nike", banditResult.getAction());
+      // Demonstrate that loaded configuration is different from the initial string passed above.
+      eppoClient.loadConfiguration();
+      BanditResult banditResult =
+          eppoClient.getBanditAction(
+              "banner_bandit_flag", "subject", new Attributes(), actions, "default");
+      assertEquals("banner_bandit", banditResult.getVariation());
+      assertEquals("nike", banditResult.getAction());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

@@ -1,0 +1,43 @@
+{
+  "flags": {
+    "banner_bandit_flag": {
+      "key": "banner_bandit_flag",
+      "enabled": true,
+      "variationType": "STRING",
+      "variations": {
+        "banner_bandit": {
+          "key": "banner_bandit",
+          "value": "banner_bandit"
+        }
+      },
+      "allocations": [
+        {
+          "key": "all",
+          "rules": [],
+          "splits": [
+            {
+              "variationKey": "banner_bandit",
+              "shards": []
+            }
+          ],
+          "doLog": true
+        }
+      ],
+      "totalShards": 10000
+    }
+  },
+  "banditReferences": {
+    "banner_bandit": {
+      "flagVariations": [
+        {
+          "key": "banner_bandit",
+          "flagKey": "banner_bandit_flag",
+          "allocationKey": "analysis",
+          "variationKey": "banner_bandit",
+          "variationValue": "banner_bandit"
+        }
+      ],
+      "modelVersion": "v123"
+    }
+  }
+}

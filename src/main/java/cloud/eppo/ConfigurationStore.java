@@ -10,7 +10,7 @@ public class ConfigurationStore {
     if (initialConfiguration != null) {
       this.configuration = initialConfiguration;
     } else {
-      configuration = Configuration.Builder.emptyConfig();
+      configuration = Configuration.emptyConfig();
     }
   }
 
