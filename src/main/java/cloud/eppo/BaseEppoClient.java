@@ -117,6 +117,20 @@ public class BaseEppoClient {
     wrangler.load();
   }
 
+  protected void loadConfigurationAsync(InitializationCallback callback) {
+    wrangler.loadAsync(new ConfigurationWrangler.LoadCallback() {
+      @Override
+      public void onComplete() {
+        callback.onComplete();
+      }
+
+      @Override
+      public void onError(String error) {
+callback.onError(error);
+      }
+    });
+  }
+
   // TODO: async way to refresh for android
 
   protected EppoValue getTypedAssignment(
