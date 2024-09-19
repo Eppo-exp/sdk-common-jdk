@@ -118,17 +118,18 @@ public class BaseEppoClient {
   }
 
   protected void loadConfigurationAsync(InitializationCallback callback) {
-    wrangler.loadAsync(new ConfigurationWrangler.LoadCallback() {
-      @Override
-      public void onComplete() {
-        callback.onComplete();
-      }
+    wrangler.loadAsync(
+        new ConfigurationWrangler.LoadCallback() {
+          @Override
+          public void onComplete() {
+            callback.onComplete();
+          }
 
-      @Override
-      public void onError(String error) {
-callback.onError(error);
-      }
-    });
+          @Override
+          public void onError(String error) {
+            callback.onError(error);
+          }
+        });
   }
 
   // TODO: async way to refresh for android

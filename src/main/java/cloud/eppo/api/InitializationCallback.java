@@ -1,7 +1,7 @@
 package cloud.eppo.api;
 
 public interface InitializationCallback {
-    void onComplete();
+  void onComplete();
 
-    void onError(String errorMessage);
+  void onError(String errorMessage);
 }
