@@ -1,25 +1,24 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
+import cloud.eppo.configuration.IConfigurationSource;
 import org.jetbrains.annotations.NotNull;
 
-public class ConfigurationStore {
+/** In memory store of a configuration snapshot. */
+public class ConfigurationStore implements IConfigurationSource, IConfigurationStore {
 
-  private volatile Configuration configuration;
+  private volatile Configuration configuration = null;
 
-  public ConfigurationStore(final Configuration initialConfiguration) {
-    if (initialConfiguration != null) {
-      configuration = initialConfiguration;
-    } else {
-      configuration = Configuration.emptyConfig();
-    }
-  }
+  public ConfigurationStore() {}
 
+  @Override
   public void setConfiguration(@NotNull final Configuration configuration) {
     this.configuration = configuration;
   }
 
-  public Configuration getConfiguration() {
-    return configuration;
+  @Override
+  public void load(SuccessCallback successCallback, FailureCallback failureCallback) {
+    // Immediately return the configuration
+    successCallback.onSuccess(configuration);
   }
 }

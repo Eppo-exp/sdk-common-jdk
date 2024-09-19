@@ -24,6 +24,7 @@ public class BaseEppoClient {
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
 
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
+  protected final ConfigurationWrangler wrangler;
   protected final ConfigurationRequestor requestor;
 
   private final ConfigurationStore configurationStore;
@@ -82,10 +83,12 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = new ConfigurationStore(initialConfiguration);
+    this.configurationStore = new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
-    requestor = new ConfigurationRequestor(configurationStore, httpClient, expectObfuscatedConfig);
+    requestor = new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
+    wrangler = new ConfigurationWrangler(requestor, configurationStore, initialConfiguration);
+
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
@@ -111,7 +114,7 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    requestor.load();
+    wrangler.load();
   }
 
   // TODO: async way to refresh for android
@@ -126,7 +129,7 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    Configuration config = configurationStore.getConfiguration();
+    Configuration config = wrangler.getConfiguration();
 
     FlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
@@ -401,7 +404,7 @@ public class BaseEppoClient {
       Actions actions,
       String defaultValue) {
     BanditResult result = new BanditResult(defaultValue, null);
-    final Configuration config = configurationStore.getConfiguration();
+    final Configuration config = wrangler.getConfiguration();
     try {
       String assignedVariation =
           getStringAssignment(
