@@ -1,4 +1,4 @@
-package cloud.eppo;
+package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
@@ -22,17 +22,21 @@ import org.slf4j.LoggerFactory;
  * accommodate the as-needed loading of bandit parameters as a network call may not be needed if
  * there are no bandits referenced by the flag configuration.
  *
- * <p>Usage: Building with just flag configuration (unobfuscated is default) <code>
- *     Configuration config = new Configuration.Builder(flagConfigJsonString).build();
+ * <p>Usage: Building with just flag configuration (unobfuscated) <code>
+ *     Configuration config = new Configuration.Builder(flagConfigJsonString, false).build();
+ * </code>
+ *
+ * <p>Usage: Building with obfuscated flag configuration (obfuscated) <code>
+ *     Configuration config = new Configuration.Builder(flagConfigJsonString, true).build();
  * </code>
  *
  * <p>Building with bandits (known configuration) <code>
- *     Configuration config = new Configuration.Builder(flagConfigJsonString).banditParameters(banditConfigJson).build();
+ *     Configuration config = new Configuration.Builder(flagConfigJsonString, false).banditParameters(banditConfigJson).build();
  *     </code>
  *
  * <p>Conditionally loading bandit models (with or without an existing bandit config JSON string).
  * <code>
- *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonString).banditParameters(banditConfigJson);
+ *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonString, false).banditParameters(banditConfigJson);
  *  if (configBuilder.requiresBanditModels()) {
  *    // Load the bandit parameters encoded in a JSON string
  *    configBuilder.banditParameters(banditParameterJsonString);
@@ -118,7 +122,7 @@ public class Configuration {
   /**
    * Builder to create the immutable config object.
    *
-   * @see cloud.eppo.Configuration for usage.
+   * @see Configuration for usage.
    */
   public static class Builder {
     private static final ObjectMapper mapper =

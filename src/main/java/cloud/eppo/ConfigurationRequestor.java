@@ -1,6 +1,8 @@
 package cloud.eppo;
 
 import java.io.IOException;
+
+import cloud.eppo.api.Configuration;
 import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
