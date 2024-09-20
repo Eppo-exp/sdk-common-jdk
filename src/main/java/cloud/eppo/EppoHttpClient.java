@@ -41,34 +41,22 @@ public class EppoHttpClient {
     return builder.build();
   }
 
-  // TODO: use this for Java, callback for Android; clean as needed
-  public Response get(String path) {
-    HttpUrl httpUrl =
-        HttpUrl.parse(baseUrl + path)
-            .newBuilder()
-            .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", sdkName)
-            .addQueryParameter("sdkVersion", sdkVersion)
-            .build();
+  public byte[] get(String path) {
+    Request request = buildRequest(path);
 
-    Request request = new Request.Builder().url(httpUrl).build();
-    try {
-      return client.newCall(request).execute();
+    try (Response response = client.newCall(request).execute()) {
+      if (!response.isSuccessful() || response.body() == null) {
+        throw new RuntimeException("Failed to fetch from " + path);
+      }
+
+      return response.body().bytes();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public void get(String path, EppoHttpClientRequestCallback callback) {
-    HttpUrl httpUrl =
-        HttpUrl.parse(baseUrl + path)
-            .newBuilder()
-            .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", sdkName)
-            .addQueryParameter("sdkVersion", sdkVersion)
-            .build();
-
-    Request request = new Request.Builder().url(httpUrl).build();
+  public void get(String path, RequestCallback callback) {
+    Request request = buildRequest(path);
     client
         .newCall(request)
         .enqueue(
@@ -78,16 +66,16 @@ public class EppoHttpClient {
                 if (response.isSuccessful()) {
                   log.debug("Fetch successful");
                   try {
-                    callback.onSuccess(response.body().string());
+                    callback.onSuccess(response.body().bytes());
                   } catch (IOException ex) {
-                    callback.onFailure("Failed to read response from URL " + httpUrl);
+                    callback.onFailure("Failed to read response from URL " + request.url());
                   }
                 } else {
                   if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
                     callback.onFailure("Invalid API key");
                   } else {
                     log.debug("Fetch failed with status code: {}", response.code());
-                    callback.onFailure("Bad response from URL " + httpUrl);
+                    callback.onFailure("Bad response from URL " + request.url());
                   }
                 }
                 response.close();
@@ -100,8 +88,22 @@ public class EppoHttpClient {
                     e.getMessage(),
                     Arrays.toString(e.getStackTrace()),
                     e);
-                callback.onFailure("Unable to fetch from URL " + httpUrl);
+                callback.onFailure("Unable to fetch from URL " + request.url());
               }
             });
   }
+
+  private Request buildRequest(String path) {
+    HttpUrl httpUrl =
+        HttpUrl.parse(baseUrl + path)
+            .newBuilder()
+            .addQueryParameter("apiKey", apiKey)
+            .addQueryParameter("sdkName", sdkName)
+            .addQueryParameter("sdkVersion", sdkVersion)
+            .build();
+
+    return new Request.Builder().url(httpUrl).build();
+  }
+
+  public interface RequestCallback extends EppoCallback<byte[]> {}
 }

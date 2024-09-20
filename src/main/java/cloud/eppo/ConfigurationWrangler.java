@@ -6,7 +6,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,244 +35,196 @@ public class ConfigurationWrangler {
     lock.lock();
     try {
       config = configuration;
-      // Save to the config store.
-      configurationStore.setConfiguration(config);
+
+      // Fire-and-forget save call to the config store. It may or may not block (non-blocking is
+      // best)
+      configurationStore.saveConfiguration(config);
     } finally {
       lock.unlock();
     }
   }
 
-  // Load Method
-  // 1 Enqueue an async load via the configStore (which can be subclassed by libraries using this
-  // package to load from disk/cache/etc)
-  //    And enqueue an http fetch.
-  // 2 Set the first to return as the config
-  // 3 Set the second to return as the config iff the second to return is the fetch request.
-  // 4 Then, push the config to the config store for optional storage, _however_,
-  // `ConfigurationWrangler` remains the
-  //     keeper of the source-of-truth reference to the current configuration.
-
-  // TODO: async loading for android
+  /**
+   * Loads the configuration from the `ConfigurationRequestor` and saves to "persistent" storage
+   * using `IConfigurationStore`
+   *
+   * <p>This method attempts to load from the `IConfigurationStore` if it was unable to load from
+   * the API.
+   */
   public void load() {
-    BlockingQueue<Boolean> queue = new LinkedBlockingQueue<>();
-    loadAsync(
-        new LoadCallback() {
-          @Override
-          public void onComplete() {
-            queue.add(true);
-          }
-
-          @Override
-          public void onError(String error) {
-            queue.add(false);
-          }
-        });
-
     try {
-      queue.take();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      Configuration newConfig = requestor.load(config);
+      setConfig(newConfig);
+    } catch (RuntimeException e) {
+      log.error("Failed to load configuration", e);
+
+      // Try getting config from the cache. It loads async, so we'll use a blocking queue.
+      BlockingQueue<Configuration> bq = new LinkedBlockingQueue<>(1);
+
+      configurationStore.load(
+          new IConfigurationStore.CacheLoadCallback() {
+            @Override
+            public void onSuccess(Configuration result) {
+              bq.add(result);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+              throw new RuntimeException(errorMessage);
+            }
+          });
+
+      try {
+        // Only set the config reference as this value came from the cache
+        config = bq.take();
+      } catch (InterruptedException ex) {
+        throw new RuntimeException(ex);
+      }
     }
+
+    setConfig(requestor.load(config));
   }
 
+  // Load Async Method
+  // Start an async load via the configStore (which can be subclassed by libraries using this
+  // package to load from disk/cache/etc)
+  // Also start an async http fetch (this is required for Android to have network calls off the main
+  // thread, which is a good idea anyway).
+  //
+  // The precedence strategy is first-to-succeed, which is to say, the first loader to succeed gets
+  // to call
+  // `callback.onComplete()`.
+  //
+  // If the cache load succeeds, it writes the config iff the fetch has not yet set a value
+  // If the cache load fails, it calls `onFailure` iff the fetch also failed. Only the fetch error
+  // message is ever returned.
+  //
+  // If the fetch succeeds, it writes its config regardless of the cache result
+  // The fetch success will trigger the callback only if it has not yet been called.
+  // If the fetch fails and the cache failed pass the fetch error message to the callback
+  // (`onFailure`)
   public void loadAsync(LoadCallback callback) {
+    loadAsync(false, callback);
+  }
+
+  public void loadAsync(final boolean skipCache, LoadCallback callback) {
+    if (skipCache) {
+      loadAsyncFromRequestor(callback);
+      return;
+    }
 
     // We have two at-bats to load the configuration: loading from cache and fetching
     // The below variables help them keep track of each other's progress
+    AtomicBoolean cacheLoadInProgress = new AtomicBoolean(true);
     AtomicReference<String> fetchErrorMessage = new AtomicReference<>(null);
-    AtomicReference<String> cacheError = new AtomicReference<>(null);
-
-    // We only want to fire the callback off once; so track whether we have yet
+    // We only want to fire the callback off once; so track whether or not we have yet
     AtomicBoolean callbackCalled = new AtomicBoolean(false);
-    AtomicBoolean authorityReturned = new AtomicBoolean(false);
-    // Queue up the cacheload
-    configurationStore.load(
-        configuration -> {
-          synchronized (lock) {
-            // If cache loaded successfully, fire off success callback if not yet done so by
-            // fetching
-            if (!authorityReturned.get()) {
-              setConfig(configuration);
-            }
-            if (callback != null && callbackCalled.compareAndSet(false, true)) {
-              log.debug("Initialized from cache");
-              callback.onComplete();
-            }
 
-            //                storeReturned.set(true);
-            //                // Cache store is not authoritative.
-            //                if (callback != null  && !authorityReturned.get()) {
-            //                  setConfig(configuration);
-            //                  callback.onComplete();
-            //                }
+    configurationStore.load(
+        new IConfigurationStore.CacheLoadCallback() {
+          @Override
+          public void onSuccess(Configuration result) {
+            lock.lock();
+            try {
+              cacheLoadInProgress.set(false);
+              // If cache loaded successfully, fire off success callback if not yet done so by
+              // fetching
+              if (callback != null && callbackCalled.compareAndSet(false, true)) {
+                log.debug("Initialized from cache");
+                callback.onSuccess(null);
+              }
+            } finally {
+              lock.unlock();
+            }
           }
-        },
-        error -> {
-          synchronized (lock) {
-            log.debug("Did not initialize from cache " + error.getMessage());
+
+          @Override
+          public void onFailure(String errorMessage) {
+            cacheLoadInProgress.set(false);
+            log.debug("Did not initialize from cache");
             // If cache loading failed, and fetching failed, fire off the failure callback if not
             // yet done so
             // Otherwise, if fetching has not failed yet, defer to it for firing off callbacks
-            if (fetchErrorMessage.get() != null) {
-              log.error("Failed to initialize from fetching and by cache");
-            }
-            cacheError.set(error.getMessage());
-
             if (callback != null
                 && fetchErrorMessage.get() != null
                 && callbackCalled.compareAndSet(false, true)) {
-              callback.onError("Cache and fetch failed " + fetchErrorMessage.get());
+              log.error("Failed to initialize from fetching or by cache");
+              callback.onFailure("Cache and fetch failed " + fetchErrorMessage.get());
             }
           }
-          //
-          //              // If the cache throws an error, we still have the Authoritative source.
-          // If both have thrown an error, we
-          //              // want to fail
-          //              if (fetchError.get() != null) {
-          //               callback.onError(fetchError.get());
-          //              } else {
-          //                cacheError.set(error);
-          //              }
         });
 
-    log.debug("Fetching configuration from API");
-    // Kick off async fetch load
+    log.debug("Fetching configuration");
     requestor.loadAsync(
         config,
-        configuration -> {
-          // Requestor is getting the very latest data and so is authoritative.
-          synchronized (lock) {
-            setConfig(configuration);
-            authorityReturned.set(true);
-            if (callback != null && !callbackCalled.get()) {
-              // Complete the callback only if the cacheload hasn't yet returned
-              callback.onComplete();
+        new ConfigurationRequestor.ConfigurationCallback() {
+
+          @Override
+          public void onSuccess(Configuration result) {
+            lock.lock();
+            try {
+              log.debug("Configuration fetch successful");
+              setConfig(result);
+              // If fetching succeeded, fire off success callback if not yet done so from cache
+              // loading
+              if (callback != null && callbackCalled.compareAndSet(false, true)) {
+                log.debug("Initialized from fetch");
+                callback.onSuccess(null);
+              }
+            } catch (Exception e) {
+              fetchErrorMessage.set(e.getMessage());
+              log.error("Error loading configuration response", e);
+              // If fetching failed, and cache loading failed, fire off the failure callback if not
+              // yet done so
+              // Otherwise, if cache has not finished yet, defer to it for firing off callbacks
+              if (callback != null
+                  && !cacheLoadInProgress.get()
+                  && callbackCalled.compareAndSet(false, true)) {
+                log.debug("Failed to initialize from cache or by fetching");
+                callback.onFailure("Cache and fetch failed " + e.getMessage());
+              }
+            } finally {
+              lock.unlock();
             }
           }
-        },
-        error -> {
-          synchronized (lock) {
-            log.error("Error fetching configuration from API: " + error.getMessage());
 
-            fetchErrorMessage.set(error.getMessage());
+          @Override
+          public void onFailure(String errorMessage) {
+            fetchErrorMessage.set(errorMessage);
+            log.error("Error fetching configuration: " + errorMessage);
             // If fetching failed, and cache loading failed, fire off the failure callback if not
             // yet done so
             // Otherwise, if cache has not finished yet, defer to it for firing off callbacks
             if (callback != null
-                && cacheError.get() != null
+                && !cacheLoadInProgress.get()
                 && callbackCalled.compareAndSet(false, true)) {
               log.debug("Initialization failure due to fetch error");
-              callback.onError(error.getMessage());
+              callback.onFailure(errorMessage);
             }
           }
         });
   }
 
-  // Grab hold of the last configuration in case its bandit models are useful
-  //    Configuration lastConfig = config;
-  //
-  //    log.debug("Fetching configuration");
-  //    byte[] flagConfigurationJsonBytes = requestBody("/api/flag-config/v1/config");
-  //    Configuration.Builder configBuilder =
-  //            new Configuration.Builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
-  //                    .banditParametersFromConfig(lastConfig);
-  //
-  //    if (configBuilder.requiresBanditModels()) {
-  //      byte[] banditParametersJsonBytes = requestBody("/api/flag-config/v1/bandits");
-  //      configBuilder.banditParameters(banditParametersJsonBytes);
-  //    }
-  //
-  //    config = configBuilder.build();
-  //    configurationStore.setConfiguration(config);
+  private void loadAsyncFromRequestor(LoadCallback callback) {
+    requestor.loadAsync(
+        config,
+        new ConfigurationRequestor.ConfigurationCallback() {
+          @Override
+          public void onSuccess(Configuration result) {
+            setConfig(result);
+            callback.onSuccess(null);
+          }
+
+          @Override
+          public void onFailure(String errorMessage) {
+            callback.onFailure(errorMessage);
+          }
+        });
+  }
 
   public Configuration getConfiguration() {
     return config;
   }
 
-  public interface LoadCallback {
-    void onComplete();
-
-    void onError(String error);
-  }
+  public interface LoadCallback extends EppoCallback<Void> {}
 }
-
-class ConfigResult {
-  @Nullable public final Configuration configuration;
-  public final boolean isAuthoritative;
-  @Nullable public final String error;
-
-  public boolean success() {
-    return error == null;
-  }
-
-  public ConfigResult(
-      @Nullable final Configuration configuration,
-      boolean isAuthoritative,
-      @Nullable String error) {
-    this.configuration = configuration;
-    this.error = error;
-    this.isAuthoritative = isAuthoritative;
-  }
-
-  public static ConfigResult success(
-      @Nullable Configuration configuration, boolean isAuthoritative) {
-    return new ConfigResult(configuration, isAuthoritative, null);
-  }
-
-  public static ConfigResult error(@Nullable String error) {
-    return new ConfigResult(null, false, error);
-  }
-}
-
-//
-//
-//        //    Configuration config = requestor.load(this.config);
-////    setConfig(config);
-//        BlockingQueue<ConfigResult> queue = new LinkedBlockingQueue<>(2);
-//
-//        // Queue up the cacheload
-//    configurationStore.load(
-//        configuration -> {
-//        // Cache store is not authoritative.
-//        queue.add(ConfigResult.success(configuration, false));
-//        },
-//        error -> {
-//        queue.add(ConfigResult.error(error.getMessage()));
-//        }
-//        );
-//
-//        // Kick off async fetch load
-//        requestor.loadAsync(
-//        config,
-//        configuration -> {
-//        // Requestor is getting the very latest data and so is authoritative.
-//        queue.add(ConfigResult.success(configuration, true));
-//        },
-//        error -> {
-//        queue.add(ConfigResult.error(error.getMessage()));
-//        }
-//        );
-//
-//        // take and apply the first config to return
-//        try {
-//        ConfigResult first = queue.take();
-//      if (first.success()) {
-//        setConfig(first.configuration);
-//      } else {
-//              throw new RuntimeException(first.error);
-//      }
-//              } catch (InterruptedException e) {
-//        throw new RuntimeException(e);
-//    }
-//
-//            // Take the second and only apply it if it is authoritative
-//            try {
-//        ConfigResult second = queue.take();
-//      if (second.success() && second.isAuthoritative) {
-//        setConfig(second.configuration);
-//      } else if (!second.success()) {
-//        throw new RuntimeException(second.error);
-//      }
-//              } catch (InterruptedException e) {
-//        throw new RuntimeException(e);
-//    }

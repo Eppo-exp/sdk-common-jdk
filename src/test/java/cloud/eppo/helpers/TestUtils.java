@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.EppoHttpClient;
-import cloud.eppo.EppoHttpClientRequestCallback;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import okhttp3.*;
 
@@ -28,17 +28,21 @@ public class TestUtils {
             .protocol(Protocol.HTTP_1_1)
             .message("OK")
             .build();
-    when(mockHttpClient.get(anyString())).thenReturn(dummyResponse);
+    try {
+      when(mockHttpClient.get(anyString())).thenReturn(dummyResponse.body().bytes());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // Mock async get
     doAnswer(
             invocation -> {
-              EppoHttpClientRequestCallback callback = invocation.getArgument(1);
-              callback.onSuccess(responseBody);
+              EppoHttpClient.RequestCallback callback = invocation.getArgument(1);
+              callback.onSuccess(responseBody.getBytes());
               return null; // doAnswer doesn't require a return value
             })
         .when(mockHttpClient)
-        .get(anyString(), any(EppoHttpClientRequestCallback.class));
+        .get(anyString(), any(EppoHttpClient.RequestCallback.class));
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
   }

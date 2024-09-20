@@ -27,7 +27,7 @@ public class BaseEppoClient {
   protected final ConfigurationWrangler wrangler;
   protected final ConfigurationRequestor requestor;
 
-  private final ConfigurationStore configurationStore;
+  private final IConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
@@ -57,6 +57,7 @@ public class BaseEppoClient {
         banditLogger,
         isGracefulMode,
         expectObfuscatedConfig,
+        null,
         null);
   }
 
@@ -69,7 +70,8 @@ public class BaseEppoClient {
       BanditLogger banditLogger,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
-      Configuration initialConfiguration) {
+      Configuration initialConfiguration,
+      IConfigurationStore configStoreOverride) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -83,7 +85,9 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = new ConfigurationStore();
+
+    this.configurationStore =
+        configStoreOverride != null ? configStoreOverride : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
     requestor = new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
@@ -117,22 +121,28 @@ public class BaseEppoClient {
     wrangler.load();
   }
 
-  protected void loadConfigurationAsync(InitializationCallback callback) {
+  /**
+   * Loads the configuration asynchronously, off-thread
+   *
+   * @param skipCache This allows the Configuration Wrangler to skip trying to load from the cache.
+   *     This is useful when we want only the freshest configuration.
+   * @param callback Called when load is complete.
+   */
+  protected void loadConfigurationAsync(boolean skipCache, InitializationCallback callback) {
     wrangler.loadAsync(
+        skipCache,
         new ConfigurationWrangler.LoadCallback() {
           @Override
-          public void onComplete() {
-            callback.onComplete();
+          public void onSuccess(Void result) {
+            callback.onSuccess(null);
           }
 
           @Override
-          public void onError(String error) {
-            callback.onError(error);
+          public void onFailure(String errorMessage) {
+            callback.onFailure(errorMessage);
           }
         });
   }
-
-  // TODO: async way to refresh for android
 
   protected EppoValue getTypedAssignment(
       String flagKey,
@@ -486,4 +496,6 @@ public class BaseEppoClient {
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
     this.isGracefulMode = isGracefulFailureMode;
   }
+
+  public interface InitializationCallback extends EppoCallback<Void> {}
 }

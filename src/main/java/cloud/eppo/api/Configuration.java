@@ -76,6 +76,10 @@ public class Configuration {
     this.banditParamsJson = banditParamsJson;
   }
 
+  public boolean isEmpty() {
+    return flags.isEmpty();
+  }
+
   public static Configuration emptyConfig() {
     return new Configuration(
         Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), false, null, null);

@@ -70,7 +70,8 @@ public class BaseEppoClientTest {
             null,
             isGracefulMode,
             isConfigObfuscated,
-            initialConfig);
+            initialConfig,
+            null);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {

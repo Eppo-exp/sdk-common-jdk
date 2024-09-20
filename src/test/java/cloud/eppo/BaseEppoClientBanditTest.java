@@ -86,7 +86,8 @@ public class BaseEppoClientBanditTest {
             mockBanditLogger,
             false,
             false,
-            initialConfig);
+            initialConfig,
+            null);
   }
 
   @BeforeEach
