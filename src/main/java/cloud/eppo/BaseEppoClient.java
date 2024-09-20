@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +59,7 @@ public class BaseEppoClient {
         isGracefulMode,
         expectObfuscatedConfig,
         null,
+        null,
         null);
   }
 
@@ -70,6 +72,7 @@ public class BaseEppoClient {
       BanditLogger banditLogger,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
+      EppoHttpClient httpClient,
       Configuration initialConfiguration,
       IConfigurationStore configStoreOverride) {
 
@@ -84,7 +87,9 @@ public class BaseEppoClient {
       host = DEFAULT_HOST;
     }
 
-    EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
+    if (httpClient == null) {
+      httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
+    }
 
     this.configurationStore =
         configStoreOverride != null ? configStoreOverride : new ConfigurationStore();
@@ -128,18 +133,23 @@ public class BaseEppoClient {
    *     This is useful when we want only the freshest configuration.
    * @param callback Called when load is complete.
    */
-  protected void loadConfigurationAsync(boolean skipCache, InitializationCallback callback) {
+  protected void loadConfigurationAsync(
+      boolean skipCache, @Nullable InitializationCallback callback) {
     wrangler.loadAsync(
         skipCache,
         new ConfigurationWrangler.LoadCallback() {
           @Override
           public void onSuccess(Void result) {
-            callback.onSuccess(null);
+            if (callback != null) {
+              callback.onSuccess(null);
+            }
           }
 
           @Override
           public void onFailure(String errorMessage) {
-            callback.onFailure(errorMessage);
+            if (callback != null) {
+              callback.onFailure(errorMessage);
+            }
           }
         });
   }
