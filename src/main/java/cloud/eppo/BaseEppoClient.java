@@ -27,9 +27,9 @@ public class BaseEppoClient {
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
 
   /**
-   * The Configuration Wrangler handles the complexities of loading configuration from multiple sources and saving to
-   * a persistent store. It contains the source of truth reference to the **Configuration** (UFC definitions and Bandit
-   * Parameters).
+   * The Configuration Wrangler handles the complexities of loading configuration from multiple
+   * sources and saving to a persistent store. It contains the source of truth reference to the
+   * **Configuration** (UFC definitions and Bandit Parameters).
    */
   protected final ConfigurationWrangler configurationWrangler;
 
@@ -95,11 +95,14 @@ public class BaseEppoClient {
       httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     }
 
-      IConfigurationStore configurationStore = configStoreOverride != null ? configStoreOverride : new ConfigurationStore();
+    IConfigurationStore configurationStore =
+        configStoreOverride != null ? configStoreOverride : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
-    ConfigurationRequestor requestor = new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
-    configurationWrangler = new ConfigurationWrangler(requestor, configurationStore, initialConfiguration);
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
+    configurationWrangler =
+        new ConfigurationWrangler(requestor, configurationStore, initialConfiguration);
 
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
