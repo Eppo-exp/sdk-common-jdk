@@ -11,13 +11,13 @@ public class ConfigurationStore implements IConfigurationStore {
   public ConfigurationStore() {}
 
   @Override
-  public void load(CacheLoadCallback callback) {
-    // Immediately return the configuration
-    callback.onSuccess(configuration);
+  public void saveConfiguration(@NotNull final Configuration configuration) {
+    this.configuration = configuration;
   }
 
   @Override
-  public void saveConfiguration(@NotNull Configuration configuration) {
-    this.configuration = configuration;
+  public void load(CacheLoadCallback callback) {
+    // Immediately return the configuration
+    callback.onSuccess(configuration);
   }
 }

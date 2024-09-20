@@ -9,7 +9,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO: handle bandit stuff
 public class ConfigurationWrangler {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationWrangler.class);
 
@@ -19,7 +18,7 @@ public class ConfigurationWrangler {
   // This reference is **the** reference to the current configuration.
   private volatile Configuration config;
 
-  public ConfigurationWrangler(
+  ConfigurationWrangler(
       ConfigurationRequestor requestor,
       IConfigurationStore persistentSource,
       Configuration initialConfiguration) {
@@ -51,7 +50,7 @@ public class ConfigurationWrangler {
    * <p>This method attempts to load from the `IConfigurationStore` if it was unable to load from
    * the API.
    */
-  public void load() {
+  void load() {
     try {
       Configuration newConfig = requestor.load(config);
       setConfig(newConfig);
@@ -78,7 +77,7 @@ public class ConfigurationWrangler {
         // Only set the config reference as this value came from the cache
         config = bq.take();
       } catch (InterruptedException ex) {
-        throw new RuntimeException(ex);
+        throw new RuntimeException("Failed to wait for cache load", ex);
       }
     }
 
@@ -103,11 +102,11 @@ public class ConfigurationWrangler {
   // The fetch success will trigger the callback only if it has not yet been called.
   // If the fetch fails and the cache failed pass the fetch error message to the callback
   // (`onFailure`)
-  public void loadAsync(LoadCallback callback) {
+  void loadAsync(LoadCallback callback) {
     loadAsync(false, callback);
   }
 
-  public void loadAsync(final boolean skipCache, LoadCallback callback) {
+  void loadAsync(final boolean skipCache, LoadCallback callback) {
     if (skipCache) {
       loadAsyncFromRequestor(callback);
       return;
@@ -140,16 +139,22 @@ public class ConfigurationWrangler {
 
           @Override
           public void onFailure(String errorMessage) {
-            cacheLoadInProgress.set(false);
-            log.debug("Did not initialize from cache");
-            // If cache loading failed, and fetching failed, fire off the failure callback if not
-            // yet done so
-            // Otherwise, if fetching has not failed yet, defer to it for firing off callbacks
-            if (callback != null
-                && fetchErrorMessage.get() != null
-                && callbackCalled.compareAndSet(false, true)) {
-              log.error("Failed to initialize from fetching or by cache");
-              callback.onFailure("Cache and fetch failed " + fetchErrorMessage.get());
+            lock.lock();
+            try {
+              cacheLoadInProgress.set(false);
+              log.debug("Did not initialize from cache");
+              // If cache loading failed, and fetching failed, fire off the failure callback if not
+              // yet done so
+              // Otherwise, if fetching has not failed yet, defer to it for firing off callbacks
+              if (callback != null
+                  && fetchErrorMessage.get() != null
+                  && callbackCalled.compareAndSet(false, true)) {
+                log.error("Failed to initialize from fetching or by cache");
+                callback.onFailure("Cache and fetch failed " + fetchErrorMessage.get());
+              }
+
+            } finally {
+              lock.unlock();
             }
           }
         });
@@ -190,16 +195,22 @@ public class ConfigurationWrangler {
 
           @Override
           public void onFailure(String errorMessage) {
-            fetchErrorMessage.set(errorMessage);
-            log.error("Error fetching configuration: " + errorMessage);
-            // If fetching failed, and cache loading failed, fire off the failure callback if not
-            // yet done so
-            // Otherwise, if cache has not finished yet, defer to it for firing off callbacks
-            if (callback != null
-                && !cacheLoadInProgress.get()
-                && callbackCalled.compareAndSet(false, true)) {
-              log.debug("Initialization failure due to fetch error");
-              callback.onFailure(errorMessage);
+            lock.lock();
+            try {
+              fetchErrorMessage.set(errorMessage);
+              log.error("Error fetching configuration: " + errorMessage);
+              // If fetching failed, and cache loading failed, fire off the failure callback if not
+              // yet done so
+              // Otherwise, if cache has not finished yet, defer to it for firing off callbacks
+              if (callback != null
+                  && !cacheLoadInProgress.get()
+                  && callbackCalled.compareAndSet(false, true)) {
+                log.debug("Initialization failure due to fetch error");
+                callback.onFailure(errorMessage);
+              }
+
+            } finally {
+              lock.unlock();
             }
           }
         });
@@ -222,9 +233,9 @@ public class ConfigurationWrangler {
         });
   }
 
-  public Configuration getConfiguration() {
+  Configuration getConfiguration() {
     return config;
   }
 
-  public interface LoadCallback extends EppoCallback<Void> {}
+  interface LoadCallback extends EppoCallback<Void> {}
 }

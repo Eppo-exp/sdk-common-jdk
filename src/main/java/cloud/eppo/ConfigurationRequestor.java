@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // TODO: handle bandit stuff
-public class ConfigurationRequestor {
+class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
   public static final String FLAG_CONFIG_PATH = "/api/flag-config/v1/config";
   public static final String BANDIT_PARAMETER_PATH = "/api/flag-config/v1/bandits";
@@ -14,11 +14,11 @@ public class ConfigurationRequestor {
   private final boolean expectObfuscatedConfig;
   private final boolean supportBandits;
 
-  public ConfigurationRequestor(EppoHttpClient client, boolean expectObfuscatedConfig) {
+  ConfigurationRequestor(EppoHttpClient client, boolean expectObfuscatedConfig) {
     this(client, expectObfuscatedConfig, true);
   }
 
-  public ConfigurationRequestor(
+  ConfigurationRequestor(
       EppoHttpClient client, boolean expectObfuscatedConfig, boolean supportBandits) {
     this.client = client;
     this.expectObfuscatedConfig = expectObfuscatedConfig;
@@ -31,7 +31,7 @@ public class ConfigurationRequestor {
    * @param lastConfig Currently loaded Bandit Parameters can be reused if they satisfy the models
    *     referenced by flags.
    */
-  public Configuration load(Configuration lastConfig) {
+  Configuration load(Configuration lastConfig) {
     // Reuse the `lastConfig` as its bandits may be useful
     log.debug("Fetching configuration");
     byte[] flagConfigurationJsonBytes = client.get(FLAG_CONFIG_PATH);
@@ -54,7 +54,7 @@ public class ConfigurationRequestor {
    *     referenced by flags.
    * @param callback executed upon completion or failure of the load.
    */
-  public void loadAsync(final Configuration lastConfig, final ConfigurationCallback callback) {
+  void loadAsync(final Configuration lastConfig, final ConfigurationCallback callback) {
     log.debug("Fetching configuration from API server");
     client.get(
         FLAG_CONFIG_PATH,
@@ -68,7 +68,6 @@ public class ConfigurationRequestor {
                         lastConfig); // possibly reuse last bandit models loaded for efficiency.
 
             if (supportBandits && configBuilder.requiresBanditModels()) {
-
               client.get(
                   BANDIT_PARAMETER_PATH,
                   new EppoHttpClient.RequestCallback() {
@@ -98,5 +97,5 @@ public class ConfigurationRequestor {
         });
   }
 
-  public interface ConfigurationCallback extends EppoCallback<Configuration> {}
+  interface ConfigurationCallback extends EppoCallback<Configuration> {}
 }
