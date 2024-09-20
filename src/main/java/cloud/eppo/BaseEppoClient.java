@@ -25,10 +25,14 @@ public class BaseEppoClient {
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
 
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
-  protected final ConfigurationWrangler wrangler;
-  protected final ConfigurationRequestor requestor;
 
-  private final IConfigurationStore configurationStore;
+  /**
+   * The Configuration Wrangler handles the complexities of loading configuration from multiple sources and saving to
+   * a persistent store. It contains the source of truth reference to the **Configuration** (UFC definitions and Bandit
+   * Parameters).
+   */
+  protected final ConfigurationWrangler configurationWrangler;
+
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
@@ -91,12 +95,11 @@ public class BaseEppoClient {
       httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     }
 
-    this.configurationStore =
-        configStoreOverride != null ? configStoreOverride : new ConfigurationStore();
+      IConfigurationStore configurationStore = configStoreOverride != null ? configStoreOverride : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
-    requestor = new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
-    wrangler = new ConfigurationWrangler(requestor, configurationStore, initialConfiguration);
+    ConfigurationRequestor requestor = new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
+    configurationWrangler = new ConfigurationWrangler(requestor, configurationStore, initialConfiguration);
 
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
@@ -123,7 +126,7 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    wrangler.load();
+    configurationWrangler.load();
   }
 
   /**
@@ -135,7 +138,7 @@ public class BaseEppoClient {
    */
   protected void loadConfigurationAsync(
       boolean skipCache, @Nullable InitializationCallback callback) {
-    wrangler.loadAsync(
+    configurationWrangler.loadAsync(
         skipCache,
         new ConfigurationWrangler.LoadCallback() {
           @Override
@@ -164,7 +167,7 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    Configuration config = wrangler.getConfiguration();
+    Configuration config = configurationWrangler.getConfiguration();
 
     FlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
@@ -439,7 +442,7 @@ public class BaseEppoClient {
       Actions actions,
       String defaultValue) {
     BanditResult result = new BanditResult(defaultValue, null);
-    final Configuration config = wrangler.getConfiguration();
+    final Configuration config = configurationWrangler.getConfiguration();
     try {
       String assignedVariation =
           getStringAssignment(
