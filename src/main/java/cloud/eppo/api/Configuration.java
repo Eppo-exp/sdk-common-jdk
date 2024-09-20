@@ -56,7 +56,6 @@ public class Configuration {
   private final Map<String, BanditParameters> bandits;
   private final boolean isConfigObfuscated;
 
-  @SuppressWarnings("unused")
   private final byte[] flagConfigJson;
 
   private final byte[] banditParamsJson;
@@ -121,6 +120,11 @@ public class Configuration {
 
   public boolean isConfigObfuscated() {
     return isConfigObfuscated;
+  }
+
+  @SuppressWarnings("unused")
+  public byte[] getFlagConfigJson() {
+    return flagConfigJson;
   }
 
   /**
