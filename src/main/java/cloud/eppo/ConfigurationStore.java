@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
-import org.jetbrains.annotations.NotNull;
 
 /** In-memory store of a configuration snapshot. */
 public class ConfigurationStore implements IConfigurationStore {
@@ -11,7 +10,7 @@ public class ConfigurationStore implements IConfigurationStore {
   public ConfigurationStore() {}
 
   @Override
-  public void saveConfiguration(@NotNull final Configuration configuration) {
+  public void saveConfiguration(final Configuration configuration) {
     this.configuration = configuration;
   }
 
