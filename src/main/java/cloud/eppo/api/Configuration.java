@@ -123,7 +123,7 @@ public class Configuration {
   }
 
   @SuppressWarnings("unused")
-  public byte[] getFlagConfigJson() {
+  public byte[] getFlagConfigJsonBytes() {
     return flagConfigJson;
   }
 

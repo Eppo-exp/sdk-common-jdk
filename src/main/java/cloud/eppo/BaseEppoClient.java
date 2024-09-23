@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +30,7 @@ public class BaseEppoClient {
    * sources and saving to a persistent store. It contains the source of truth reference to the
    * **Configuration** (UFC definitions and Bandit Parameters).
    */
-  protected final ConfigurationWrangler configurationWrangler;
+  protected final ConfigurationManager configurationManager;
 
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
@@ -64,7 +63,8 @@ public class BaseEppoClient {
         expectObfuscatedConfig,
         null,
         null,
-        null);
+        null,
+        true);
   }
 
   protected BaseEppoClient(
@@ -78,7 +78,8 @@ public class BaseEppoClient {
       boolean expectObfuscatedConfig,
       EppoHttpClient httpClient,
       Configuration initialConfiguration,
-      IConfigurationStore configStoreOverride) {
+      IConfigurationStore configStoreOverride,
+      boolean supportBandits) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -100,9 +101,9 @@ public class BaseEppoClient {
 
     // For now, the configuration is only obfuscated for Android clients
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(httpClient, expectObfuscatedConfig);
-    configurationWrangler =
-        new ConfigurationWrangler(requestor, configurationStore, initialConfiguration);
+        new ConfigurationRequestor(httpClient, expectObfuscatedConfig, supportBandits);
+    configurationManager =
+        new ConfigurationManager(requestor, configurationStore, initialConfiguration);
 
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
@@ -129,7 +130,7 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    configurationWrangler.load();
+    configurationManager.load();
   }
 
   /**
@@ -139,11 +140,10 @@ public class BaseEppoClient {
    *     This is useful when we want only the freshest configuration.
    * @param callback Called when load is complete.
    */
-  protected void loadConfigurationAsync(
-      boolean skipCache, @Nullable InitializationCallback callback) {
-    configurationWrangler.loadAsync(
+  protected void loadConfigurationAsync(boolean skipCache, InitializationCallback callback) {
+    configurationManager.loadAsync(
         skipCache,
-        new ConfigurationWrangler.LoadCallback() {
+        new ConfigurationManager.LoadCallback() {
           @Override
           public void onSuccess(Void result) {
             if (callback != null) {
@@ -170,7 +170,7 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    Configuration config = configurationWrangler.getConfiguration();
+    Configuration config = configurationManager.getConfiguration();
 
     FlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
@@ -445,7 +445,7 @@ public class BaseEppoClient {
       Actions actions,
       String defaultValue) {
     BanditResult result = new BanditResult(defaultValue, null);
-    final Configuration config = configurationWrangler.getConfiguration();
+    final Configuration config = configurationManager.getConfiguration();
     try {
       String assignedVariation =
           getStringAssignment(
@@ -512,6 +512,4 @@ public class BaseEppoClient {
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
     this.isGracefulMode = isGracefulFailureMode;
   }
-
-  public interface InitializationCallback extends EppoCallback<Void> {}
 }

@@ -88,7 +88,8 @@ public class BaseEppoClientBanditTest {
             false,
             null,
             initialConfig,
-            null);
+            null,
+            true);
   }
 
   @BeforeEach

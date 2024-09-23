@@ -4,7 +4,6 @@ import cloud.eppo.api.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO: handle bandit stuff
 class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
   public static final String FLAG_CONFIG_PATH = "/api/flag-config/v1/config";
@@ -31,7 +30,7 @@ class ConfigurationRequestor {
    * @param lastConfig Currently loaded Bandit Parameters can be reused if they satisfy the models
    *     referenced by flags.
    */
-  Configuration load(Configuration lastConfig) {
+  Configuration loadFromRemote(Configuration lastConfig) {
     // Reuse the `lastConfig` as its bandits may be useful
     log.debug("Fetching configuration");
     byte[] flagConfigurationJsonBytes = client.get(FLAG_CONFIG_PATH);
@@ -54,7 +53,7 @@ class ConfigurationRequestor {
    *     referenced by flags.
    * @param callback executed upon completion or failure of the load.
    */
-  void loadAsync(final Configuration lastConfig, final ConfigurationCallback callback) {
+  void loadFromRemote(final Configuration lastConfig, final ConfigurationCallback callback) {
     log.debug("Fetching configuration from API server");
     client.get(
         FLAG_CONFIG_PATH,
