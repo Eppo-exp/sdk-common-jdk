@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,10 +112,12 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    requestor.load();
+    requestor.fetchAndSaveFromRemote();
   }
 
-  // TODO: async way to refresh for android
+  protected CompletableFuture<Void> loadConfigurationAsync() {
+    return requestor.fetchAndSaveFromRemoteAsync();
+  }
 
   protected EppoValue getTypedAssignment(
       String flagKey,
