@@ -1,8 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
-import java.io.IOException;
-import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,28 +27,16 @@ public class ConfigurationRequestor {
     Configuration lastConfig = configurationStore.getConfiguration();
 
     log.debug("Fetching configuration");
-    byte[] flagConfigurationJsonBytes = requestBody("/api/flag-config/v1/config");
+    byte[] flagConfigurationJsonBytes = client.get("/api/flag-config/v1/config");
     Configuration.Builder configBuilder =
         new Configuration.Builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
             .banditParametersFromConfig(lastConfig);
 
     if (configBuilder.requiresBanditModels()) {
-      byte[] banditParametersJsonBytes = requestBody("/api/flag-config/v1/bandits");
+      byte[] banditParametersJsonBytes = client.get("/api/flag-config/v1/bandits");
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
 
     configurationStore.setConfiguration(configBuilder.build());
-  }
-
-  private byte[] requestBody(String route) {
-    Response response = client.get(route);
-    if (!response.isSuccessful() || response.body() == null) {
-      throw new RuntimeException("Failed to fetch from " + route);
-    }
-    try {
-      return response.body().bytes();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

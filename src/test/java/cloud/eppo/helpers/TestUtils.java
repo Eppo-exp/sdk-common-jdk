@@ -1,13 +1,12 @@
 package cloud.eppo.helpers;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.EppoHttpClient;
-import cloud.eppo.EppoHttpClientRequestCallback;
 import java.lang.reflect.Field;
+import java.util.concurrent.CompletableFuture;
 import okhttp3.*;
 
 public class TestUtils {
@@ -18,27 +17,12 @@ public class TestUtils {
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     // Mock sync get
-    Response dummyResponse =
-        new Response.Builder()
-            // Used by test
-            .code(200)
-            .body(ResponseBody.create(responseBody, MediaType.get("application/json")))
-            // Below properties are required to build the Response (but unused)
-            .request(new Request.Builder().url(host).build())
-            .protocol(Protocol.HTTP_1_1)
-            .message("OK")
-            .build();
-    when(mockHttpClient.get(anyString())).thenReturn(dummyResponse);
+    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
 
     // Mock async get
-    doAnswer(
-            invocation -> {
-              EppoHttpClientRequestCallback callback = invocation.getArgument(1);
-              callback.onSuccess(responseBody);
-              return null; // doAnswer doesn't require a return value
-            })
-        .when(mockHttpClient)
-        .get(anyString(), any(EppoHttpClientRequestCallback.class));
+    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
+    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
+    mockAsyncResponse.complete(responseBody.getBytes());
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
   }

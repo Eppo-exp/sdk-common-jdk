@@ -3,6 +3,7 @@ package cloud.eppo;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -41,34 +42,23 @@ public class EppoHttpClient {
     return builder.build();
   }
 
-  // TODO: use this for Java, callback for Android; clean as needed
-  public Response get(String path) {
-    HttpUrl httpUrl =
-        HttpUrl.parse(baseUrl + path)
-            .newBuilder()
-            .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", sdkName)
-            .addQueryParameter("sdkVersion", sdkVersion)
-            .build();
+  public byte[] get(String path) {
+    Request request = buildRequest(path);
 
-    Request request = new Request.Builder().url(httpUrl).build();
-    try {
-      return client.newCall(request).execute();
+    try (Response response = client.newCall(request).execute()) {
+      if (!response.isSuccessful() || response.body() == null) {
+        throw new RuntimeException("Failed to fetch from " + path);
+      }
+
+      return response.body().bytes();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public void get(String path, EppoHttpClientRequestCallback callback) {
-    HttpUrl httpUrl =
-        HttpUrl.parse(baseUrl + path)
-            .newBuilder()
-            .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", sdkName)
-            .addQueryParameter("sdkVersion", sdkVersion)
-            .build();
-
-    Request request = new Request.Builder().url(httpUrl).build();
+  public CompletableFuture<byte[]> getAsync(String path) {
+    CompletableFuture<byte[]> future = new CompletableFuture<>();
+    Request request = buildRequest(path);
     client
         .newCall(request)
         .enqueue(
@@ -78,16 +68,19 @@ public class EppoHttpClient {
                 if (response.isSuccessful()) {
                   log.debug("Fetch successful");
                   try {
-                    callback.onSuccess(response.body().string());
+                    future.complete(response.body().bytes());
                   } catch (IOException ex) {
-                    callback.onFailure("Failed to read response from URL " + httpUrl);
+                    future.completeExceptionally(
+                        new RuntimeException(
+                            "Failed to read response from URL {}" + request.url(), ex));
                   }
                 } else {
                   if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-                    callback.onFailure("Invalid API key");
+                    future.completeExceptionally(new RuntimeException("Invalid API key"));
                   } else {
                     log.debug("Fetch failed with status code: {}", response.code());
-                    callback.onFailure("Bad response from URL " + httpUrl);
+                    future.completeExceptionally(
+                        new RuntimeException("Bad response from URL " + request.url()));
                   }
                 }
                 response.close();
@@ -100,8 +93,22 @@ public class EppoHttpClient {
                     e.getMessage(),
                     Arrays.toString(e.getStackTrace()),
                     e);
-                callback.onFailure("Unable to fetch from URL " + httpUrl);
+                future.completeExceptionally(
+                    new RuntimeException("Unable to fetch from URL " + request.url()));
               }
             });
+    return future;
+  }
+
+  private Request buildRequest(String path) {
+    HttpUrl httpUrl =
+        HttpUrl.parse(baseUrl + path)
+            .newBuilder()
+            .addQueryParameter("apiKey", apiKey)
+            .addQueryParameter("sdkName", sdkName)
+            .addQueryParameter("sdkVersion", sdkVersion)
+            .build();
+
+    return new Request.Builder().url(httpUrl).build();
   }
 }
