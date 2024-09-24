@@ -3,7 +3,7 @@ package cloud.eppo;
 import cloud.eppo.api.Configuration;
 
 public interface IConfigurationStore {
-    Configuration getConfiguration();
+  Configuration getConfiguration();
 
-    void setConfiguration(Configuration build);
+  void setConfiguration(Configuration build);
 }
