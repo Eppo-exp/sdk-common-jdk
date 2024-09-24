@@ -1,4 +1,4 @@
-package cloud.eppo;
+package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
@@ -118,7 +118,7 @@ public class Configuration {
   /**
    * Builder to create the immutable config object.
    *
-   * @see cloud.eppo.Configuration for usage.
+   * @see Configuration for usage.
    */
   public static class Builder {
     private static final ObjectMapper mapper =

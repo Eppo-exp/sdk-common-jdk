@@ -1,5 +1,6 @@
 package cloud.eppo;
 
+import cloud.eppo.api.Configuration;
 import org.jetbrains.annotations.NotNull;
 
 public class ConfigurationStore {
