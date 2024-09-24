@@ -26,7 +26,7 @@ public class BaseEppoClient {
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   protected final ConfigurationRequestor requestor;
 
-  private final ConfigurationStore configurationStore;
+  private final IConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;

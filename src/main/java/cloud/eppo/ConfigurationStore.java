@@ -3,7 +3,7 @@ package cloud.eppo;
 import cloud.eppo.api.Configuration;
 import org.jetbrains.annotations.NotNull;
 
-public class ConfigurationStore {
+public class ConfigurationStore implements IConfigurationStore {
 
   private volatile Configuration configuration;
 

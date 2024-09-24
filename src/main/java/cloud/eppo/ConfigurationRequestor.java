@@ -12,11 +12,11 @@ public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
   private final EppoHttpClient client;
-  private final ConfigurationStore configurationStore;
+  private final IConfigurationStore configurationStore;
   private final boolean expectObfuscatedConfig;
 
   public ConfigurationRequestor(
-      ConfigurationStore configurationStore,
+      IConfigurationStore configurationStore,
       EppoHttpClient client,
       boolean expectObfuscatedConfig) {
     this.configurationStore = configurationStore;
