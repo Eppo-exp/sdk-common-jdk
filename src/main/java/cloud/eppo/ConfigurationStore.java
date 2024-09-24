@@ -15,7 +15,7 @@ public class ConfigurationStore implements IConfigurationStore {
     }
   }
 
-  public void setConfiguration(@NotNull final Configuration configuration) {
+  public void saveConfiguration(@NotNull final Configuration configuration) {
     this.configuration = configuration;
   }
 

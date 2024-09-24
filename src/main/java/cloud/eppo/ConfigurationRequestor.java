@@ -55,7 +55,7 @@ public class ConfigurationRequestor {
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
 
-    configurationStore.setConfiguration(configBuilder.build());
+    configurationStore.saveConfiguration(configBuilder.build());
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
@@ -88,7 +88,7 @@ public class ConfigurationRequestor {
             })
         .thenApply(
             configuration -> {
-              configurationStore.setConfiguration(configuration);
+              configurationStore.saveConfiguration(configuration);
               return null;
             });
   }

@@ -5,5 +5,5 @@ import cloud.eppo.api.Configuration;
 public interface IConfigurationStore {
   Configuration getConfiguration();
 
-  void setConfiguration(Configuration build);
+  void saveConfiguration(Configuration build);
 }
