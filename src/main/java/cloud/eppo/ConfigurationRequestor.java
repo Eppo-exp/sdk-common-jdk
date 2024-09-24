@@ -16,7 +16,9 @@ public class ConfigurationRequestor {
   private final IConfigurationStore configurationStore;
   private final boolean expectObfuscatedConfig;
   private final boolean supportBandits;
-  private CompletableFuture<Void> remoteFetchFuture;
+
+  private CompletableFuture<Void> remoteFetchFuture = null;
+  private CompletableFuture<Void> configurationFuture = null;
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
@@ -44,8 +46,7 @@ public class ConfigurationRequestor {
     configurationStore.saveConfiguration(configuration);
   }
 
-  private CompletableFuture<Void> configurationFuture = null;
-
+  // Asynchronously sets the initial configuration.
   public CompletableFuture<Void> setInitialConfiguration(
       CompletableFuture<Configuration> configurationFuture) {
     if (this.configurationFuture != null) {
@@ -104,25 +105,26 @@ public class ConfigurationRequestor {
             .getAsync(FLAG_CONFIG_PATH)
             .thenApply(
                 flagConfigJsonBytes -> {
-                  Configuration.Builder configBuilder =
-                      new Configuration.Builder(flagConfigJsonBytes, expectObfuscatedConfig)
-                          .banditParametersFromConfig(
-                              lastConfig); // possibly reuse last bandit models loaded for
-                  // efficiency.
+                  synchronized (this) {
+                    Configuration.Builder configBuilder =
+                        new Configuration.Builder(flagConfigJsonBytes, expectObfuscatedConfig)
+                            .banditParametersFromConfig(
+                                lastConfig); // possibly reuse last bandit models loaded.
 
-                  if (supportBandits && configBuilder.requiresBanditModels()) {
-                    byte[] banditParametersJsonBytes;
-                    try {
-                      banditParametersJsonBytes = client.getAsync(BANDIT_PARAMETER_PATH).get();
-                    } catch (InterruptedException | ExecutionException e) {
-                      log.error("Error fetching from remote: " + e.getMessage());
-                      throw new RuntimeException(e);
+                    if (supportBandits && configBuilder.requiresBanditModels()) {
+                      byte[] banditParametersJsonBytes;
+                      try {
+                        banditParametersJsonBytes = client.getAsync(BANDIT_PARAMETER_PATH).get();
+                      } catch (InterruptedException | ExecutionException e) {
+                        log.error("Error fetching from remote: " + e.getMessage());
+                        throw new RuntimeException(e);
+                      }
+                      if (banditParametersJsonBytes != null) {
+                        configBuilder.banditParameters(banditParametersJsonBytes);
+                      }
                     }
-                    if (banditParametersJsonBytes != null) {
-                      configBuilder.banditParameters(banditParametersJsonBytes);
-                    }
+                    return configBuilder.build();
                   }
-                  return configBuilder.build();
                 })
             .thenApply(
                 configuration -> {

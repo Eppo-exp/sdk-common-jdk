@@ -20,7 +20,7 @@ public class ConfigurationRequestorTest {
       new File("src/test/resources/static/boolean-flag.json");
 
   @Test
-  public void testInitialConfiguration() throws IOException {
+  public void testInitialConfigurationFuture() throws IOException {
     IConfigurationStore configStore = new ConfigurationStore();
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
