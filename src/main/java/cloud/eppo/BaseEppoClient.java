@@ -55,6 +55,7 @@ public class BaseEppoClient {
         host,
         assignmentLogger,
         banditLogger,
+        null,
         isGracefulMode,
         expectObfuscatedConfig,
         null);
@@ -67,6 +68,30 @@ public class BaseEppoClient {
       String host,
       AssignmentLogger assignmentLogger,
       BanditLogger banditLogger,
+      IConfigurationStore configurationStore,
+      boolean isGracefulMode,
+      boolean expectObfuscatedConfig) {
+    this(
+        apiKey,
+        sdkName,
+        sdkVersion,
+        host,
+        assignmentLogger,
+        banditLogger,
+        configurationStore,
+        isGracefulMode,
+        expectObfuscatedConfig,
+        null);
+  }
+
+  protected BaseEppoClient(
+      String apiKey,
+      String sdkName,
+      String sdkVersion,
+      String host,
+      AssignmentLogger assignmentLogger,
+      BanditLogger banditLogger,
+      IConfigurationStore configurationStore,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       Configuration initialConfiguration) {
@@ -83,10 +108,15 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = new ConfigurationStore(initialConfiguration);
+    if (configurationStore == null) {
+      this.configurationStore = new ConfigurationStore(initialConfiguration);
+    } else {
+      this.configurationStore = configurationStore;
+    }
 
     // For now, the configuration is only obfuscated for Android clients
-    requestor = new ConfigurationRequestor(configurationStore, httpClient, expectObfuscatedConfig);
+    requestor =
+        new ConfigurationRequestor(this.configurationStore, httpClient, expectObfuscatedConfig);
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;

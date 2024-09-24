@@ -84,6 +84,7 @@ public class BaseEppoClientBanditTest {
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
+            null,
             false,
             false,
             initialConfig);

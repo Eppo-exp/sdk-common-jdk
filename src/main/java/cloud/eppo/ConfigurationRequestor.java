@@ -3,6 +3,7 @@ package cloud.eppo;
 import cloud.eppo.api.Configuration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,8 @@ public class ConfigurationRequestor {
   private final boolean supportBandits;
 
   public ConfigurationRequestor(
-      IConfigurationStore configurationStore,
-      EppoHttpClient client,
+      @NotNull IConfigurationStore configurationStore,
+      @NotNull EppoHttpClient client,
       boolean expectObfuscatedConfig,
       boolean supportBandits) {
     this.configurationStore = configurationStore;
@@ -28,8 +29,8 @@ public class ConfigurationRequestor {
   }
 
   public ConfigurationRequestor(
-      IConfigurationStore configurationStore,
-      EppoHttpClient client,
+      @NotNull IConfigurationStore configurationStore,
+      @NotNull EppoHttpClient client,
       boolean expectObfuscatedConfig) {
     this.configurationStore = configurationStore;
     this.client = client;

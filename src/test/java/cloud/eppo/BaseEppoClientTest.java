@@ -54,7 +54,7 @@ public class BaseEppoClientTest {
   }
 
   private void initClientWithData(
-      final String initialFlagConfiguration, boolean isGracefulMode, boolean isConfigObfuscated) {
+      final String initialFlagConfiguration, boolean isConfigObfuscated) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     Configuration initialConfig =
@@ -68,7 +68,8 @@ public class BaseEppoClientTest {
             TEST_HOST,
             mockAssignmentLogger,
             null,
-            isGracefulMode,
+            null,
+            false,
             isConfigObfuscated,
             initialConfig);
   }
@@ -234,7 +235,7 @@ public class BaseEppoClientTest {
 
   @Test
   public void testInvalidInitialConfigurationHandledGracefully() {
-    initClientWithData("{}", true, false);
+    initClientWithData("{}", true);
 
     String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
     assertEquals("not-populated", result);
@@ -245,7 +246,7 @@ public class BaseEppoClientTest {
     try {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-      initClientWithData(flagConfig, false, false);
+      initClientWithData(flagConfig, false);
 
       double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);
@@ -310,6 +311,33 @@ public class BaseEppoClientTest {
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testConfigurationStoreOverride() throws IOException {
+    IConfigurationStore mockConfigurationStore = mock(IConfigurationStore.class);
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            mockConfigurationStore,
+            true,
+            false);
+
+    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(0, result);
+
+    byte[] flagConfigBytes = FileUtils.readFileToByteArray(initialFlagConfigFile);
+    when(mockConfigurationStore.getConfiguration())
+        .thenReturn(new Configuration.Builder(flagConfigBytes, false).build());
+
+    result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(5, result);
   }
 
   // TODO: tests for the cache
