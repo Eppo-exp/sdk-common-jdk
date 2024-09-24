@@ -6,7 +6,6 @@ import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO: handle bandit stuff
 public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
   private static final String FLAG_CONFIG_PATH = "/api/flag-config/v1/config";
