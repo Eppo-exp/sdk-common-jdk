@@ -54,20 +54,23 @@ public class ConfigurationRequestorTest {
     String fetchedFlagConfig =
         FileUtils.readFileToString(differentFlagConfigFile, StandardCharsets.UTF_8);
 
-    requestor.setInitialConfiguration(initialConfigFuture);
+    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
 
+    // Set initial config and verify that the config is still null as the inital config future has
+    // not completed yet.
+    requestor.setInitialConfiguration(initialConfigFuture);
     assertNull(configStore.getConfiguration());
 
-    // Start an async fetch
-
-    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+    // The initial config contains only one flag keyed `numeric_flag`. The fetch response has only
+    // one flag keyed
+    // `boolean_flag`. We make sure to complete the fetch future first to verify the cache load does
+    // not overwrite it.
     CompletableFuture<Void> handle = requestor.fetchAndSaveFromRemoteAsync();
 
     // Resolve the fetch and then the initialConfig
     configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
     initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
-    handle.join();
     assertNotNull(configStore.getConfiguration());
 
     assertNull(configStore.getConfiguration().getFlag("numeric_flag"));

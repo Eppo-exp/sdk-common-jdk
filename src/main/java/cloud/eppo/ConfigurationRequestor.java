@@ -2,6 +2,7 @@ package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ public class ConfigurationRequestor {
 
   private CompletableFuture<Void> remoteFetchFuture = null;
   private CompletableFuture<Void> configurationFuture = null;
+  private boolean initialConfigSet = false;
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
@@ -43,13 +45,22 @@ public class ConfigurationRequestor {
 
   // Synchronously set the initial configuration.
   public void setInitialConfiguration(@NotNull Configuration configuration) {
-    configurationStore.saveConfiguration(configuration);
+    if (initialConfigSet || this.configurationFuture != null) {
+      throw new IllegalStateException("Initial configuration has already been set");
+    }
+
+    try {
+      configurationStore.saveConfiguration(configuration).join();
+      initialConfigSet = true;
+    } catch (CompletionException e) {
+      log.error("Error setting initial configuration", e);
+    }
   }
 
   // Asynchronously sets the initial configuration.
   public CompletableFuture<Void> setInitialConfiguration(
-      CompletableFuture<Configuration> configurationFuture) {
-    if (this.configurationFuture != null) {
+      @NotNull CompletableFuture<Configuration> configurationFuture) {
+    if (initialConfigSet || this.configurationFuture != null) {
       throw new IllegalStateException("Configuration future has already been set");
     }
     this.configurationFuture =
@@ -63,6 +74,7 @@ public class ConfigurationRequestor {
                   log.debug("Fetch beat the initial config; not clobbering");
                 } else {
                   configurationStore.saveConfiguration(config);
+                  initialConfigSet = true;
                 }
               }
             });

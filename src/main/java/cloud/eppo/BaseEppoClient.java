@@ -127,9 +127,6 @@ public class BaseEppoClient {
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-
-    // TODO: caching initialization (such as setting an API-key-specific prefix
-    //       will probably involve passing in configurationStore to the constructor
   }
 
   private EppoHttpClient buildHttpClient(

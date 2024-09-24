@@ -6,7 +6,6 @@ import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -116,8 +115,12 @@ public class Configuration {
     return isConfigObfuscated;
   }
 
-  public String getFlagConfigJsonString() {
-    return new String(flagConfigJson, StandardCharsets.UTF_8);
+  public byte[] serializeFlagConfigToBytes() {
+    return flagConfigJson;
+  }
+
+  public byte[] serializeBanditParamsToBytes() {
+    return banditParamsJson;
   }
 
   /**
