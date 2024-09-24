@@ -1,0 +1,76 @@
+package cloud.eppo;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import cloud.eppo.api.Configuration;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+
+public class ConfigurationRequestorTest {
+  private final File initialFlagConfigFile =
+      new File("src/test/resources/static/initial-flag-config.json");
+  private final File differentFlagConfigFile =
+      new File("src/test/resources/static/boolean-flag.json");
+
+  @Test
+  public void testInitialConfiguration() throws IOException {
+    IConfigurationStore configStore = new ConfigurationStore();
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+
+    CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+
+    requestor.setInitialConfiguration(futureConfig);
+
+    assertNull(configStore.getConfiguration());
+
+    futureConfig.complete(new Configuration.Builder(flagConfig, false).build());
+
+    assertNotNull(configStore.getConfiguration());
+    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
+  }
+
+  @Test
+  public void testInitialConfigurationDoesntClobberFetch() throws IOException {
+    IConfigurationStore configStore = new ConfigurationStore();
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+
+    CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
+    String fetchedFlagConfig =
+        FileUtils.readFileToString(differentFlagConfigFile, StandardCharsets.UTF_8);
+
+    requestor.setInitialConfiguration(initialConfigFuture);
+
+    assertNull(configStore.getConfiguration());
+
+    // Start an async fetch
+
+    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+    CompletableFuture<Void> handle = requestor.fetchAndSaveFromRemoteAsync();
+
+    // Resolve the fetch and then the initialConfig
+    configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
+
+    handle.join();
+    assertNotNull(configStore.getConfiguration());
+
+    assertNull(configStore.getConfiguration().getFlag("numeric_flag"));
+    assertNotNull(configStore.getConfiguration().getFlag("boolean_flag"));
+  }
+}

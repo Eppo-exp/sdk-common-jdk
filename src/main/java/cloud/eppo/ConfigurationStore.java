@@ -7,12 +7,8 @@ public class ConfigurationStore implements IConfigurationStore {
 
   private volatile Configuration configuration;
 
-  public ConfigurationStore(final Configuration initialConfiguration) {
-    if (initialConfiguration != null) {
-      configuration = initialConfiguration;
-    } else {
-      configuration = Configuration.emptyConfig();
-    }
+  public ConfigurationStore() {
+    configuration = null;
   }
 
   public void saveConfiguration(@NotNull final Configuration configuration) {

@@ -16,6 +16,7 @@ public class ConfigurationRequestor {
   private final IConfigurationStore configurationStore;
   private final boolean expectObfuscatedConfig;
   private final boolean supportBandits;
+  private CompletableFuture<Void> remoteFetchFuture;
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
@@ -36,6 +37,35 @@ public class ConfigurationRequestor {
     this.client = client;
     this.expectObfuscatedConfig = expectObfuscatedConfig;
     this.supportBandits = true;
+  }
+
+  // Synchronously set the initial configuration.
+  public void setInitialConfiguration(@NotNull Configuration configuration) {
+    configurationStore.saveConfiguration(configuration);
+  }
+
+  private CompletableFuture<Void> configurationFuture = null;
+
+  public CompletableFuture<Void> setInitialConfiguration(
+      CompletableFuture<Configuration> configurationFuture) {
+    if (this.configurationFuture != null) {
+      throw new IllegalStateException("Configuration future has already been set");
+    }
+    this.configurationFuture =
+        configurationFuture.thenAccept(
+            (config) -> {
+              synchronized (this) {
+                // Don't clobber an actual fetch.
+                if (config == null) {
+                  log.debug("Initial configuration future returned null");
+                } else if (remoteFetchFuture != null && remoteFetchFuture.isDone()) {
+                  log.debug("Fetch beat the initial config; not clobbering");
+                } else {
+                  configurationStore.saveConfiguration(config);
+                }
+              }
+            });
+    return this.configurationFuture;
   }
 
   /** Loads configuration synchronously from the API server. */
@@ -63,33 +93,42 @@ public class ConfigurationRequestor {
     log.debug("Fetching configuration from API server");
     final Configuration lastConfig = configurationStore.getConfiguration();
 
-    return client
-        .getAsync(FLAG_CONFIG_PATH)
-        .thenApply(
-            flagConfigJsonBytes -> {
-              Configuration.Builder configBuilder =
-                  new Configuration.Builder(flagConfigJsonBytes, expectObfuscatedConfig)
-                      .banditParametersFromConfig(
-                          lastConfig); // possibly reuse last bandit models loaded for efficiency.
+    if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
+      log.debug("Remote fetch is active. Cancelling and restarting");
+      remoteFetchFuture.cancel(true);
+      remoteFetchFuture = null;
+    }
 
-              if (supportBandits && configBuilder.requiresBanditModels()) {
-                byte[] banditParametersJsonBytes;
-                try {
-                  banditParametersJsonBytes = client.getAsync(BANDIT_PARAMETER_PATH).get();
-                } catch (InterruptedException | ExecutionException e) {
-                  log.error("Error fetching from remote: " + e.getMessage());
-                  throw new RuntimeException(e);
-                }
-                if (banditParametersJsonBytes != null) {
-                  configBuilder.banditParameters(banditParametersJsonBytes);
-                }
-              }
-              return configBuilder.build();
-            })
-        .thenApply(
-            configuration -> {
-              configurationStore.saveConfiguration(configuration);
-              return null;
-            });
+    remoteFetchFuture =
+        client
+            .getAsync(FLAG_CONFIG_PATH)
+            .thenApply(
+                flagConfigJsonBytes -> {
+                  Configuration.Builder configBuilder =
+                      new Configuration.Builder(flagConfigJsonBytes, expectObfuscatedConfig)
+                          .banditParametersFromConfig(
+                              lastConfig); // possibly reuse last bandit models loaded for
+                  // efficiency.
+
+                  if (supportBandits && configBuilder.requiresBanditModels()) {
+                    byte[] banditParametersJsonBytes;
+                    try {
+                      banditParametersJsonBytes = client.getAsync(BANDIT_PARAMETER_PATH).get();
+                    } catch (InterruptedException | ExecutionException e) {
+                      log.error("Error fetching from remote: " + e.getMessage());
+                      throw new RuntimeException(e);
+                    }
+                    if (banditParametersJsonBytes != null) {
+                      configBuilder.banditParameters(banditParametersJsonBytes);
+                    }
+                  }
+                  return configBuilder.build();
+                })
+            .thenApply(
+                configuration -> {
+                  configurationStore.saveConfiguration(configuration);
+                  return null;
+                });
+    return remoteFetchFuture;
   }
 }

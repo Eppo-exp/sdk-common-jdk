@@ -21,7 +21,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +46,7 @@ public class BaseEppoClientTest {
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
 
-  private File initialFlagConfigFile =
+  private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
 
   // TODO: async init client tests
@@ -54,11 +56,10 @@ public class BaseEppoClientTest {
   }
 
   private void initClientWithData(
-      final String initialFlagConfiguration, boolean isConfigObfuscated) {
+      final CompletableFuture<Configuration> initialFlagConfiguration,
+      boolean isConfigObfuscated,
+      boolean isGracefulMode) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
-
-    Configuration initialConfig =
-        new Configuration.Builder(initialFlagConfiguration, isConfigObfuscated).build();
 
     eppoClient =
         new BaseEppoClient(
@@ -69,9 +70,9 @@ public class BaseEppoClientTest {
             mockAssignmentLogger,
             null,
             null,
-            false,
+            isGracefulMode,
             isConfigObfuscated,
-            initialConfig);
+            initialFlagConfiguration);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
@@ -233,12 +234,10 @@ public class BaseEppoClientTest {
     assertEquals("not-populated", result);
   }
 
-  @Test
-  public void testInvalidInitialConfigurationHandledGracefully() {
-    initClientWithData("{}", true);
-
-    String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
-    assertEquals("not-populated", result);
+  private CompletableFuture<Configuration> immediateConfigFuture(
+      String config, boolean isObfuscated) {
+    return CompletableFuture.completedFuture(
+        new Configuration.Builder(config, isObfuscated).build());
   }
 
   @Test
@@ -246,7 +245,7 @@ public class BaseEppoClientTest {
     try {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-      initClientWithData(flagConfig, false);
+      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
 
       double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);
@@ -255,6 +254,28 @@ public class BaseEppoClientTest {
       eppoClient.loadConfiguration();
       double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(3.1415926, updatedResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  public void testWithInitialConfigurationFuture() {
+    try {
+      CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+
+      initClientWithData(futureConfig, false, true);
+
+      double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(0, result);
+
+      // Now, complete the initial config future and check the value.
+      futureConfig.complete(new Configuration.Builder(flagConfig, false).build());
+
+      result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(5, result);
+
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

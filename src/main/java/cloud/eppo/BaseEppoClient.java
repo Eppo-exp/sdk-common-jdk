@@ -94,7 +94,7 @@ public class BaseEppoClient {
       IConfigurationStore configurationStore,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
-      Configuration initialConfiguration) {
+      CompletableFuture<Configuration> initialConfiguration) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -109,7 +109,7 @@ public class BaseEppoClient {
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     if (configurationStore == null) {
-      this.configurationStore = new ConfigurationStore(initialConfiguration);
+      this.configurationStore = new ConfigurationStore();
     } else {
       this.configurationStore = configurationStore;
     }
@@ -117,6 +117,10 @@ public class BaseEppoClient {
     // For now, the configuration is only obfuscated for Android clients
     requestor =
         new ConfigurationRequestor(this.configurationStore, httpClient, expectObfuscatedConfig);
+    if (initialConfiguration != null) {
+      requestor.setInitialConfiguration(initialConfiguration);
+    }
+
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
