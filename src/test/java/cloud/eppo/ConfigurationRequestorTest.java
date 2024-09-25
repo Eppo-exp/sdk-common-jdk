@@ -28,13 +28,13 @@ public class ConfigurationRequestorTest {
         new ConfigurationRequestor(configStore, mockHttpClient, false, true);
 
     CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
-    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
 
     requestor.setInitialConfiguration(futureConfig);
 
     assertNull(configStore.getConfiguration());
 
-    futureConfig.complete(new Configuration.Builder(flagConfig, false).build());
+    futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
     assertNotNull(configStore.getConfiguration());
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));

@@ -81,7 +81,7 @@ public class ConfigurationRequestor {
 
     byte[] flagConfigurationJsonBytes = client.get(FLAG_CONFIG_PATH);
     Configuration.Builder configBuilder =
-        new Configuration.Builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
+        Configuration.builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
             .banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
@@ -110,7 +110,7 @@ public class ConfigurationRequestor {
                 flagConfigJsonBytes -> {
                   synchronized (this) {
                     Configuration.Builder configBuilder =
-                        new Configuration.Builder(flagConfigJsonBytes, expectObfuscatedConfig)
+                        Configuration.builder(flagConfigJsonBytes, expectObfuscatedConfig)
                             .banditParametersFromConfig(
                                 lastConfig); // possibly reuse last bandit models loaded.
 

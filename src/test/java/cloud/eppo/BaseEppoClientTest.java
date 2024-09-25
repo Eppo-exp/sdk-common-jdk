@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -241,7 +240,7 @@ public class BaseEppoClientTest {
   private CompletableFuture<Configuration> immediateConfigFuture(
       String config, boolean isObfuscated) {
     return CompletableFuture.completedFuture(
-        new Configuration.Builder(config, isObfuscated).build());
+        Configuration.builder(config.getBytes(), isObfuscated).build());
   }
 
   @Test
@@ -267,7 +266,7 @@ public class BaseEppoClientTest {
   public void testWithInitialConfigurationFuture() {
     try {
       CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
-      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+      byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
 
       initClientWithData(futureConfig, false, true);
 
@@ -275,7 +274,7 @@ public class BaseEppoClientTest {
       assertEquals(0, result);
 
       // Now, complete the initial config future and check the value.
-      futureConfig.complete(new Configuration.Builder(flagConfig, false).build());
+      futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
       result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);

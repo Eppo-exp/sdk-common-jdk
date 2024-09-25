@@ -123,6 +123,9 @@ public class Configuration {
     return banditParamsJson;
   }
 
+  public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
+    return new Builder(flagJson, isConfigObfuscated);
+  }
   /**
    * Builder to create the immutable config object.
    *
