@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -11,6 +12,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,15 +45,11 @@ public class EppoHttpClient {
   }
 
   public byte[] get(String path) {
-    Request request = buildRequest(path);
-
-    try (Response response = client.newCall(request).execute()) {
-      if (!response.isSuccessful() || response.body() == null) {
-        throw new RuntimeException("Failed to fetch from " + path);
-      }
-
-      return response.body().bytes();
-    } catch (IOException e) {
+    try {
+      // Wait and return the async get.
+      return getAsync(path).get();
+    } catch (InterruptedException | ExecutionException e) {
+      log.error("Config fetch interrupted", e);
       throw new RuntimeException(e);
     }
   }
@@ -64,8 +62,8 @@ public class EppoHttpClient {
         .enqueue(
             new Callback() {
               @Override
-              public void onResponse(Call call, Response response) {
-                if (response.isSuccessful()) {
+              public void onResponse(@NotNull Call call, @NotNull Response response) {
+                if (response.isSuccessful() && response.body() != null) {
                   log.debug("Fetch successful");
                   try {
                     future.complete(response.body().bytes());
@@ -87,7 +85,7 @@ public class EppoHttpClient {
               }
 
               @Override
-              public void onFailure(Call call, IOException e) {
+              public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 log.error(
                     "Http request failure: {} {}",
                     e.getMessage(),

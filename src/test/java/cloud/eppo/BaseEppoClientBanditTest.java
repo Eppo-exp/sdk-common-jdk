@@ -62,8 +62,11 @@ public class BaseEppoClientBanditTest {
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
+            null,
             false,
-            false);
+            false,
+            true,
+            null);
 
     eppoClient.loadConfiguration();
 
@@ -90,6 +93,7 @@ public class BaseEppoClientBanditTest {
             null,
             false,
             false,
+            true,
             initialConfig);
   }
 

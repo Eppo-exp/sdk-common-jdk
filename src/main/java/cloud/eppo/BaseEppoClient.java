@@ -15,6 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,61 +42,17 @@ public class BaseEppoClient {
   private static EppoHttpClient httpClientOverride = null;
 
   protected BaseEppoClient(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
-      boolean isGracefulMode,
-      boolean expectObfuscatedConfig) {
-    this(
-        apiKey,
-        sdkName,
-        sdkVersion,
-        host,
-        assignmentLogger,
-        banditLogger,
-        null,
-        isGracefulMode,
-        expectObfuscatedConfig,
-        null);
-  }
-
-  protected BaseEppoClient(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
-      IConfigurationStore configurationStore,
-      boolean isGracefulMode,
-      boolean expectObfuscatedConfig) {
-    this(
-        apiKey,
-        sdkName,
-        sdkVersion,
-        host,
-        assignmentLogger,
-        banditLogger,
-        configurationStore,
-        isGracefulMode,
-        expectObfuscatedConfig,
-        null);
-  }
-
-  protected BaseEppoClient(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
-      IConfigurationStore configurationStore,
+      @NotNull String apiKey,
+      @NotNull String sdkName,
+      @NotNull String sdkVersion,
+      @Nullable String host,
+      @Nullable AssignmentLogger assignmentLogger,
+      @Nullable BanditLogger banditLogger,
+      @Nullable IConfigurationStore configurationStore,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
-      CompletableFuture<Configuration> initialConfiguration) {
+      boolean supportBandits,
+      @Nullable CompletableFuture<Configuration> initialConfiguration) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -108,15 +66,13 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    if (configurationStore == null) {
-      this.configurationStore = new ConfigurationStore();
-    } else {
-      this.configurationStore = configurationStore;
-    }
+    this.configurationStore =
+        configurationStore != null ? configurationStore : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
     requestor =
-        new ConfigurationRequestor(this.configurationStore, httpClient, expectObfuscatedConfig);
+        new ConfigurationRequestor(
+            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
     if (initialConfiguration != null) {
       requestor.setInitialConfiguration(initialConfiguration);
     }
@@ -131,15 +87,9 @@ public class BaseEppoClient {
 
   private EppoHttpClient buildHttpClient(
       String host, String apiKey, String sdkName, String sdkVersion) {
-    EppoHttpClient httpClient;
-    if (httpClientOverride != null) {
-      // Test/Debug - Client is mocked entirely
-      httpClient = httpClientOverride;
-    } else {
-      // Normal operation
-      httpClient = new EppoHttpClient(host, apiKey, sdkName, sdkVersion);
-    }
-    return httpClient;
+    return httpClientOverride != null
+        ? httpClientOverride
+        : new EppoHttpClient(host, apiKey, sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {

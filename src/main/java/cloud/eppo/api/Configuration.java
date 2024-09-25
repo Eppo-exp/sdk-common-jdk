@@ -171,7 +171,7 @@ public class Configuration {
       }
     }
 
-    public boolean requiresBanditModels() {
+    public boolean requiresUpdatedBanditModels() {
       Set<String> neededModelVersions = referencedBanditModelVersion();
       return !loadedBanditModelVersions().containsAll(neededModelVersions);
     }

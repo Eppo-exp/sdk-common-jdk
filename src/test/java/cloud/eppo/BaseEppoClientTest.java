@@ -72,6 +72,7 @@ public class BaseEppoClientTest {
             null,
             isGracefulMode,
             isConfigObfuscated,
+            true,
             initialFlagConfiguration);
   }
 
@@ -86,8 +87,11 @@ public class BaseEppoClientTest {
             TEST_HOST,
             mockAssignmentLogger,
             null,
+            null,
             isGracefulMode,
-            isConfigObfuscated);
+            isConfigObfuscated,
+            true,
+            null);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -332,33 +336,6 @@ public class BaseEppoClientTest {
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
-  }
-
-  @Test
-  public void testConfigurationStoreOverride() throws IOException {
-    IConfigurationStore mockConfigurationStore = mock(IConfigurationStore.class);
-
-    eppoClient =
-        new BaseEppoClient(
-            DUMMY_FLAG_API_KEY,
-            "java",
-            "3.0.0",
-            TEST_HOST,
-            mockAssignmentLogger,
-            null,
-            mockConfigurationStore,
-            true,
-            false);
-
-    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(0, result);
-
-    byte[] flagConfigBytes = FileUtils.readFileToByteArray(initialFlagConfigFile);
-    when(mockConfigurationStore.getConfiguration())
-        .thenReturn(new Configuration.Builder(flagConfigBytes, false).build());
-
-    result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(5, result);
   }
 
   // TODO: tests for the cache

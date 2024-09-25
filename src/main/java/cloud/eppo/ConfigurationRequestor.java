@@ -33,16 +33,6 @@ public class ConfigurationRequestor {
     this.supportBandits = supportBandits;
   }
 
-  public ConfigurationRequestor(
-      @NotNull IConfigurationStore configurationStore,
-      @NotNull EppoHttpClient client,
-      boolean expectObfuscatedConfig) {
-    this.configurationStore = configurationStore;
-    this.client = client;
-    this.expectObfuscatedConfig = expectObfuscatedConfig;
-    this.supportBandits = true;
-  }
-
   // Synchronously set the initial configuration.
   public void setInitialConfiguration(@NotNull Configuration configuration) {
     if (initialConfigSet || this.configurationFuture != null) {
@@ -66,13 +56,14 @@ public class ConfigurationRequestor {
     this.configurationFuture =
         configurationFuture.thenAccept(
             (config) -> {
-              synchronized (this) {
+              synchronized (configurationStore) {
                 // Don't clobber an actual fetch.
                 if (config == null) {
                   log.debug("Initial configuration future returned null");
                 } else if (remoteFetchFuture != null && remoteFetchFuture.isDone()) {
                   log.debug("Fetch beat the initial config; not clobbering");
                 } else {
+                  log.debug("saving initial configuration");
                   configurationStore.saveConfiguration(config);
                   initialConfigSet = true;
                 }
@@ -93,7 +84,7 @@ public class ConfigurationRequestor {
         new Configuration.Builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
             .banditParametersFromConfig(lastConfig);
 
-    if (supportBandits && configBuilder.requiresBanditModels()) {
+    if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = client.get(BANDIT_PARAMETER_PATH);
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
@@ -123,7 +114,7 @@ public class ConfigurationRequestor {
                             .banditParametersFromConfig(
                                 lastConfig); // possibly reuse last bandit models loaded.
 
-                    if (supportBandits && configBuilder.requiresBanditModels()) {
+                    if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
                       byte[] banditParametersJsonBytes;
                       try {
                         banditParametersJsonBytes = client.getAsync(BANDIT_PARAMETER_PATH).get();
@@ -140,7 +131,9 @@ public class ConfigurationRequestor {
                 })
             .thenApply(
                 configuration -> {
-                  configurationStore.saveConfiguration(configuration);
+                  synchronized (configurationStore) {
+                    configurationStore.saveConfiguration(configuration);
+                  }
                   return null;
                 });
     return remoteFetchFuture;
