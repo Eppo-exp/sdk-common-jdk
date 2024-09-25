@@ -263,25 +263,20 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testWithInitialConfigurationFuture() {
-    try {
-      CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
-      byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
+  public void testWithInitialConfigurationFuture() throws IOException {
+    CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
+    byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
 
-      initClientWithData(futureConfig, false, true);
+    initClientWithData(futureConfig, false, true);
 
-      double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-      assertEquals(0, result);
+    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(0, result);
 
-      // Now, complete the initial config future and check the value.
-      futureConfig.complete(Configuration.builder(flagConfig, false).build());
+    // Now, complete the initial config future and check the value.
+    futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
-      result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-      assertEquals(5, result);
-
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(5, result);
   }
 
   @Test
