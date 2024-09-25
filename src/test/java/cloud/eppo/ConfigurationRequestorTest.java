@@ -73,7 +73,80 @@ public class ConfigurationRequestorTest {
 
     assertNotNull(configStore.getConfiguration());
 
+    // `numeric_flag` is only in the cache which should have been ignored.
     assertNull(configStore.getConfiguration().getFlag("numeric_flag"));
+
+    // `boolean_flag` is available only from the fetch
     assertNotNull(configStore.getConfiguration().getFlag("boolean_flag"));
+  }
+
+  @Test
+  public void testBrokenFetchDoesntClobberCache() throws IOException {
+    IConfigurationStore configStore = new ConfigurationStore();
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+
+    CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
+
+    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+
+    // Set initial config and verify that the config is still null as the inital config future has
+    // not completed yet.
+    requestor.setInitialConfiguration(initialConfigFuture);
+    assertNull(configStore.getConfiguration());
+
+    requestor.fetchAndSaveFromRemoteAsync();
+
+    // Resolve the initial config
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
+
+    // Error out the fetch
+    configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
+
+    assertNotNull(configStore.getConfiguration());
+
+    // `numeric_flag` is only in the cache which should be available
+    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
+
+    assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
+  }
+
+  @Test
+  public void testCacheWritesAfterBrokenFetch() throws IOException {
+    IConfigurationStore configStore = new ConfigurationStore();
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+
+    CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
+
+    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+
+    // Set initial config and verify that the config is still null as the inital config future has
+    // not completed yet.
+    requestor.setInitialConfiguration(initialConfigFuture);
+    assertNull(configStore.getConfiguration());
+
+    requestor.fetchAndSaveFromRemoteAsync();
+
+    // Error out the fetch
+    configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
+
+    // Resolve the initial config after the fetch throws an error.
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
+
+    assertNotNull(configStore.getConfiguration());
+
+    // `numeric_flag` is only in the cache which should be available
+    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
+
+    assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
   }
 }

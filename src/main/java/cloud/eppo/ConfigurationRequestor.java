@@ -57,11 +57,13 @@ public class ConfigurationRequestor {
         configurationFuture.thenAccept(
             (config) -> {
               synchronized (configurationStore) {
-                // Don't clobber an actual fetch.
                 if (config == null) {
                   log.debug("Initial configuration future returned null");
-                } else if (remoteFetchFuture != null && remoteFetchFuture.isDone()) {
-                  log.debug("Fetch beat the initial config; not clobbering");
+                } else if (remoteFetchFuture != null
+                    && remoteFetchFuture.isDone()
+                    && !remoteFetchFuture.isCompletedExceptionally()) {
+                  // Don't clobber a successful fetch.
+                  log.debug("Fetch successfully beat the initial config; not clobbering");
                 } else {
                   log.debug("saving initial configuration");
                   configurationStore.saveConfiguration(config);
