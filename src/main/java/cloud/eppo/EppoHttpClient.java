@@ -3,6 +3,8 @@ package cloud.eppo;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -10,6 +12,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,67 +44,69 @@ public class EppoHttpClient {
     return builder.build();
   }
 
-  // TODO: use this for Java, callback for Android; clean as needed
-  public Response get(String path) {
-    HttpUrl httpUrl =
-        HttpUrl.parse(baseUrl + path)
-            .newBuilder()
-            .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", sdkName)
-            .addQueryParameter("sdkVersion", sdkVersion)
-            .build();
-
-    Request request = new Request.Builder().url(httpUrl).build();
+  public byte[] get(String path) {
     try {
-      return client.newCall(request).execute();
-    } catch (IOException e) {
+      // Wait and return the async get.
+      return getAsync(path).get();
+    } catch (InterruptedException | ExecutionException e) {
+      log.error("Config fetch interrupted", e);
       throw new RuntimeException(e);
     }
   }
 
-  public void get(String path, EppoHttpClientRequestCallback callback) {
-    HttpUrl httpUrl =
-        HttpUrl.parse(baseUrl + path)
-            .newBuilder()
-            .addQueryParameter("apiKey", apiKey)
-            .addQueryParameter("sdkName", sdkName)
-            .addQueryParameter("sdkVersion", sdkVersion)
-            .build();
-
-    Request request = new Request.Builder().url(httpUrl).build();
+  public CompletableFuture<byte[]> getAsync(String path) {
+    CompletableFuture<byte[]> future = new CompletableFuture<>();
+    Request request = buildRequest(path);
     client
         .newCall(request)
         .enqueue(
             new Callback() {
               @Override
-              public void onResponse(Call call, Response response) {
-                if (response.isSuccessful()) {
+              public void onResponse(@NotNull Call call, @NotNull Response response) {
+                if (response.isSuccessful() && response.body() != null) {
                   log.debug("Fetch successful");
                   try {
-                    callback.onSuccess(response.body().string());
+                    future.complete(response.body().bytes());
                   } catch (IOException ex) {
-                    callback.onFailure("Failed to read response from URL " + httpUrl);
+                    future.completeExceptionally(
+                        new RuntimeException(
+                            "Failed to read response from URL {}" + request.url(), ex));
                   }
                 } else {
                   if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-                    callback.onFailure("Invalid API key");
+                    future.completeExceptionally(new RuntimeException("Invalid API key"));
                   } else {
                     log.debug("Fetch failed with status code: {}", response.code());
-                    callback.onFailure("Bad response from URL " + httpUrl);
+                    future.completeExceptionally(
+                        new RuntimeException("Bad response from URL " + request.url()));
                   }
                 }
                 response.close();
               }
 
               @Override
-              public void onFailure(Call call, IOException e) {
+              public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 log.error(
                     "Http request failure: {} {}",
                     e.getMessage(),
                     Arrays.toString(e.getStackTrace()),
                     e);
-                callback.onFailure("Unable to fetch from URL " + httpUrl);
+                future.completeExceptionally(
+                    new RuntimeException("Unable to fetch from URL " + request.url()));
               }
             });
+    return future;
+  }
+
+  private Request buildRequest(String path) {
+    HttpUrl httpUrl =
+        HttpUrl.parse(baseUrl + path)
+            .newBuilder()
+            .addQueryParameter("apiKey", apiKey)
+            .addQueryParameter("sdkName", sdkName)
+            .addQueryParameter("sdkVersion", sdkVersion)
+            .build();
+
+    return new Request.Builder().url(httpUrl).build();
   }
 }

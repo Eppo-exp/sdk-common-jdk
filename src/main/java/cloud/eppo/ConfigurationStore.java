@@ -1,21 +1,21 @@
 package cloud.eppo;
 
+import cloud.eppo.api.Configuration;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
-public class ConfigurationStore {
+/** Memory-only configuration store. */
+public class ConfigurationStore implements IConfigurationStore {
 
   private volatile Configuration configuration;
 
-  public ConfigurationStore(final Configuration initialConfiguration) {
-    if (initialConfiguration != null) {
-      configuration = initialConfiguration;
-    } else {
-      configuration = Configuration.emptyConfig();
-    }
+  public ConfigurationStore() {
+    configuration = null;
   }
 
-  public void setConfiguration(@NotNull final Configuration configuration) {
+  public CompletableFuture<Void> saveConfiguration(@NotNull final Configuration configuration) {
     this.configuration = configuration;
+    return CompletableFuture.completedFuture(null);
   }
 
   public Configuration getConfiguration() {

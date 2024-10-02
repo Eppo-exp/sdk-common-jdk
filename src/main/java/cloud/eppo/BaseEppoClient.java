@@ -14,6 +14,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +29,7 @@ public class BaseEppoClient {
   protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   protected final ConfigurationRequestor requestor;
 
-  private final ConfigurationStore configurationStore;
+  private final IConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
@@ -39,36 +42,17 @@ public class BaseEppoClient {
   private static EppoHttpClient httpClientOverride = null;
 
   protected BaseEppoClient(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
-      boolean isGracefulMode,
-      boolean expectObfuscatedConfig) {
-    this(
-        apiKey,
-        sdkName,
-        sdkVersion,
-        host,
-        assignmentLogger,
-        banditLogger,
-        isGracefulMode,
-        expectObfuscatedConfig,
-        null);
-  }
-
-  protected BaseEppoClient(
-      String apiKey,
-      String sdkName,
-      String sdkVersion,
-      String host,
-      AssignmentLogger assignmentLogger,
-      BanditLogger banditLogger,
+      @NotNull String apiKey,
+      @NotNull String sdkName,
+      @NotNull String sdkVersion,
+      @Nullable String host,
+      @Nullable AssignmentLogger assignmentLogger,
+      @Nullable BanditLogger banditLogger,
+      @Nullable IConfigurationStore configurationStore,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
-      Configuration initialConfiguration) {
+      boolean supportBandits,
+      @Nullable CompletableFuture<Configuration> initialConfiguration) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -82,39 +66,39 @@ public class BaseEppoClient {
     }
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
-    this.configurationStore = new ConfigurationStore(initialConfiguration);
+    this.configurationStore =
+        configurationStore != null ? configurationStore : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
-    requestor = new ConfigurationRequestor(configurationStore, httpClient, expectObfuscatedConfig);
+    requestor =
+        new ConfigurationRequestor(
+            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+    if (initialConfiguration != null) {
+      requestor.setInitialConfiguration(initialConfiguration);
+    }
+
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
     this.isGracefulMode = isGracefulMode;
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-
-    // TODO: caching initialization (such as setting an API-key-specific prefix
-    //       will probably involve passing in configurationStore to the constructor
   }
 
   private EppoHttpClient buildHttpClient(
       String host, String apiKey, String sdkName, String sdkVersion) {
-    EppoHttpClient httpClient;
-    if (httpClientOverride != null) {
-      // Test/Debug - Client is mocked entirely
-      httpClient = httpClientOverride;
-    } else {
-      // Normal operation
-      httpClient = new EppoHttpClient(host, apiKey, sdkName, sdkVersion);
-    }
-    return httpClient;
+    return httpClientOverride != null
+        ? httpClientOverride
+        : new EppoHttpClient(host, apiKey, sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {
-    requestor.load();
+    requestor.fetchAndSaveFromRemote();
   }
 
-  // TODO: async way to refresh for android
+  protected CompletableFuture<Void> loadConfigurationAsync() {
+    return requestor.fetchAndSaveFromRemoteAsync();
+  }
 
   protected EppoValue getTypedAssignment(
       String flagKey,

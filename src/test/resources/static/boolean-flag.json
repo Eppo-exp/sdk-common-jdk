@@ -1,0 +1,33 @@
+{
+  "flags": {
+    "boolean_flag": {
+      "key": "boolean_flag",
+      "enabled": true,
+      "variationType": "NUMERIC",
+      "variations": {
+        "true": {
+          "key": "true",
+          "value": true
+        },
+        "false": {
+          "key": "false",
+          "value": false
+        }
+      },
+      "allocations": [
+        {
+          "key": "rollout",
+          "rules": [],
+          "splits": [
+            {
+              "variationKey": "true",
+              "shards": []
+            }
+          ],
+          "doLog": true
+        }
+      ],
+      "totalShards": 10000
+    }
+  }
+}

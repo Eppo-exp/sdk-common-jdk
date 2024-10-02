@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.BanditActions;
 import cloud.eppo.api.BanditResult;
+import cloud.eppo.api.Configuration;
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -16,6 +17,7 @@ import cloud.eppo.logging.BanditLogger;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeAll;
@@ -60,8 +62,11 @@ public class BaseEppoClientBanditTest {
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
+            null,
             false,
-            false);
+            false,
+            true,
+            null);
 
     eppoClient.loadConfiguration();
 
@@ -71,10 +76,12 @@ public class BaseEppoClientBanditTest {
   private void initClientWithData(
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
-    Configuration initialConfig =
-        new Configuration.Builder(initialFlagConfiguration, false)
-            .banditParameters(initialBanditParameters)
-            .build();
+    CompletableFuture<Configuration> initialConfig =
+        CompletableFuture.completedFuture(
+            Configuration.builder(initialFlagConfiguration.getBytes(), false)
+                .banditParameters(initialBanditParameters)
+                .build());
+
     eppoClient =
         new BaseEppoClient(
             DUMMY_BANDIT_API_KEY,
@@ -83,8 +90,10 @@ public class BaseEppoClientBanditTest {
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
+            null,
             false,
             false,
+            true,
             initialConfig);
   }
 

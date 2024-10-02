@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.Attributes;
+import cloud.eppo.api.Configuration;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +45,7 @@ public class BaseEppoClientTest {
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
 
-  private File initialFlagConfigFile =
+  private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
 
   // TODO: async init client tests
@@ -53,11 +55,10 @@ public class BaseEppoClientTest {
   }
 
   private void initClientWithData(
-      final String initialFlagConfiguration, boolean isGracefulMode, boolean isConfigObfuscated) {
+      final CompletableFuture<Configuration> initialFlagConfiguration,
+      boolean isConfigObfuscated,
+      boolean isGracefulMode) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
-
-    Configuration initialConfig =
-        new Configuration.Builder(initialFlagConfiguration, isConfigObfuscated).build();
 
     eppoClient =
         new BaseEppoClient(
@@ -67,9 +68,11 @@ public class BaseEppoClientTest {
             TEST_HOST,
             mockAssignmentLogger,
             null,
+            null,
             isGracefulMode,
             isConfigObfuscated,
-            initialConfig);
+            true,
+            initialFlagConfiguration);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
@@ -83,8 +86,11 @@ public class BaseEppoClientTest {
             TEST_HOST,
             mockAssignmentLogger,
             null,
+            null,
             isGracefulMode,
-            isConfigObfuscated);
+            isConfigObfuscated,
+            true,
+            null);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -231,12 +237,10 @@ public class BaseEppoClientTest {
     assertEquals("not-populated", result);
   }
 
-  @Test
-  public void testInvalidInitialConfigurationHandledGracefully() {
-    initClientWithData("{}", true, false);
-
-    String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
-    assertEquals("not-populated", result);
+  private CompletableFuture<Configuration> immediateConfigFuture(
+      String config, boolean isObfuscated) {
+    return CompletableFuture.completedFuture(
+        Configuration.builder(config.getBytes(), isObfuscated).build());
   }
 
   @Test
@@ -244,7 +248,7 @@ public class BaseEppoClientTest {
     try {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-      initClientWithData(flagConfig, false, false);
+      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
 
       double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);
@@ -256,6 +260,23 @@ public class BaseEppoClientTest {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Test
+  public void testWithInitialConfigurationFuture() throws IOException {
+    CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
+    byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
+
+    initClientWithData(futureConfig, false, true);
+
+    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(0, result);
+
+    // Now, complete the initial config future and check the value.
+    futureConfig.complete(Configuration.builder(flagConfig, false).build());
+
+    result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+    assertEquals(5, result);
   }
 
   @Test

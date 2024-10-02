@@ -1,4 +1,4 @@
-package cloud.eppo;
+package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
@@ -115,10 +115,21 @@ public class Configuration {
     return isConfigObfuscated;
   }
 
+  public byte[] serializeFlagConfigToBytes() {
+    return flagConfigJson;
+  }
+
+  public byte[] serializeBanditParamsToBytes() {
+    return banditParamsJson;
+  }
+
+  public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
+    return new Builder(flagJson, isConfigObfuscated);
+  }
   /**
    * Builder to create the immutable config object.
    *
-   * @see cloud.eppo.Configuration for usage.
+   * @see Configuration for usage.
    */
   public static class Builder {
     private static final ObjectMapper mapper =
@@ -163,7 +174,7 @@ public class Configuration {
       }
     }
 
-    public boolean requiresBanditModels() {
+    public boolean requiresUpdatedBanditModels() {
       Set<String> neededModelVersions = referencedBanditModelVersion();
       return !loadedBanditModelVersions().containsAll(neededModelVersions);
     }
