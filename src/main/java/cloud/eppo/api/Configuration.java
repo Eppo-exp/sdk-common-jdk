@@ -4,12 +4,15 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +49,9 @@ import org.slf4j.LoggerFactory;
  * then check `requiresBanditModels()`.
  */
 public class Configuration {
+  private static final ObjectMapper mapper =
+      new ObjectMapper().registerModule(EppoModule.eppoModule());
+
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   private final Map<String, BanditReference> banditReferences;
   private final Map<String, FlagConfig> flags;
@@ -68,6 +74,16 @@ public class Configuration {
     this.banditReferences = banditReferences;
     this.bandits = bandits;
     this.isConfigObfuscated = isConfigObfuscated;
+
+    // Graft the `forServer` boolean into the flagConfigJson
+    try {
+      JsonNode jNode = mapper.readTree(flagConfigJson);
+      ((ObjectNode) jNode).put("forServer", !isConfigObfuscated);
+      flagConfigJson = mapper.writeValueAsBytes(jNode);
+    } catch (IOException e) {
+      log.error("Error adding `forServer` field to FlagConfigResponse JSON");
+    }
+
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }
@@ -136,47 +152,59 @@ public class Configuration {
    * @see Configuration for usage.
    */
   public static class Builder {
-    private static final ObjectMapper mapper =
-        new ObjectMapper().registerModule(EppoModule.eppoModule());
 
     private final boolean isConfigObfuscated;
     private final Map<String, FlagConfig> flags;
-    private Map<String, BanditReference> banditReferences;
+    private final Map<String, BanditReference> banditReferences;
     private Map<String, BanditParameters> bandits = Collections.emptyMap();
     private final byte[] flagJson;
     private byte[] banditParamsJson;
 
-    public Builder(String flagJson, boolean isConfigObfuscated) {
-      this(flagJson.getBytes(), isConfigObfuscated);
-    }
-
-    public Builder(byte[] flagJson, boolean isConfigObfuscated) {
-      this.isConfigObfuscated = isConfigObfuscated;
-
+    private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
         log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
-        flags = Collections.emptyMap();
-        banditReferences = Collections.emptyMap();
-        this.flagJson = null;
-        return;
+        return null;
       }
-
-      // Build the flags config from the json string.
       FlagConfigResponse config;
       try {
-        config = mapper.readValue(flagJson, FlagConfigResponse.class);
+        return mapper.readValue(flagJson, FlagConfigResponse.class);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
+    }
 
-      if (config == null || config.getFlags() == null) {
+    public Builder(String flagJson, boolean isConfigObfuscated) {
+      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
+    }
+
+    public Builder(byte[] flagJson, boolean isConfigObfuscated) {
+      this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
+    }
+
+    public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
+      this(flagJson, flagConfigResponse, !flagConfigResponse.isForServer());
+    }
+
+    /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */
+    public Builder(byte[] flagJson) {
+      this(flagJson, parseFlagResponse(flagJson));
+    }
+
+    public Builder(
+        byte[] flagJson,
+        @Nullable FlagConfigResponse flagConfigResponse,
+        boolean isConfigObfuscated) {
+      this.isConfigObfuscated = isConfigObfuscated;
+      this.flagJson = flagJson;
+      if (flagConfigResponse == null
+          || flagConfigResponse.getFlags() == null
+          || flagConfigResponse.getFlags().isEmpty()) {
         log.warn("'flags' map missing in flag definition JSON");
         flags = Collections.emptyMap();
-        this.flagJson = null;
+        banditReferences = Collections.emptyMap();
       } else {
-        flags = Collections.unmodifiableMap(config.getFlags());
-        banditReferences = Collections.unmodifiableMap(config.getBanditReferences());
-        this.flagJson = flagJson;
+        flags = Collections.unmodifiableMap(flagConfigResponse.getFlags());
+        banditReferences = Collections.unmodifiableMap(flagConfigResponse.getBanditReferences());
         log.debug("Loaded {} flag definitions from flag definition JSON", flags.size());
       }
     }
