@@ -5,7 +5,7 @@ import static cloud.eppo.Utils.getMD5Hex;
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
+import java.io.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -123,6 +123,10 @@ public class Configuration {
     return banditParamsJson;
   }
 
+  public boolean isEmpty() {
+    return flags == null || flags.isEmpty();
+  }
+
   public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
     return new Builder(flagJson, isConfigObfuscated);
   }
@@ -150,8 +154,11 @@ public class Configuration {
       this.isConfigObfuscated = isConfigObfuscated;
 
       if (flagJson == null || flagJson.length == 0) {
-        throw new RuntimeException(
-            "Null or empty configuration string. Call `Configuration.Empty()` instead");
+        log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
+        flags = Collections.emptyMap();
+        banditReferences = Collections.emptyMap();
+        this.flagJson = null;
+        return;
       }
 
       // Build the flags config from the json string.
@@ -206,6 +213,10 @@ public class Configuration {
     }
 
     public Builder banditParameters(byte[] banditParameterJson) {
+      if (banditParameterJson == null || banditParameterJson.length == 0) {
+        log.debug("Bandit parameters are null or empty");
+        return this;
+      }
       BanditParametersResponse config;
       try {
         config = mapper.readValue(banditParameterJson, BanditParametersResponse.class);
@@ -228,6 +239,40 @@ public class Configuration {
     public Configuration build() {
       return new Configuration(
           flags, banditReferences, bandits, isConfigObfuscated, flagJson, banditParamsJson);
+    }
+  }
+
+  private static class ConfigurationPacket implements Serializable {
+    final byte[] flagConfigBytes;
+    final byte[] banditParamsBytes;
+    final boolean isConfigObfuscated;
+
+    ConfigurationPacket(
+        byte[] flagConfigBytes, byte[] banditParamsBytes, boolean isConfigObfuscated) {
+      this.flagConfigBytes = flagConfigBytes;
+      this.banditParamsBytes = banditParamsBytes;
+      this.isConfigObfuscated = isConfigObfuscated;
+    }
+  }
+
+  private ConfigurationPacket getConfigurationPacket() {
+    return new ConfigurationPacket(flagConfigJson, banditParamsJson, isConfigObfuscated);
+  }
+
+  public void writeToStream(OutputStream out) throws IOException {
+    ObjectOutputStream oos = new ObjectOutputStream(out);
+    oos.writeObject(getConfigurationPacket());
+  }
+
+  public static Configuration fromInputStream(InputStream inputStream) throws IOException {
+    ObjectInputStream ois = new ObjectInputStream(inputStream);
+    try {
+      ConfigurationPacket packet = (ConfigurationPacket) ois.readObject();
+      return Configuration.builder(packet.flagConfigBytes, packet.isConfigObfuscated)
+          .banditParameters(packet.banditParamsBytes)
+          .build();
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
     }
   }
 }
