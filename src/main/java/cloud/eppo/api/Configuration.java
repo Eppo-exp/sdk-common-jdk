@@ -242,6 +242,13 @@ public class Configuration {
     }
   }
 
+  /**
+   * Contains the base data required to hydrate a `Configuration` object
+   *
+   * <p>Using `Configuration.writeToSteam` and `Configuration.readFromStream` allows us to avoid
+   * implementing JSON serialization for the `Configuration` class or making all the DTOs `implement
+   * Serializable`
+   */
   private static class ConfigurationPacket implements Serializable {
     final byte[] flagConfigBytes;
     final byte[] banditParamsBytes;
@@ -264,7 +271,7 @@ public class Configuration {
     oos.writeObject(getConfigurationPacket());
   }
 
-  public static Configuration fromInputStream(InputStream inputStream) throws IOException {
+  public static Configuration readFromStream(InputStream inputStream) throws IOException {
     ObjectInputStream ois = new ObjectInputStream(inputStream);
     try {
       ConfigurationPacket packet = (ConfigurationPacket) ois.readObject();
