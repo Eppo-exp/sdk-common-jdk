@@ -134,7 +134,7 @@ public class ConfigurationRequestor {
             .thenApply(
                 configuration -> {
                   synchronized (configurationStore) {
-                    configurationStore.saveConfiguration(configuration).join();
+                    configurationStore.saveConfiguration(configuration);
                   }
                   return null;
                 });
