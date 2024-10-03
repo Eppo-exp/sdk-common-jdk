@@ -269,45 +269,4 @@ public class Configuration {
           flags, banditReferences, bandits, isConfigObfuscated, flagJson, banditParamsJson);
     }
   }
-
-  /**
-   * Contains the base data required to hydrate a `Configuration` object
-   *
-   * <p>Using `Configuration.writeToSteam` and `Configuration.readFromStream` allows us to avoid
-   * implementing JSON serialization for the `Configuration` class or making all the DTOs `implement
-   * Serializable`
-   */
-  private static class ConfigurationPacket implements Serializable {
-    final byte[] flagConfigBytes;
-    final byte[] banditParamsBytes;
-    final boolean isConfigObfuscated;
-
-    ConfigurationPacket(
-        byte[] flagConfigBytes, byte[] banditParamsBytes, boolean isConfigObfuscated) {
-      this.flagConfigBytes = flagConfigBytes;
-      this.banditParamsBytes = banditParamsBytes;
-      this.isConfigObfuscated = isConfigObfuscated;
-    }
-  }
-
-  private ConfigurationPacket getConfigurationPacket() {
-    return new ConfigurationPacket(flagConfigJson, banditParamsJson, isConfigObfuscated);
-  }
-
-  public void writeToStream(OutputStream out) throws IOException {
-    ObjectOutputStream oos = new ObjectOutputStream(out);
-    oos.writeObject(getConfigurationPacket());
-  }
-
-  public static Configuration readFromStream(InputStream inputStream) throws IOException {
-    ObjectInputStream ois = new ObjectInputStream(inputStream);
-    try {
-      ConfigurationPacket packet = (ConfigurationPacket) ois.readObject();
-      return Configuration.builder(packet.flagConfigBytes, packet.isConfigObfuscated)
-          .banditParameters(packet.banditParamsBytes)
-          .build();
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-  }
 }

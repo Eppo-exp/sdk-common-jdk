@@ -74,7 +74,7 @@ public class BaseEppoClient {
         new ConfigurationRequestor(
             this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
     if (initialConfiguration != null) {
-      requestor.setInitialConfiguration(initialConfiguration).join();
+      requestor.setInitialConfiguration(initialConfiguration);
     }
 
     this.assignmentLogger = assignmentLogger;
