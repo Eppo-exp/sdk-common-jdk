@@ -9,11 +9,6 @@ public class FlagConfigResponse {
   private final Format format;
 
   public FlagConfigResponse(
-      Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
-    this(flags, banditReferences, Format.SERVER);
-  }
-
-  public FlagConfigResponse(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
       Format dataFormat) {
