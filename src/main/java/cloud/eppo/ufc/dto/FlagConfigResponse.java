@@ -17,6 +17,11 @@ public class FlagConfigResponse {
     format = dataFormat;
   }
 
+  public FlagConfigResponse(
+      Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
+    this(flags, banditReferences, Format.SERVER);
+  }
+
   public FlagConfigResponse() {
     this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER);
   }
