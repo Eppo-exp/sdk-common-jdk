@@ -75,15 +75,16 @@ public class Configuration {
     this.bandits = bandits;
     this.isConfigObfuscated = isConfigObfuscated;
 
-    // Graft the `forServer` boolean into the flagConfigJson
-    try {
-      JsonNode jNode = mapper.readTree(flagConfigJson);
-      ((ObjectNode) jNode).put("forServer", !isConfigObfuscated);
-      flagConfigJson = mapper.writeValueAsBytes(jNode);
-    } catch (IOException e) {
-      log.error("Error adding `forServer` field to FlagConfigResponse JSON");
+    // Graft the `forServer` boolean into the flagConfigJson'
+    if (flagConfigJson != null && flagConfigJson.length != 0) {
+      try {
+        JsonNode jNode = mapper.readTree(flagConfigJson);
+        ((ObjectNode) jNode).put("forServer", !isConfigObfuscated);
+        flagConfigJson = mapper.writeValueAsBytes(jNode);
+      } catch (IOException e) {
+        log.error("Error adding `forServer` field to FlagConfigResponse JSON");
+      }
     }
-
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }
