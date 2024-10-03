@@ -1,7 +1,6 @@
 package cloud.eppo.api;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.ufc.dto.FlagConfigResponse;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
@@ -16,14 +15,14 @@ public class ConfigurationBuilderTest {
 
   @Test
   public void testHydrateConfigFromBytesForServer_true() {
-    byte[] jsonBytes = "{ \"forServer\": true, \"flags\":{} }".getBytes();
+    byte[] jsonBytes = "{ \"format\": \"SERVER\", \"flags\":{} }".getBytes();
     Configuration config = new Configuration.Builder(jsonBytes).build();
     assertFalse(config.isConfigObfuscated());
   }
 
   @Test
   public void testHydrateConfigFromBytesForServer_false() {
-    byte[] jsonBytes = "{ \"forServer\": false, \"flags\":{} }".getBytes();
+    byte[] jsonBytes = "{ \"format\": \"CLIENT\", \"flags\":{} }".getBytes();
     Configuration config = new Configuration.Builder(jsonBytes).build();
     assertTrue(config.isConfigObfuscated());
   }
@@ -38,7 +37,7 @@ public class ConfigurationBuilderTest {
     FlagConfigResponse rehydratedConfig =
         mapper.readValue(serializedFlags, FlagConfigResponse.class);
 
-    assertTrue(rehydratedConfig.isForServer());
+    assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.SERVER);
   }
 
   @Test
@@ -51,6 +50,6 @@ public class ConfigurationBuilderTest {
     FlagConfigResponse rehydratedConfig =
         mapper.readValue(serializedFlags, FlagConfigResponse.class);
 
-    assertFalse(rehydratedConfig.isForServer());
+    assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.CLIENT);
   }
 }
