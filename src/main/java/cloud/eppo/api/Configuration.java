@@ -52,7 +52,8 @@ public class Configuration {
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 
-  private static final byte[] emptyFlagsBytes = "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
+  private static final byte[] emptyFlagsBytes =
+      "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
 
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   private final Map<String, BanditReference> banditReferences;
