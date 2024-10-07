@@ -79,10 +79,14 @@ public class Configuration {
     if (flagConfigJson != null && flagConfigJson.length != 0) {
       try {
         JsonNode jNode = mapper.readTree(flagConfigJson);
-        ((ObjectNode) jNode).put("forServer", !isConfigObfuscated);
+        FlagConfigResponse.Format format =
+            isConfigObfuscated
+                ? FlagConfigResponse.Format.CLIENT
+                : FlagConfigResponse.Format.SERVER;
+        ((ObjectNode) jNode).put("format", format.toString());
         flagConfigJson = mapper.writeValueAsBytes(jNode);
       } catch (IOException e) {
-        log.error("Error adding `forServer` field to FlagConfigResponse JSON");
+        log.error("Error adding `format` field to FlagConfigResponse JSON");
       }
     }
     this.flagConfigJson = flagConfigJson;
@@ -183,7 +187,10 @@ public class Configuration {
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
-      this(flagJson, flagConfigResponse, !flagConfigResponse.isForServer());
+      this(
+          flagJson,
+          flagConfigResponse,
+          flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
     }
 
     /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */
