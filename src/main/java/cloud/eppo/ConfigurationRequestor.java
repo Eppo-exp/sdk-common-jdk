@@ -112,7 +112,7 @@ public class ConfigurationRequestor {
     remoteFetchFuture =
         client
             .getAsync(FLAG_CONFIG_PATH)
-            .thenApplyAsync(
+            .thenApply(
                 flagConfigJsonBytes -> {
                   synchronized (this) {
                     Configuration.Builder configBuilder =
@@ -133,7 +133,6 @@ public class ConfigurationRequestor {
                       }
                     }
 
-                    log.debug("Saving config from Requestor");
                     return configurationStore.saveConfiguration(configBuilder.build()).join();
                   }
                 });
