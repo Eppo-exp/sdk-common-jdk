@@ -54,14 +54,14 @@ public class ConfigurationRequestor {
                 (config) -> {
                   synchronized (configurationStore) {
                     if (config == null || config.isEmpty()) {
-                      log.warn("Initial configuration future returned empty/null");
+                      log.debug("Initial configuration future returned empty/null");
                     } else if (remoteFetchFuture != null
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
                       // Don't clobber a successful fetch.
-                      log.warn("Fetch successfully beat the initial config; not clobbering");
+                      log.debug("Fetch successfully beat the initial config; not clobbering");
                     } else {
-                      log.warn("saving initial configuration");
+                      log.debug("saving initial configuration");
                       initialConfigSet =
                           configurationStore
                               .saveConfiguration(config)
@@ -80,7 +80,7 @@ public class ConfigurationRequestor {
 
   /** Loads configuration synchronously from the API server. */
   void fetchAndSaveFromRemote() {
-    log.warn("Fetching configuration");
+    log.debug("Fetching configuration");
 
     // Reuse the `lastConfig` as its bandits may be useful
     Configuration lastConfig = configurationStore.getConfiguration();
@@ -100,11 +100,11 @@ public class ConfigurationRequestor {
 
   /** Loads configuration asynchronously from the API server, off-thread. */
   CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
-    log.warn("Fetching configuration from API server");
+    log.debug("Fetching configuration from API server");
     final Configuration lastConfig = configurationStore.getConfiguration();
 
     if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
-      log.warn("Remote fetch is active. Cancelling and restarting");
+      log.debug("Remote fetch is active. Cancelling and restarting");
       remoteFetchFuture.cancel(true);
       remoteFetchFuture = null;
     }
@@ -133,14 +133,9 @@ public class ConfigurationRequestor {
                       }
                     }
 
-                    log.warn("Saving config from Requestor");
+                    log.debug("Saving config from Requestor");
                     return configurationStore.saveConfiguration(configBuilder.build()).join();
                   }
-                })
-            .thenAcceptAsync(
-                unused -> {
-                  log.warn("Config save complete");
-                  return;
                 });
     return remoteFetchFuture;
   }
