@@ -59,7 +59,7 @@ public class ConfigurationRequestor {
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
                       // Don't clobber a successful fetch.
-                      log.debug("Fetch successfully beat the initial config; not clobbering");
+                      log.debug("Fetch has completed; ignoring initial config load.");
                     } else {
                       log.debug("saving initial configuration");
                       initialConfigSet =
