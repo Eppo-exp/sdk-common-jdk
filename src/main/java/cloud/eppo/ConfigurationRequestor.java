@@ -38,7 +38,6 @@ public class ConfigurationRequestor {
       throw new IllegalStateException("Initial configuration has already been set");
     }
 
-    log.debug("saving initial configuration");
     initialConfigSet =
         configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
   }
@@ -67,13 +66,11 @@ public class ConfigurationRequestor {
                       log.debug("Fetch has completed; ignoring initial config load.");
                       return false;
                     } else {
-                      log.debug("saving initial configuration 2");
                       initialConfigSet =
                           configurationStore
                               .saveConfiguration(config)
                               .thenApply((s) -> true)
                               .join();
-                      log.debug("saving complete");
                       return true;
                     }
                   }
@@ -103,7 +100,6 @@ public class ConfigurationRequestor {
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
 
-    log.debug("saving remote fetched config");
     configurationStore.saveConfiguration(configBuilder.build()).join();
   }
 
@@ -142,7 +138,6 @@ public class ConfigurationRequestor {
                       }
                     }
 
-                    log.debug("saving remote fetched config");
                     return configurationStore.saveConfiguration(configBuilder.build()).join();
                   }
                 });
