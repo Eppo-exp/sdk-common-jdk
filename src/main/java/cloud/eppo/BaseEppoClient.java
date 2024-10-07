@@ -36,6 +36,12 @@ public class BaseEppoClient {
   private final String sdkVersion;
   private boolean isGracefulMode;
 
+  @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
+    return initialConfigFuture;
+  }
+
+  private final CompletableFuture<Boolean> initialConfigFuture;
+
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
   /** @noinspection FieldMayBeFinal */
@@ -73,9 +79,10 @@ public class BaseEppoClient {
     requestor =
         new ConfigurationRequestor(
             this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
-    if (initialConfiguration != null) {
-      requestor.setInitialConfiguration(initialConfiguration).join();
-    }
+    initialConfigFuture =
+        initialConfiguration != null
+            ? requestor.setInitialConfiguration(initialConfiguration)
+            : null;
 
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;

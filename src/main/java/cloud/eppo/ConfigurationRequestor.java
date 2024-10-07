@@ -18,7 +18,7 @@ public class ConfigurationRequestor {
   private final boolean supportBandits;
 
   private CompletableFuture<Void> remoteFetchFuture = null;
-  private CompletableFuture<Void> configurationFuture = null;
+  private CompletableFuture<Boolean> configurationFuture = null;
   private boolean initialConfigSet = false;
 
   public ConfigurationRequestor(
@@ -38,49 +38,57 @@ public class ConfigurationRequestor {
       throw new IllegalStateException("Initial configuration has already been set");
     }
 
+    log.warn("saving initial configuration");
     initialConfigSet =
         configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
   }
 
-  // Asynchronously sets the initial configuration.
-  public CompletableFuture<Void> setInitialConfiguration(
+  /**
+   * Asynchronously sets the initial configuration. Resolves to `true` if the initial configuration
+   * was used, false if not (due to being empty, a fetched config taking precedence, etc.)
+   */
+  public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<Configuration> configurationFuture) {
     if (initialConfigSet || this.configurationFuture != null) {
       throw new IllegalStateException("Configuration future has already been set");
     }
     this.configurationFuture =
         configurationFuture
-            .thenAccept(
+            .thenApply(
                 (config) -> {
                   synchronized (configurationStore) {
                     if (config == null || config.isEmpty()) {
-                      log.debug("Initial configuration future returned empty/null");
+                      log.warn("Initial configuration future returned empty/null");
+                      return false;
                     } else if (remoteFetchFuture != null
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
                       // Don't clobber a successful fetch.
-                      log.debug("Fetch has completed; ignoring initial config load.");
+                      log.warn("Fetch has completed; ignoring initial config load.");
+                      return false;
                     } else {
-                      log.debug("saving initial configuration");
+                      log.warn("saving initial configuration 2");
                       initialConfigSet =
                           configurationStore
                               .saveConfiguration(config)
                               .thenApply((s) -> true)
                               .join();
+                      log.warn("saving complete");
+                      return true;
                     }
                   }
                 })
             .exceptionally(
                 (e) -> {
                   log.error("Error setting initial config", e);
-                  return null;
+                  return false;
                 });
     return this.configurationFuture;
   }
 
   /** Loads configuration synchronously from the API server. */
   void fetchAndSaveFromRemote() {
-    log.debug("Fetching configuration");
+    log.warn("Fetching configuration");
 
     // Reuse the `lastConfig` as its bandits may be useful
     Configuration lastConfig = configurationStore.getConfiguration();
@@ -95,16 +103,17 @@ public class ConfigurationRequestor {
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
 
+    log.warn("saving remote fetched config");
     configurationStore.saveConfiguration(configBuilder.build()).join();
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
   CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
-    log.debug("Fetching configuration from API server");
+    log.warn("Fetching configuration from API server");
     final Configuration lastConfig = configurationStore.getConfiguration();
 
     if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
-      log.debug("Remote fetch is active. Cancelling and restarting");
+      log.warn("Remote fetch is active. Cancelling and restarting");
       remoteFetchFuture.cancel(true);
       remoteFetchFuture = null;
     }
@@ -133,6 +142,7 @@ public class ConfigurationRequestor {
                       }
                     }
 
+                    log.warn("saving remote fetched config");
                     return configurationStore.saveConfiguration(configBuilder.build()).join();
                   }
                 });
