@@ -18,7 +18,7 @@ public class ConfigurationRequestor {
   private final boolean supportBandits;
 
   private CompletableFuture<Void> remoteFetchFuture = null;
-  private CompletableFuture<Void> configurationFuture = null;
+  private CompletableFuture<Boolean> configurationFuture = null;
   private boolean initialConfigSet = false;
 
   public ConfigurationRequestor(
@@ -42,38 +42,43 @@ public class ConfigurationRequestor {
         configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
   }
 
-  // Asynchronously sets the initial configuration.
-  public CompletableFuture<Void> setInitialConfiguration(
+  /**
+   * Asynchronously sets the initial configuration. Resolves to `true` if the initial configuration
+   * was used, false if not (due to being empty, a fetched config taking precedence, etc.)
+   */
+  public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<Configuration> configurationFuture) {
     if (initialConfigSet || this.configurationFuture != null) {
       throw new IllegalStateException("Configuration future has already been set");
     }
     this.configurationFuture =
         configurationFuture
-            .thenAccept(
+            .thenApply(
                 (config) -> {
                   synchronized (configurationStore) {
                     if (config == null || config.isEmpty()) {
                       log.debug("Initial configuration future returned empty/null");
+                      return false;
                     } else if (remoteFetchFuture != null
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
                       // Don't clobber a successful fetch.
                       log.debug("Fetch has completed; ignoring initial config load.");
+                      return false;
                     } else {
-                      log.debug("saving initial configuration");
                       initialConfigSet =
                           configurationStore
                               .saveConfiguration(config)
                               .thenApply((s) -> true)
                               .join();
+                      return true;
                     }
                   }
                 })
             .exceptionally(
                 (e) -> {
                   log.error("Error setting initial config", e);
-                  return null;
+                  return false;
                 });
     return this.configurationFuture;
   }
