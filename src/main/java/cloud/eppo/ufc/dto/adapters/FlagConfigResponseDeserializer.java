@@ -49,8 +49,11 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
     }
 
     // Default is to assume that the config is not obfuscated.
-    JsonNode forServerNode = rootNode.get("forServer");
-    boolean isConfigObfuscated = forServerNode != null && !forServerNode.asBoolean();
+    JsonNode formatNode = rootNode.get("format");
+    FlagConfigResponse.Format dataFormat =
+        formatNode == null
+            ? FlagConfigResponse.Format.SERVER
+            : FlagConfigResponse.Format.valueOf(formatNode.asText());
 
     Map<String, FlagConfig> flags = new ConcurrentHashMap<>();
 
@@ -78,7 +81,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       }
     }
 
-    return new FlagConfigResponse(flags, banditReferences, isConfigObfuscated);
+    return new FlagConfigResponse(flags, banditReferences, dataFormat);
   }
 
   private FlagConfig deserializeFlag(JsonNode jsonNode) {

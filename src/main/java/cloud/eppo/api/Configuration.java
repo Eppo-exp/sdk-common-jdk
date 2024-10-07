@@ -52,6 +52,9 @@ public class Configuration {
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 
+  private static final byte[] emptyFlagsBytes =
+      "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
+
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   private final Map<String, BanditReference> banditReferences;
   private final Map<String, FlagConfig> flags;
@@ -79,10 +82,14 @@ public class Configuration {
     if (flagConfigJson != null && flagConfigJson.length != 0) {
       try {
         JsonNode jNode = mapper.readTree(flagConfigJson);
-        ((ObjectNode) jNode).put("forServer", !isConfigObfuscated);
+        FlagConfigResponse.Format format =
+            isConfigObfuscated
+                ? FlagConfigResponse.Format.CLIENT
+                : FlagConfigResponse.Format.SERVER;
+        ((ObjectNode) jNode).put("format", format.toString());
         flagConfigJson = mapper.writeValueAsBytes(jNode);
       } catch (IOException e) {
-        log.error("Error adding `forServer` field to FlagConfigResponse JSON");
+        log.error("Error adding `format` field to FlagConfigResponse JSON");
       }
     }
     this.flagConfigJson = flagConfigJson;
@@ -91,7 +98,12 @@ public class Configuration {
 
   public static Configuration emptyConfig() {
     return new Configuration(
-        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), false, null, null);
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        false,
+        emptyFlagsBytes,
+        null);
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -183,7 +195,10 @@ public class Configuration {
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
-      this(flagJson, flagConfigResponse, !flagConfigResponse.isForServer());
+      this(
+          flagJson,
+          flagConfigResponse,
+          flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
     }
 
     /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */

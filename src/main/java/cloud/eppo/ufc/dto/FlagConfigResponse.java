@@ -6,24 +6,24 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FlagConfigResponse {
   private final Map<String, FlagConfig> flags;
   private final Map<String, BanditReference> banditReferences;
-  private final boolean forServer;
-
-  public FlagConfigResponse(
-      Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
-    this(flags, banditReferences, false);
-  }
+  private final Format format;
 
   public FlagConfigResponse(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
-      boolean isConfigObfuscated) {
+      Format dataFormat) {
     this.flags = flags;
     this.banditReferences = banditReferences;
-    this.forServer = !isConfigObfuscated;
+    format = dataFormat;
+  }
+
+  public FlagConfigResponse(
+      Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
+    this(flags, banditReferences, Format.SERVER);
   }
 
   public FlagConfigResponse() {
-    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), false);
+    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER);
   }
 
   public Map<String, FlagConfig> getFlags() {
@@ -34,7 +34,12 @@ public class FlagConfigResponse {
     return this.banditReferences;
   }
 
-  public boolean isForServer() {
-    return this.forServer;
+  public Format getFormat() {
+    return format;
+  }
+
+  public enum Format {
+    SERVER,
+    CLIENT
   }
 }
