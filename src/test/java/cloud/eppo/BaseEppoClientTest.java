@@ -13,6 +13,8 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.Configuration;
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IAssignmentCache;
+import cloud.eppo.cache.MapAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -72,7 +74,8 @@ public class BaseEppoClientTest {
             isGracefulMode,
             isConfigObfuscated,
             true,
-            initialFlagConfiguration);
+            initialFlagConfiguration,
+            null);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
@@ -90,7 +93,30 @@ public class BaseEppoClientTest {
             isGracefulMode,
             isConfigObfuscated,
             true,
+            null,
             null);
+
+    eppoClient.loadConfiguration();
+    log.info("Test client initialized");
+  }
+
+  private void initClientWithAssignmentCache(IAssignmentCache cache) {
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            null,
+            true,
+            false,
+            true,
+            null,
+            cache);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -315,6 +341,42 @@ public class BaseEppoClientTest {
     expectedMeta.put("sdkLibVersion", "3.0.0");
 
     assertEquals(expectedMeta, capturedAssignment.getMetaData());
+  }
+
+  @Test
+  public void testAssignmentNotDedupedWithoutCache() {
+    initClient();
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", EppoValue.valueOf(30));
+    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
+
+    // Get the assignment twice
+    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+
+    // `logAssignment` should be called twice;
+    verify(mockAssignmentLogger, times(2)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testAssignmentEventCorrectlyDeduped() {
+    initClientWithAssignmentCache(new MapAssignmentCache());
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", EppoValue.valueOf(30));
+    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
+
+    // Get the assignment twice
+    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+
+    // `logAssignment` should be called only once.
+    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
   }
 
   @Test

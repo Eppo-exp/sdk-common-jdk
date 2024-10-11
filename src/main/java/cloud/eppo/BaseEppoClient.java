@@ -35,6 +35,7 @@ public class BaseEppoClient {
   private final String sdkName;
   private final String sdkVersion;
   private boolean isGracefulMode;
+  private final IAssignmentCache assignmentCache;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
     return initialConfigFuture;
@@ -58,7 +59,8 @@ public class BaseEppoClient {
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       boolean supportBandits,
-      @Nullable CompletableFuture<Configuration> initialConfiguration) {
+      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable IAssignmentCache assignmentCache) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -70,6 +72,8 @@ public class BaseEppoClient {
     if (host == null) {
       host = DEFAULT_HOST;
     }
+
+    this.assignmentCache = assignmentCache;
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     this.configurationStore =
@@ -176,10 +180,18 @@ public class BaseEppoClient {
               subjectAttributes,
               extraLogging,
               metaData);
-      try {
-        assignmentLogger.logAssignment(assignment);
-      } catch (Exception e) {
-        log.warn("Error logging assignment: {}", e.getMessage(), e);
+
+      // Deduping assignment logging is possible by providing an `IAssignmentCache`
+      String assignmentCacheKey = assignment.getIdentifier();
+      if (assignmentCache == null || !assignmentCache.containsKey(assignmentCacheKey)) {
+        try {
+          assignmentLogger.logAssignment(assignment);
+          if (assignmentCache != null) {
+            assignmentCache.put(assignmentCacheKey, assignment);
+          }
+        } catch (Exception e) {
+          log.warn("Error logging assignment: {}", e.getMessage(), e);
+        }
       }
     }
 

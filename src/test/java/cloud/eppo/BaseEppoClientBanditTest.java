@@ -66,6 +66,7 @@ public class BaseEppoClientBanditTest {
             false,
             false,
             true,
+            null,
             null);
 
     eppoClient.loadConfiguration();
@@ -94,7 +95,8 @@ public class BaseEppoClientBanditTest {
             false,
             false,
             true,
-            initialConfig);
+            initialConfig,
+            null);
   }
 
   @BeforeEach
