@@ -1,7 +1,7 @@
 package cloud.eppo;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class ConfigurationRequestorTest {
   private final File initialFlagConfigFile =
@@ -21,7 +22,7 @@ public class ConfigurationRequestorTest {
 
   @Test
   public void testInitialConfigurationFuture() throws IOException {
-    IConfigurationStore configStore = new ConfigurationStore();
+    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
@@ -32,17 +33,20 @@ public class ConfigurationRequestorTest {
 
     requestor.setInitialConfiguration(futureConfig);
 
-    assertNull(configStore.getConfiguration());
+    // verify config is empty to start
+    assertTrue(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
     futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
-    assertNotNull(configStore.getConfiguration());
+    assertFalse(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
   }
 
   @Test
   public void testInitialConfigurationDoesntClobberFetch() throws IOException {
-    IConfigurationStore configStore = new ConfigurationStore();
+    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
@@ -56,10 +60,11 @@ public class ConfigurationRequestorTest {
 
     when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
 
-    // Set initial config and verify that the config is still null as the inital config future has
-    // not completed yet.
+    // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
-    assertNull(configStore.getConfiguration());
+
+    assertTrue(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
     // The initial config contains only one flag keyed `numeric_flag`. The fetch response has only
     // one flag keyed
@@ -71,7 +76,8 @@ public class ConfigurationRequestorTest {
     configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
     initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
-    assertNotNull(configStore.getConfiguration());
+    assertFalse(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
     // `numeric_flag` is only in the cache which should have been ignored.
     assertNull(configStore.getConfiguration().getFlag("numeric_flag"));
@@ -82,7 +88,7 @@ public class ConfigurationRequestorTest {
 
   @Test
   public void testBrokenFetchDoesntClobberCache() throws IOException {
-    IConfigurationStore configStore = new ConfigurationStore();
+    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
@@ -94,10 +100,11 @@ public class ConfigurationRequestorTest {
 
     when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
 
-    // Set initial config and verify that the config is still null as the inital config future has
-    // not completed yet.
+    // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
-    assertNull(configStore.getConfiguration());
+
+    assertTrue(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
     requestor.fetchAndSaveFromRemoteAsync();
 
@@ -107,7 +114,8 @@ public class ConfigurationRequestorTest {
     // Error out the fetch
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
-    assertNotNull(configStore.getConfiguration());
+    assertFalse(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
     // `numeric_flag` is only in the cache which should be available
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
@@ -117,7 +125,7 @@ public class ConfigurationRequestorTest {
 
   @Test
   public void testCacheWritesAfterBrokenFetch() throws IOException {
-    IConfigurationStore configStore = new ConfigurationStore();
+    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
@@ -129,20 +137,23 @@ public class ConfigurationRequestorTest {
 
     when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
 
-    // Set initial config and verify that the config is still null as the inital config future has
-    // not completed yet.
+    // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
-    assertNull(configStore.getConfiguration());
+    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
+    // default configuration is empty config.
+    assertTrue(configStore.getConfiguration().isEmpty());
+
+    // Fetch from remote with an error
     requestor.fetchAndSaveFromRemoteAsync();
-
-    // Error out the fetch
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
     // Resolve the initial config after the fetch throws an error.
     initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
-    assertNotNull(configStore.getConfiguration());
+    // Verify that a configuration was saved by the requestor
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
+    assertFalse(configStore.getConfiguration().isEmpty());
 
     // `numeric_flag` is only in the cache which should be available
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
