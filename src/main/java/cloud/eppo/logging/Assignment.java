@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.Map;
 
 public class Assignment {
-  private static final String sep = "-";
-
   private final Date timestamp;
   private final String experiment;
   private final String featureFlag;
@@ -16,9 +14,6 @@ public class Assignment {
   private final Attributes subjectAttributes;
   private final Map<String, String> extraLogging;
   private final Map<String, String> metaData;
-
-  /** An identifier key comprising the subject, flag and variation keys. */
-  private final String variationKeyString;
 
   public Assignment(
       String experiment,
@@ -38,12 +33,6 @@ public class Assignment {
     this.subjectAttributes = subjectAttributes;
     this.extraLogging = extraLogging;
     this.metaData = metaData;
-
-    variationKeyString = subject + sep + featureFlag + sep + variation;
-  }
-
-  public String getIdentifier() {
-    return variationKeyString;
   }
 
   public String getExperiment() {

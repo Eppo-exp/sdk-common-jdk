@@ -1,5 +1,7 @@
 package cloud.eppo.cache;
 
+import cloud.eppo.logging.Assignment;
+import cloud.eppo.logging.BanditAssignment;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,6 +13,18 @@ public class AssignmentCacheEntry {
       @NotNull AssignmentCacheKey key, @NotNull AssignmentCacheValue value) {
     this.key = key;
     this.value = value;
+  }
+
+  public static AssignmentCacheEntry fromVariationAssignment(Assignment assignment) {
+    return new AssignmentCacheEntry(
+        new AssignmentCacheKey(assignment.getSubject(), assignment.getFeatureFlag()),
+        new VariationCacheValue(assignment.getAllocation(), assignment.getVariation()));
+  }
+
+  public static AssignmentCacheEntry fromBanditAssignment(BanditAssignment assignment) {
+    return new AssignmentCacheEntry(
+        new AssignmentCacheKey(assignment.getSubject(), assignment.getFeatureFlag()),
+        new BanditCacheValue(assignment.getBandit(), assignment.getAction()));
   }
 
   @NotNull public AssignmentCacheKey getKey() {

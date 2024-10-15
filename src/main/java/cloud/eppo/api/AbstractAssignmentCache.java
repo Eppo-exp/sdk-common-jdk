@@ -1,9 +1,11 @@
-package cloud.eppo.cache;
+package cloud.eppo.api;
 
+import cloud.eppo.cache.AssignmentCacheEntry;
+import cloud.eppo.cache.AssignmentCacheKey;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class AbstractAssignmentCache implements AssignmentCache {
+public abstract class AbstractAssignmentCache implements IAssignmentCache {
   protected final Map<String, String> delegate;
   // key -> variation value hash
   protected AbstractAssignmentCache(final Map<String, String> delegate) {
@@ -30,16 +32,4 @@ public abstract class AbstractAssignmentCache implements AssignmentCache {
           this.delegate.put(entry.getKeyString(), entry.getValueKeyString());
         });
   }
-  //
-  //  /**
-  //   * Returns an array with all {@link AssignmentCacheEntry} entries in the cache as an array of
-  //   * {@link String}s.
-  //   */
-  //  public IterableIterator<[String, String]> entries() {
-  //    return this.delegate.entries();
-  //  }
-
-  //  private String assignmentCacheValueToString(AssignmentCacheValue value) {
-  //    return value.get("allocationKey") + ";" + value.get("variationKey");
-  //  }
 }

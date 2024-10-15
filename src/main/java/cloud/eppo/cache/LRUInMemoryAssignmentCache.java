@@ -1,8 +1,8 @@
 package cloud.eppo.cache;
 
-import org.apache.commons.collections4.map.LRUMap;
-
+import cloud.eppo.api.AbstractAssignmentCache;
 import java.util.Collections;
+import org.apache.commons.collections4.map.LRUMap;
 
 /**
  * spot A cache that uses the LRU algorithm to evict the least recently used items.

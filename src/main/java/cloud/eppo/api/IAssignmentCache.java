@@ -1,15 +1,15 @@
 package cloud.eppo.api;
 
-import cloud.eppo.logging.Assignment;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import cloud.eppo.cache.AssignmentCacheEntry;
+import java.util.concurrent.CompletableFuture;
 
 public interface IAssignmentCache {
-  void put(@NotNull String key, @NotNull Assignment assignment);
+  CompletableFuture<Void> set(AssignmentCacheEntry entry);
 
-  @Nullable Assignment get(@NotNull String key);
-
-  boolean containsKey(@NotNull String key);
-
-  void remove(@NotNull String key);
+  /**
+   * Checks for both the existence of an entry using both the entry's key
+   * (AssignmentCacheEntry.getKey()) and the identifier for the value
+   * (AssignmentCacheEntry.getValue().getValueKey());
+   */
+  CompletableFuture<Boolean> hasEntry(AssignmentCacheEntry entry);
 }

@@ -14,7 +14,7 @@ import cloud.eppo.api.Attributes;
 import cloud.eppo.api.Configuration;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.IAssignmentCache;
-import cloud.eppo.cache.MapAssignmentCache;
+import cloud.eppo.cache.NonExpiringInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -344,7 +344,7 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testAssignmentNotDedupedWithoutCache() {
+  public void testAssignmentNotDeduplicatedWithoutCache() {
     initClient();
 
     Attributes subjectAttributes = new Attributes();
@@ -362,21 +362,48 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testAssignmentEventCorrectlyDeduped() {
-    initClientWithAssignmentCache(new MapAssignmentCache());
+  public void testAssignmentEventCorrectlyDeduplicated() {
+    initClientWithAssignmentCache(new NonExpiringInMemoryAssignmentCache());
 
     Attributes subjectAttributes = new Attributes();
-    subjectAttributes.put("age", EppoValue.valueOf(30));
-    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
 
     // Get the assignment twice
-    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
-    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+    int assignment =
+        eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+    eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+
+    // `2` matches the attribute `number` value of "123456789"
+    assertEquals(2, assignment);
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
 
     // `logAssignment` should be called only once.
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+
+    // Now, change the assigned value to get a logged entry. `number="1"` will map to the assignment
+    // of `1`.
+    subjectAttributes.put("number", EppoValue.valueOf("1"));
+
+    // Get the assignment
+    int newAssignment =
+        eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+    assertEquals(1, newAssignment);
+
+    // Verify a new log call
+    verify(mockAssignmentLogger, times(2)).logAssignment(assignmentLogCaptor.capture());
+
+    // Change back to the original variation to ensure it is not still cached after the previous
+    // value evicted it.
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
+
+    // Get the assignment
+    int oldAssignment =
+        eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+    assertEquals(2, oldAssignment);
+
+    // Verify a new log call
+    verify(mockAssignmentLogger, times(3)).logAssignment(assignmentLogCaptor.capture());
   }
 
   @Test

@@ -1,5 +1,6 @@
 package cloud.eppo.cache;
 
+import cloud.eppo.api.AbstractAssignmentCache;
 import java.util.HashMap;
 
 /**
