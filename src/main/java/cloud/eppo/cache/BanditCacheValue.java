@@ -12,7 +12,7 @@ public class BanditCacheValue implements AssignmentCacheValue {
   }
 
   @Override
-  public String getValueKey() {
+  public String getValueIdentifier() {
     return banditKey + "-" + actionKey;
   }
 

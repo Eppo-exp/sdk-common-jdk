@@ -36,7 +36,7 @@ public class AssignmentCacheEntry {
   }
 
   @NotNull public String getValueKeyString() {
-    return value.getValueKey();
+    return value.getValueIdentifier();
   }
 
   @NotNull public AssignmentCacheValue getValue() {
@@ -49,7 +49,7 @@ public class AssignmentCacheEntry {
     if (o == null || getClass() != o.getClass()) return false;
     AssignmentCacheEntry that = (AssignmentCacheEntry) o;
     return Objects.equals(key, that.key)
-        && Objects.equals(value.getValueKey(), that.value.getValueKey());
+        && Objects.equals(value.getValueIdentifier(), that.value.getValueIdentifier());
   }
 
   @Override

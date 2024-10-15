@@ -3,10 +3,10 @@ package cloud.eppo.cache;
 import java.util.Objects;
 
 /**
- * Assignment cache keys are only on the subject and flag level, while the entire value is used for
- * uniqueness checking. This way that if an assigned variation or bandit action changes for a flag,
- * it evicts the old one. Then, if an older assignment is later reassigned, it will be treated as
- * new.
+ * Assignment cache keys are only on the subject and flag level, while a combination of keys and
+ * fields are used for uniqueness checking. This way, if an assigned variation or bandit action
+ * changes for a flag, it evicts the old one. Then, if an older assignment is later reassigned, it
+ * will be treated as new.
  */
 public class AssignmentCacheKey {
   private final String subjectKey;

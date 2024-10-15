@@ -5,6 +5,10 @@ import cloud.eppo.cache.AssignmentCacheKey;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * {@link IAssignmentCache} implementation which takes a map to use as the underlying storage
+ * mechanism.
+ */
 public abstract class AbstractAssignmentCache implements IAssignmentCache {
   protected final Map<String, String> delegate;
   // key -> variation value hash
@@ -12,7 +16,7 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
     this.delegate = delegate;
   }
 
-  /** Returns whether the provided {@link AssignmentCacheEntry} is present in the cache. */
+  @Override
   public CompletableFuture<Boolean> hasEntry(AssignmentCacheEntry entry) {
     return get(entry.getKey())
         .thenApply(value -> value != null && value.equals(entry.getValueKeyString()));
@@ -22,10 +26,7 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
     return CompletableFuture.supplyAsync(() -> this.delegate.get(key.toString()));
   }
 
-  /**
-   * Stores the provided {@link AssignmentCacheEntry} in the cache. If the key already exists, it
-   * will be overwritten.
-   */
+  @Override
   public CompletableFuture<Void> set(AssignmentCacheEntry entry) {
     return CompletableFuture.runAsync(
         () -> {

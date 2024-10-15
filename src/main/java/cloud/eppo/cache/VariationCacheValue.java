@@ -12,7 +12,7 @@ public class VariationCacheValue implements AssignmentCacheValue {
   }
 
   @Override
-  public String getValueKey() {
+  public String getValueIdentifier() {
     return allocationKey + "-" + variationKey;
   }
 

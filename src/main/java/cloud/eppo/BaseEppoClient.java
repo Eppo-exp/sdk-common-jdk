@@ -193,7 +193,7 @@ public class BaseEppoClient {
             logAssignment = false;
           }
         } catch (InterruptedException | ExecutionException e) {
-          log.error("Error getting assignment from cache", e);
+          log.error("Error getting assignment from cache, treating as a cache miss", e);
         }
       }
 
@@ -201,7 +201,7 @@ public class BaseEppoClient {
         try {
           assignmentLogger.logAssignment(assignment);
         } catch (Exception e) {
-          log.warn("Error logging assignment: {}", e.getMessage(), e);
+          log.error("Error logging assignment: {}", e.getMessage(), e);
         }
         if (assignmentCache != null) {
           assignmentCache.set(cacheEntry);
