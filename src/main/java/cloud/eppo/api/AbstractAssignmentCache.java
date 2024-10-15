@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public abstract class AbstractAssignmentCache implements IAssignmentCache {
   protected final Map<String, String> delegate;
-  // key -> variation value hash
+
   protected AbstractAssignmentCache(final Map<String, String> delegate) {
     this.delegate = delegate;
   }

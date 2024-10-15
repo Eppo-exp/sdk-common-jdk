@@ -466,7 +466,6 @@ public class BaseEppoClient {
 
           if (logBanditAssignment) {
             try {
-
               banditLogger.logBanditAssignment(banditAssignment);
             } catch (Exception e) {
               log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
