@@ -23,7 +23,7 @@ dependencies {
 
   // For UFC DTOs
   implementation 'commons-codec:commons-codec:1.17.0'
-  implementation 'org.slf4j:slf4j-api:2.0.13'
+  implementation 'org.slf4j:slf4j-api:2.0.16'
   testImplementation 'org.slf4j:slf4j-simple:2.0.16'
   testImplementation platform('org.junit:junit-bom:5.10.3')
   testImplementation 'org.junit.jupiter:junit-jupiter'
