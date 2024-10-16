@@ -8,7 +8,7 @@ import java.util.concurrent.CompletableFuture;
  * determine both presence and uniqueness of the cached value.
  */
 public interface IAssignmentCache {
-  CompletableFuture<Void> set(AssignmentCacheEntry entry);
+  CompletableFuture<Void> put(AssignmentCacheEntry entry);
 
   /**
    * Determines whether the entry is present. Implementations must first check for presence by using

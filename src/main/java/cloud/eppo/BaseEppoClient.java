@@ -38,6 +38,7 @@ public class BaseEppoClient {
   private final String sdkVersion;
   private boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
+  private final IAssignmentCache banditAssignmentCache;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
     return initialConfigFuture;
@@ -62,7 +63,8 @@ public class BaseEppoClient {
       boolean expectObfuscatedConfig,
       boolean supportBandits,
       @Nullable CompletableFuture<Configuration> initialConfiguration,
-      @Nullable IAssignmentCache assignmentCache) {
+      @Nullable IAssignmentCache assignmentCache,
+      IAssignmentCache banditAssignmentCache) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -76,6 +78,7 @@ public class BaseEppoClient {
     }
 
     this.assignmentCache = assignmentCache;
+    this.banditAssignmentCache = banditAssignmentCache;
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     this.configurationStore =
@@ -204,7 +207,7 @@ public class BaseEppoClient {
           log.error("Error logging assignment: {}", e.getMessage(), e);
         }
         if (assignmentCache != null) {
-          assignmentCache.set(cacheEntry);
+          assignmentCache.put(cacheEntry);
         }
       }
     }
@@ -456,9 +459,11 @@ public class BaseEppoClient {
           boolean logBanditAssignment = true;
           AssignmentCacheEntry cacheEntry =
               AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
-          if (assignmentCache != null) {
+          if (banditAssignmentCache != null) {
             try {
-              logBanditAssignment = assignmentCache.hasEntry(cacheEntry).get();
+              if (banditAssignmentCache.hasEntry(cacheEntry).get()) {
+                logBanditAssignment = false;
+              }
             } catch (InterruptedException | ExecutionException e) {
               log.error("Error getting assignment from cache", e);
             }
@@ -471,8 +476,8 @@ public class BaseEppoClient {
               log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
             }
 
-            if (assignmentCache != null) {
-              assignmentCache.set(cacheEntry);
+            if (banditAssignmentCache != null) {
+              banditAssignmentCache.put(cacheEntry);
             }
           }
         }

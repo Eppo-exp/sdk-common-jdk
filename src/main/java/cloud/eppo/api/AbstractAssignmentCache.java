@@ -27,7 +27,7 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
   }
 
   @Override
-  public CompletableFuture<Void> set(AssignmentCacheEntry entry) {
+  public CompletableFuture<Void> put(AssignmentCacheEntry entry) {
     return CompletableFuture.runAsync(
         () -> {
           this.delegate.put(entry.getKeyString(), entry.getValueKeyString());

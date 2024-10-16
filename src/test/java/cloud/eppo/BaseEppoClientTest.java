@@ -75,6 +75,7 @@ public class BaseEppoClientTest {
             isConfigObfuscated,
             true,
             initialFlagConfiguration,
+            null,
             null);
   }
 
@@ -93,6 +94,7 @@ public class BaseEppoClientTest {
             isGracefulMode,
             isConfigObfuscated,
             true,
+            null,
             null,
             null);
 
@@ -116,7 +118,8 @@ public class BaseEppoClientTest {
             false,
             true,
             null,
-            cache);
+            cache,
+            null);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -376,10 +379,8 @@ public class BaseEppoClientTest {
     // `2` matches the attribute `number` value of "123456789"
     assertEquals(2, assignment);
 
-    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
-
     // `logAssignment` should be called only once.
-    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
 
     // Now, change the assigned value to get a logged entry. `number="1"` will map to the assignment
     // of `1`.
@@ -391,7 +392,7 @@ public class BaseEppoClientTest {
     assertEquals(1, newAssignment);
 
     // Verify a new log call
-    verify(mockAssignmentLogger, times(2)).logAssignment(assignmentLogCaptor.capture());
+    verify(mockAssignmentLogger, times(2)).logAssignment(any(Assignment.class));
 
     // Change back to the original variation to ensure it is not still cached after the previous
     // value evicted it.
@@ -403,7 +404,7 @@ public class BaseEppoClientTest {
     assertEquals(2, oldAssignment);
 
     // Verify a new log call
-    verify(mockAssignmentLogger, times(3)).logAssignment(assignmentLogCaptor.capture());
+    verify(mockAssignmentLogger, times(3)).logAssignment(any(Assignment.class));
   }
 
   @Test
@@ -420,6 +421,4 @@ public class BaseEppoClientTest {
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
   }
-
-  // TODO: tests for the cache
 }
