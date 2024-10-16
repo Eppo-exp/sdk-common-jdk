@@ -14,7 +14,7 @@ import cloud.eppo.api.Attributes;
 import cloud.eppo.api.Configuration;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.IAssignmentCache;
-import cloud.eppo.cache.NonExpiringInMemoryAssignmentCache;
+import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -366,7 +366,7 @@ public class BaseEppoClientTest {
 
   @Test
   public void testAssignmentEventCorrectlyDeduplicated() {
-    initClientWithAssignmentCache(new NonExpiringInMemoryAssignmentCache());
+    initClientWithAssignmentCache(new LRUInMemoryAssignmentCache(1024));
 
     Attributes subjectAttributes = new Attributes();
     subjectAttributes.put("number", EppoValue.valueOf("123456789"));
