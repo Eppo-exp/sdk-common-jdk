@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.*;
+import cloud.eppo.cache.ExpiringInMemoryAssignmentCache;
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -15,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
@@ -75,7 +77,7 @@ public class BaseEppoClientBanditTest {
             true,
             null,
             new AbstractAssignmentCache(assignmentCache) {},
-            new AbstractAssignmentCache(banditAssignmentCache) {});
+            new ExpiringInMemoryAssignmentCache(banditAssignmentCache, 10, TimeUnit.MINUTES) {});
 
     eppoClient.loadConfiguration();
 
