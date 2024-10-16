@@ -165,50 +165,53 @@ public class BaseEppoClient {
     }
 
     if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
-      String allocationKey = evaluationResult.getAllocationKey();
-      String experimentKey =
-          flagKey
-              + '-'
-              + allocationKey; // Our experiment key is derived by hyphenating the flag key and
-      // allocation key
-      String variationKey = evaluationResult.getVariation().getKey();
-      Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-      Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
-      Assignment assignment =
-          new Assignment(
-              experimentKey,
-              flagKey,
-              allocationKey,
-              variationKey,
-              subjectKey,
-              subjectAttributes,
-              extraLogging,
-              metaData);
+      try {
+        String allocationKey = evaluationResult.getAllocationKey();
+        String experimentKey =
+            flagKey
+                + '-'
+                + allocationKey; // Our experiment key is derived by hyphenating the flag key and
+        // allocation key
+        String variationKey = evaluationResult.getVariation().getKey();
+        Map<String, String> extraLogging = evaluationResult.getExtraLogging();
+        Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
-      // Deduplication of assignment logging is possible by providing an `IAssignmentCache`.
-      // Default to true, only avoid logging if there's a cache hit.
-      boolean logAssignment = true;
-      AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
-      if (assignmentCache != null) {
-        try {
-          if (assignmentCache.hasEntry(cacheEntry).get()) {
-            logAssignment = false;
-          }
-        } catch (InterruptedException | ExecutionException e) {
-          log.error("Error getting assignment from cache, treating as a cache miss", e);
-        }
-      }
+        Assignment assignment =
+            new Assignment(
+                experimentKey,
+                flagKey,
+                allocationKey,
+                variationKey,
+                subjectKey,
+                subjectAttributes,
+                extraLogging,
+                metaData);
 
-      if (logAssignment) {
-        try {
-          assignmentLogger.logAssignment(assignment);
-        } catch (Exception e) {
-          log.error("Error logging assignment: {}", e.getMessage(), e);
-        }
+        // Deduplication of assignment logging is possible by providing an `IAssignmentCache`.
+        // Default to true, only avoid logging if there's a cache hit.
+        boolean logAssignment = true;
+        AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
         if (assignmentCache != null) {
-          assignmentCache.put(cacheEntry);
+          try {
+            if (assignmentCache.hasEntry(cacheEntry).get()) {
+              logAssignment = false;
+            }
+          } catch (InterruptedException | ExecutionException e) {
+            log.error("Error getting assignment from cache, treating as a cache miss", e);
+          }
         }
+
+        if (logAssignment) {
+          assignmentLogger.logAssignment(assignment);
+
+          if (assignmentCache != null) {
+            assignmentCache.put(cacheEntry);
+          }
+        }
+
+      } catch (Exception e) {
+        log.error("Error logging assignment: {}", e.getMessage(), e);
       }
     }
     return assignedValue != null ? assignedValue : defaultValue;
@@ -440,45 +443,45 @@ public class BaseEppoClient {
         result = new BanditResult(assignedVariation, banditResult.getActionKey());
 
         if (banditLogger != null) {
-          BanditAssignment banditAssignment =
-              new BanditAssignment(
-                  flagKey,
-                  banditKey,
-                  subjectKey,
-                  banditResult.getActionKey(),
-                  banditResult.getActionWeight(),
-                  banditResult.getOptimalityGap(),
-                  banditParameters.getModelVersion(),
-                  subjectAttributes.getNumericAttributes(),
-                  subjectAttributes.getCategoricalAttributes(),
-                  banditResult.getActionAttributes().getNumericAttributes(),
-                  banditResult.getActionAttributes().getCategoricalAttributes(),
-                  buildLogMetaData(config.isConfigObfuscated()));
+          try {
+            BanditAssignment banditAssignment =
+                new BanditAssignment(
+                    flagKey,
+                    banditKey,
+                    subjectKey,
+                    banditResult.getActionKey(),
+                    banditResult.getActionWeight(),
+                    banditResult.getOptimalityGap(),
+                    banditParameters.getModelVersion(),
+                    subjectAttributes.getNumericAttributes(),
+                    subjectAttributes.getCategoricalAttributes(),
+                    banditResult.getActionAttributes().getNumericAttributes(),
+                    banditResult.getActionAttributes().getCategoricalAttributes(),
+                    buildLogMetaData(config.isConfigObfuscated()));
 
-          // Log, only if there is no cache hit.
-          boolean logBanditAssignment = true;
-          AssignmentCacheEntry cacheEntry =
-              AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
-          if (banditAssignmentCache != null) {
-            try {
-              if (banditAssignmentCache.hasEntry(cacheEntry).get()) {
-                logBanditAssignment = false;
-              }
-            } catch (InterruptedException | ExecutionException e) {
-              log.error("Error getting assignment from cache", e);
-            }
-          }
-
-          if (logBanditAssignment) {
-            try {
-              banditLogger.logBanditAssignment(banditAssignment);
-            } catch (Exception e) {
-              log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
-            }
-
+            // Log, only if there is no cache hit.
+            boolean logBanditAssignment = true;
+            AssignmentCacheEntry cacheEntry =
+                AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
             if (banditAssignmentCache != null) {
-              banditAssignmentCache.put(cacheEntry);
+              try {
+                if (banditAssignmentCache.hasEntry(cacheEntry).get()) {
+                  logBanditAssignment = false;
+                }
+              } catch (InterruptedException | ExecutionException e) {
+                log.error("Error getting assignment from cache", e);
+              }
             }
+
+            if (logBanditAssignment) {
+              banditLogger.logBanditAssignment(banditAssignment);
+
+              if (banditAssignmentCache != null) {
+                banditAssignmentCache.put(cacheEntry);
+              }
+            }
+          } catch (Exception e) {
+            log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
           }
         }
       }

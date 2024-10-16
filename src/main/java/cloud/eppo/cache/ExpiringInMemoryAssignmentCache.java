@@ -7,10 +7,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 
 public class ExpiringInMemoryAssignmentCache extends AbstractAssignmentCache {
-  public ExpiringInMemoryAssignmentCache(int cacheTimeoutInSeconds) {
-    super(
-        Collections.synchronizedMap(
-            new PassiveExpiringMap<>(cacheTimeoutInSeconds, TimeUnit.SECONDS)));
+  public ExpiringInMemoryAssignmentCache(int cacheTimeout, TimeUnit timeUnit) {
+    super(Collections.synchronizedMap(new PassiveExpiringMap<>(cacheTimeout, timeUnit)));
   }
 
   public ExpiringInMemoryAssignmentCache(

@@ -27,7 +27,7 @@ public class AssignmentCacheKey {
 
   @Override
   public String toString() {
-    return subjectKey + "-" + flagKey;
+    return subjectKey + ";" + flagKey;
   }
 
   @Override
