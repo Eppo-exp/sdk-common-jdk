@@ -50,6 +50,9 @@ public class BaseEppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
+  // It is important that the bandit assignment cache expire with a short-enough TTL to last about
+  // one user session.
+  // The recommended is 10 minutes (per @Sven)
   protected BaseEppoClient(
       @NotNull String apiKey,
       @NotNull String sdkName,
@@ -63,7 +66,7 @@ public class BaseEppoClient {
       boolean supportBandits,
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
-      IAssignmentCache banditAssignmentCache) {
+      @Nullable IAssignmentCache banditAssignmentCache) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");

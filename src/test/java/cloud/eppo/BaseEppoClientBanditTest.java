@@ -77,7 +77,8 @@ public class BaseEppoClientBanditTest {
             true,
             null,
             new AbstractAssignmentCache(assignmentCache) {},
-            new ExpiringInMemoryAssignmentCache(banditAssignmentCache, 10, TimeUnit.MINUTES) {});
+            new ExpiringInMemoryAssignmentCache(
+                banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {});
 
     eppoClient.loadConfiguration();
 
@@ -269,6 +270,47 @@ public class BaseEppoClientBanditTest {
 
     verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
     verify(mockBanditLogger, times(3)).logBanditAssignment(any(BanditAssignment.class));
+  }
+
+  @Test
+  public void testBanditLogCacheExpires() throws InterruptedException {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = getBrandActions();
+
+    // 1. Get the bandit action, verify the result is being computed and logged.
+    eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
+    assertEquals(banditLogCaptor.getValue().getBandit(), "banner_bandit");
+    assertEquals(banditLogCaptor.getValue().getAction(), "adidas");
+
+    // 2. Get the bandit action again right away to ensure it was cached
+    eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    verify(mockBanditLogger, times(1)).logBanditAssignment(any(BanditAssignment.class));
+
+    // 3. Wait longer than the TTL of the cache (in this test, 50ms) and get the bandit action again
+    // to verify it was
+    // logged again.
+    Thread.sleep(75);
+    eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    verify(mockBanditLogger, times(2)).logBanditAssignment(any(BanditAssignment.class));
+
+    // Also verify that the assignment logger was only called once throughout as the assignmentCache
+    // is non-expiring for
+    // our purposes (in practice, an LRU cache would be used on the server, but the timescale at
+    // which deduplication has
+    // an impact is different there).
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
   }
 
   @NotNull private static BanditActions getBrandActions() {
