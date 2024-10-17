@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -193,12 +192,8 @@ public class BaseEppoClient {
         boolean logAssignment = true;
         AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
         if (assignmentCache != null) {
-          try {
-            if (assignmentCache.hasEntry(cacheEntry).get()) {
-              logAssignment = false;
-            }
-          } catch (InterruptedException | ExecutionException e) {
-            log.error("Error getting assignment from cache, treating as a cache miss", e);
+          if (assignmentCache.hasEntry(cacheEntry)) {
+            logAssignment = false;
           }
         }
 
@@ -464,12 +459,8 @@ public class BaseEppoClient {
             AssignmentCacheEntry cacheEntry =
                 AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
             if (banditAssignmentCache != null) {
-              try {
-                if (banditAssignmentCache.hasEntry(cacheEntry).get()) {
-                  logBanditAssignment = false;
-                }
-              } catch (InterruptedException | ExecutionException e) {
-                log.error("Error getting assignment from cache", e);
+              if (banditAssignmentCache.hasEntry(cacheEntry)) {
+                logBanditAssignment = false;
               }
             }
 
