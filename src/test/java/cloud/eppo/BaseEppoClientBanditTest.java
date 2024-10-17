@@ -298,18 +298,16 @@ public class BaseEppoClientBanditTest {
     verify(mockBanditLogger, times(1)).logBanditAssignment(any(BanditAssignment.class));
 
     // 3. Wait longer than the TTL of the cache (in this test, 50ms) and get the bandit action again
-    // to verify it was
-    // logged again.
+    // to verify it was logged again.
     Thread.sleep(75);
     eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
     verify(mockBanditLogger, times(2)).logBanditAssignment(any(BanditAssignment.class));
 
     // Also verify that the assignment logger was only called once throughout as the assignmentCache
-    // is non-expiring for
-    // our purposes (in practice, an LRU cache would be used on the server, but the timescale at
-    // which deduplication has
-    // an impact is different there).
+    // is effectively non-expiring for our purposes here (in practice, an LRU cache would be used on
+    // the server, but the
+    // timescale at which deduplication has an impact is different there).
     verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
   }
 
