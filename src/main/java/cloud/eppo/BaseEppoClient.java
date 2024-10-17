@@ -3,6 +3,7 @@ package cloud.eppo;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.cache.AssignmentCacheEntry;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
@@ -35,6 +36,8 @@ public class BaseEppoClient {
   private final String sdkName;
   private final String sdkVersion;
   private boolean isGracefulMode;
+  private final IAssignmentCache assignmentCache;
+  private final IAssignmentCache banditAssignmentCache;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
     return initialConfigFuture;
@@ -47,6 +50,9 @@ public class BaseEppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
+  // It is important that the bandit assignment cache expire with a short-enough TTL to last about
+  // one user session.
+  // The recommended is 10 minutes (per @Sven)
   protected BaseEppoClient(
       @NotNull String apiKey,
       @NotNull String sdkName,
@@ -58,7 +64,9 @@ public class BaseEppoClient {
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       boolean supportBandits,
-      @Nullable CompletableFuture<Configuration> initialConfiguration) {
+      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable IAssignmentCache assignmentCache,
+      @Nullable IAssignmentCache banditAssignmentCache) {
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -70,6 +78,9 @@ public class BaseEppoClient {
     if (host == null) {
       host = DEFAULT_HOST;
     }
+
+    this.assignmentCache = assignmentCache;
+    this.banditAssignmentCache = banditAssignmentCache;
 
     EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
     this.configurationStore =
@@ -156,33 +167,51 @@ public class BaseEppoClient {
     }
 
     if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
-      String allocationKey = evaluationResult.getAllocationKey();
-      String experimentKey =
-          flagKey
-              + '-'
-              + allocationKey; // Our experiment key is derived by hyphenating the flag key and
-      // allocation key
-      String variationKey = evaluationResult.getVariation().getKey();
-      Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-      Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
-      Assignment assignment =
-          new Assignment(
-              experimentKey,
-              flagKey,
-              allocationKey,
-              variationKey,
-              subjectKey,
-              subjectAttributes,
-              extraLogging,
-              metaData);
       try {
-        assignmentLogger.logAssignment(assignment);
+        String allocationKey = evaluationResult.getAllocationKey();
+        String experimentKey =
+            flagKey
+                + '-'
+                + allocationKey; // Our experiment key is derived by hyphenating the flag key and
+        // allocation key
+        String variationKey = evaluationResult.getVariation().getKey();
+        Map<String, String> extraLogging = evaluationResult.getExtraLogging();
+        Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
+
+        Assignment assignment =
+            new Assignment(
+                experimentKey,
+                flagKey,
+                allocationKey,
+                variationKey,
+                subjectKey,
+                subjectAttributes,
+                extraLogging,
+                metaData);
+
+        // Deduplication of assignment logging is possible by providing an `IAssignmentCache`.
+        // Default to true, only avoid logging if there's a cache hit.
+        boolean logAssignment = true;
+        AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
+        if (assignmentCache != null) {
+          if (assignmentCache.hasEntry(cacheEntry)) {
+            logAssignment = false;
+          }
+        }
+
+        if (logAssignment) {
+          assignmentLogger.logAssignment(assignment);
+
+          if (assignmentCache != null) {
+            assignmentCache.put(cacheEntry);
+          }
+        }
+
       } catch (Exception e) {
-        log.warn("Error logging assignment: {}", e.getMessage(), e);
+        log.error("Error logging assignment: {}", e.getMessage(), e);
       }
     }
-
     return assignedValue != null ? assignedValue : defaultValue;
   }
 
@@ -428,7 +457,23 @@ public class BaseEppoClient {
                     banditResult.getActionAttributes().getCategoricalAttributes(),
                     buildLogMetaData(config.isConfigObfuscated()));
 
-            banditLogger.logBanditAssignment(banditAssignment);
+            // Log, only if there is no cache hit.
+            boolean logBanditAssignment = true;
+            AssignmentCacheEntry cacheEntry =
+                AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
+            if (banditAssignmentCache != null) {
+              if (banditAssignmentCache.hasEntry(cacheEntry)) {
+                logBanditAssignment = false;
+              }
+            }
+
+            if (logBanditAssignment) {
+              banditLogger.logBanditAssignment(banditAssignment);
+
+              if (banditAssignmentCache != null) {
+                banditAssignmentCache.put(cacheEntry);
+              }
+            }
           } catch (Exception e) {
             log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
           }

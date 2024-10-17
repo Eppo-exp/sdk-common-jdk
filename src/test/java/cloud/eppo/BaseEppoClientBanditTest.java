@@ -5,10 +5,8 @@ import static cloud.eppo.helpers.BanditTestCase.runBanditTestCase;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import cloud.eppo.api.Attributes;
-import cloud.eppo.api.BanditActions;
-import cloud.eppo.api.BanditResult;
-import cloud.eppo.api.Configuration;
+import cloud.eppo.api.*;
+import cloud.eppo.cache.ExpiringInMemoryAssignmentCache;
 import cloud.eppo.helpers.*;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -18,8 +16,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,13 +44,22 @@ public class BaseEppoClientBanditTest {
 
   private static BaseEppoClient eppoClient;
 
-  private File initialFlagConfigFile =
+  private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config-with-bandit.json");
 
-  private File initialBanditParamFile =
+  private final File initialBanditParamFile =
       new File("src/test/resources/static/initial-bandit-parameters.json");
 
   // TODO: possibly consolidate code between this and the non-bandit test
+
+  private static final Map<String, String> assignmentCache = new HashMap<>();
+  private static final Map<String, String> banditAssignmentCache = new HashMap<>();
+
+  @BeforeEach
+  public void resetCaches() {
+    assignmentCache.clear();
+    banditAssignmentCache.clear();
+  }
 
   @BeforeAll
   public static void initClient() {
@@ -66,14 +75,17 @@ public class BaseEppoClientBanditTest {
             false,
             false,
             true,
-            null);
+            null,
+            new AbstractAssignmentCache(assignmentCache) {},
+            new ExpiringInMemoryAssignmentCache(
+                banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {});
 
     eppoClient.loadConfiguration();
 
     log.info("Test client initialized");
   }
 
-  private void initClientWithData(
+  private BaseEppoClient initClientWithData(
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
     CompletableFuture<Configuration> initialConfig =
@@ -82,19 +94,20 @@ public class BaseEppoClientBanditTest {
                 .banditParameters(initialBanditParameters)
                 .build());
 
-    eppoClient =
-        new BaseEppoClient(
-            DUMMY_BANDIT_API_KEY,
-            "java",
-            "3.0.0",
-            TEST_HOST,
-            mockAssignmentLogger,
-            mockBanditLogger,
-            null,
-            false,
-            false,
-            true,
-            initialConfig);
+    return new BaseEppoClient(
+        DUMMY_BANDIT_API_KEY,
+        "java",
+        "3.0.0",
+        TEST_HOST,
+        mockAssignmentLogger,
+        mockBanditLogger,
+        null,
+        false,
+        false,
+        true,
+        initialConfig,
+        null,
+        null);
   }
 
   @BeforeEach
@@ -126,22 +139,7 @@ public class BaseEppoClientBanditTest {
     subjectAttributes.put("country", "USA");
     subjectAttributes.put("gender_identity", "female");
 
-    BanditActions actions = new BanditActions();
-
-    Attributes nikeAttributes = new Attributes();
-    nikeAttributes.put("brand_affinity", 1.5);
-    nikeAttributes.put("loyalty_tier", "silver");
-    actions.put("nike", nikeAttributes);
-
-    Attributes adidasAttributes = new Attributes();
-    adidasAttributes.put("brand_affinity", -1.0);
-    adidasAttributes.put("loyalty_tier", "bronze");
-    actions.put("adidas", adidasAttributes);
-
-    Attributes rebookAttributes = new Attributes();
-    rebookAttributes.put("brand_affinity", 0.5);
-    rebookAttributes.put("loyalty_tier", "gold");
-    actions.put("reebok", rebookAttributes);
+    BanditActions actions = getBrandActions();
 
     BanditResult banditResult =
         eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
@@ -205,6 +203,132 @@ public class BaseEppoClientBanditTest {
         capturedBanditAssignment.getActionCategoricalAttributes());
 
     assertEquals("false", capturedBanditAssignment.getMetaData().get("obfuscated"));
+  }
+
+  @Test
+  public void testBanditLogCached() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = getBrandActions();
+
+    BanditResult banditResult =
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    // Verify assignment
+    assertEquals("banner_bandit", banditResult.getVariation());
+    assertEquals("adidas", banditResult.getAction());
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+    assertEquals("training", assignmentLogCaptor.getValue().getAllocation());
+    assertEquals(assignmentLogCaptor.getValue().getVariation(), "banner_bandit");
+
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
+    assertEquals(banditLogCaptor.getValue().getBandit(), "banner_bandit");
+    assertEquals(banditLogCaptor.getValue().getAction(), "adidas");
+
+    BanditResult duplicateBanditResult =
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+    assertEquals("banner_bandit", duplicateBanditResult.getVariation());
+    assertEquals("adidas", duplicateBanditResult.getAction());
+
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
+    verify(mockBanditLogger, times(1)).logBanditAssignment(any(BanditAssignment.class));
+
+    // Now, get a different result and make sure it's been logged
+    BanditActions newActions = new BanditActions();
+
+    Attributes newBalanceAttributes = new Attributes();
+    newBalanceAttributes.put("dad_cred", 10);
+    newBalanceAttributes.put("loyalty_tier", "silver");
+    newActions.put("New Balance", newBalanceAttributes);
+
+    BanditResult newBanditResult =
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, newActions, "control");
+
+    assertEquals("banner_bandit", newBanditResult.getVariation());
+    assertEquals("New Balance", newBanditResult.getAction());
+
+    // Assignment will only have been called once still as it evaluates to the same variation (i.e.
+    // `banner_bandit`)
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
+    verify(mockBanditLogger, times(2)).logBanditAssignment(any(BanditAssignment.class));
+
+    // Back to the original result to make sure it's logged one more time.
+    BanditResult originalResult =
+        eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    assertEquals("banner_bandit", originalResult.getVariation());
+    assertEquals("adidas", originalResult.getAction());
+
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
+    verify(mockBanditLogger, times(3)).logBanditAssignment(any(BanditAssignment.class));
+  }
+
+  @Test
+  public void testBanditLogCacheExpires() throws InterruptedException {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = getBrandActions();
+
+    // 1. Get the bandit action, verify the result is being computed and logged.
+    eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
+    assertEquals(banditLogCaptor.getValue().getBandit(), "banner_bandit");
+    assertEquals(banditLogCaptor.getValue().getAction(), "adidas");
+
+    // 2. Get the bandit action again right away to ensure it was cached
+    eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    verify(mockBanditLogger, times(1)).logBanditAssignment(any(BanditAssignment.class));
+
+    // 3. Wait longer than the TTL of the cache (in this test, 50ms) and get the bandit action again
+    // to verify it was logged again.
+    Thread.sleep(75);
+    eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    verify(mockBanditLogger, times(2)).logBanditAssignment(any(BanditAssignment.class));
+
+    // Also verify that the assignment logger was only called once throughout as the assignmentCache
+    // is effectively non-expiring for our purposes here (in practice, an LRU cache would be used on
+    // the server, but the
+    // timescale at which deduplication has an impact is different there).
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
+  }
+
+  @NotNull private static BanditActions getBrandActions() {
+    BanditActions actions = new BanditActions();
+
+    Attributes nikeAttributes = new Attributes();
+    nikeAttributes.put("brand_affinity", 1.5);
+    nikeAttributes.put("loyalty_tier", "silver");
+    actions.put("nike", nikeAttributes);
+
+    Attributes adidasAttributes = new Attributes();
+    adidasAttributes.put("brand_affinity", -1.0);
+    adidasAttributes.put("loyalty_tier", "bronze");
+    actions.put("adidas", adidasAttributes);
+
+    Attributes rebookAttributes = new Attributes();
+    rebookAttributes.put("brand_affinity", 0.5);
+    rebookAttributes.put("loyalty_tier", "gold");
+    actions.put("reebok", rebookAttributes);
+    return actions;
   }
 
   @Test
@@ -331,23 +455,23 @@ public class BaseEppoClientBanditTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
       String banditConfig = FileUtils.readFileToString(initialBanditParamFile, "UTF8");
 
-      initClientWithData(flagConfig, banditConfig);
+      BaseEppoClient client = initClientWithData(flagConfig, banditConfig);
 
       BanditActions actions = new BanditActions();
       actions.put("nike", new Attributes());
       actions.put("adidas", new Attributes());
 
       BanditResult result =
-          eppoClient.getBanditAction(
+          client.getBanditAction(
               "banner_bandit_flag", "subject", new Attributes(), actions, "default");
 
       assertEquals("banner_bandit", result.getVariation());
       assertEquals("adidas", result.getAction());
 
       // Demonstrate that loaded configuration is different from the initial string passed above.
-      eppoClient.loadConfiguration();
+      client.loadConfiguration();
       BanditResult banditResult =
-          eppoClient.getBanditAction(
+          client.getBanditAction(
               "banner_bandit_flag", "subject", new Attributes(), actions, "default");
       assertEquals("banner_bandit", banditResult.getVariation());
       assertEquals("nike", banditResult.getAction());

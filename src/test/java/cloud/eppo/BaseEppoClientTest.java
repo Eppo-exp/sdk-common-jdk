@@ -13,6 +13,8 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.Configuration;
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IAssignmentCache;
+import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -72,7 +74,9 @@ public class BaseEppoClientTest {
             isGracefulMode,
             isConfigObfuscated,
             true,
-            initialFlagConfiguration);
+            initialFlagConfiguration,
+            null,
+            null);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
@@ -90,6 +94,31 @@ public class BaseEppoClientTest {
             isGracefulMode,
             isConfigObfuscated,
             true,
+            null,
+            null,
+            null);
+
+    eppoClient.loadConfiguration();
+    log.info("Test client initialized");
+  }
+
+  private void initClientWithAssignmentCache(IAssignmentCache cache) {
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            null,
+            true,
+            false,
+            true,
+            null,
+            cache,
             null);
 
     eppoClient.loadConfiguration();
@@ -318,6 +347,67 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testAssignmentNotDeduplicatedWithoutCache() {
+    initClient();
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", EppoValue.valueOf(30));
+    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
+
+    // Get the assignment twice
+    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+    eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+
+    // `logAssignment` should be called twice;
+    verify(mockAssignmentLogger, times(2)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testAssignmentEventCorrectlyDeduplicated() {
+    initClientWithAssignmentCache(new LRUInMemoryAssignmentCache(1024));
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
+
+    // Get the assignment twice
+    int assignment =
+        eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+    eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+
+    // `2` matches the attribute `number` value of "123456789"
+    assertEquals(2, assignment);
+
+    // `logAssignment` should be called only once.
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
+
+    // Now, change the assigned value to get a logged entry. `number="1"` will map to the assignment
+    // of `1`.
+    subjectAttributes.put("number", EppoValue.valueOf("1"));
+
+    // Get the assignment
+    int newAssignment =
+        eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+    assertEquals(1, newAssignment);
+
+    // Verify a new log call
+    verify(mockAssignmentLogger, times(2)).logAssignment(any(Assignment.class));
+
+    // Change back to the original variation to ensure it is not still cached after the previous
+    // value evicted it.
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
+
+    // Get the assignment
+    int oldAssignment =
+        eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+    assertEquals(2, oldAssignment);
+
+    // Verify a new log call
+    verify(mockAssignmentLogger, times(3)).logAssignment(any(Assignment.class));
+  }
+
+  @Test
   public void testAssignmentLogErrorNonFatal() {
     initClient();
     doThrow(new RuntimeException("Mock Assignment Logging Error"))
@@ -331,6 +421,4 @@ public class BaseEppoClientTest {
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
   }
-
-  // TODO: tests for the cache
 }
