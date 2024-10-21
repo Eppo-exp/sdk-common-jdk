@@ -47,7 +47,7 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
     return serializedEntry != null && serializedEntry.equals(entry.getValueKeyString());
   }
 
-  protected String get(AssignmentCacheKey key) {
+  private String get(AssignmentCacheKey key) {
     return delegate.get(key.toString());
   }
 
