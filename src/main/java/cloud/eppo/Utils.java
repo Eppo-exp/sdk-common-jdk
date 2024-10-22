@@ -6,9 +6,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Locale;
-import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,14 +105,14 @@ public final class Utils {
     if (input == null) {
       return null;
     }
-    return Base64.encodeBase64String(input.getBytes(StandardCharsets.UTF_8));
+    return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
   }
 
   public static String base64Decode(String input) {
     if (input == null) {
       return null;
     }
-    byte[] decodedBytes = Base64.decodeBase64(input);
+    byte[] decodedBytes = Base64.getDecoder().decode(input);
     if (decodedBytes.length == 0 && !input.isEmpty()) {
       throw new RuntimeException(
           "zero byte output from Base64; if not running on Android hardware be sure to use RobolectricTestRunner");
