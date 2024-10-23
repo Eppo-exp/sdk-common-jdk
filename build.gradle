@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '3.4.1-SNAPSHOT'
+version = '3.5.1-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 java {
@@ -20,12 +20,8 @@ dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
   implementation 'com.github.zafarkhaja:java-semver:0.10.2'
   implementation "com.squareup.okhttp3:okhttp:4.12.0"
-
   // For LRU and expiring maps
-  implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-
-  // For UFC DTOs
-  implementation 'commons-codec:commons-codec:1.17.1'
+  implementation 'org.apache.commons:commons-collections4:4.4'
   implementation 'org.slf4j:slf4j-api:2.0.16'
   testImplementation 'org.slf4j:slf4j-simple:2.0.16'
   testImplementation platform('org.junit:junit-bom:5.10.3')
