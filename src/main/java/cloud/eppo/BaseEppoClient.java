@@ -27,7 +27,6 @@ public class BaseEppoClient {
       new ObjectMapper()
           .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
 
-  protected static final String DEFAULT_HOST = "https://fscdn.eppo.cloud";
   protected final ConfigurationRequestor requestor;
 
   private final IConfigurationStore configurationStore;
@@ -76,7 +75,7 @@ public class BaseEppoClient {
           "Unable to initialize Eppo SDK due to missing SDK name or version");
     }
     if (host == null) {
-      host = DEFAULT_HOST;
+      host = Constants.DEFAULT_BASE_URL;
     }
 
     this.assignmentCache = assignmentCache;
