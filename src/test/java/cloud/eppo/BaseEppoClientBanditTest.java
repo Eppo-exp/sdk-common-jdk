@@ -177,7 +177,7 @@ public class BaseEppoClientBanditTest {
     assertEquals("adidas", capturedBanditAssignment.getAction());
     assertEquals(0.099, capturedBanditAssignment.getActionProbability(), 0.0002);
     assertEquals(7.1, capturedBanditAssignment.getOptimalityGap(), 0.0002);
-    assertEquals("v123", capturedBanditAssignment.getModelVersion());
+    assertEquals("123", capturedBanditAssignment.getModelVersion());
 
     Attributes expectedSubjectNumericAttributes = new Attributes();
     expectedSubjectNumericAttributes.put("age", 25);
