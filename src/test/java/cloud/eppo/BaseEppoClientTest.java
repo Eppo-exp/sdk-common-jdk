@@ -305,6 +305,33 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testClientMakesDefaultAssignmentsAfterFailingToInitialize() {
+    // Set up bad HTTP response
+    mockHttpError();
+
+    // Initialize and no exception should be thrown.
+    assertDoesNotThrow(() -> initClient(true, false));
+
+    assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
+  }
+
+  @Test
+  public void testClientMakesDefaultAssignmentsAfterFailingToInitializeNonGracefulMode() {
+    // Set up bad HTTP response
+    mockHttpError();
+
+    // Initialize and no exception should be thrown.
+    try {
+      initClient(false, false);
+    } catch (RuntimeException e) {
+      // Expected
+      assertEquals("Intentional Error", e.getMessage());
+    } finally {
+      assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
+    }
+  }
+
+  @Test
   public void testNonGracefulInitializationFailure() {
     // Set up bad HTTP response
     mockHttpError();
