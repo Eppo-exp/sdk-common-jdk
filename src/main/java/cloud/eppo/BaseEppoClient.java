@@ -111,11 +111,32 @@ public class BaseEppoClient {
   }
 
   protected void loadConfiguration() {
-    requestor.fetchAndSaveFromRemote();
+    try {
+      requestor.fetchAndSaveFromRemote();
+    } catch (Exception ex) {
+      log.error("Encountered Exception while loading configuration", ex);
+      if (!isGracefulMode) {
+        throw ex;
+      }
+    }
   }
 
   protected CompletableFuture<Void> loadConfigurationAsync() {
-    return requestor.fetchAndSaveFromRemoteAsync();
+    CompletableFuture<Void> future = new CompletableFuture<>();
+
+    requestor
+        .fetchAndSaveFromRemoteAsync()
+        .exceptionally(
+            ex -> {
+              log.error("Encountered Exception while loading configuration", ex);
+              if (!isGracefulMode) {
+                future.completeExceptionally(ex);
+              }
+              return null;
+            })
+        .thenAccept(future::complete);
+
+    return future;
   }
 
   protected EppoValue getTypedAssignment(

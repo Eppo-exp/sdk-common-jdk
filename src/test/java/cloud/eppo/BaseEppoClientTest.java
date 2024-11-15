@@ -2,18 +2,17 @@ package cloud.eppo;
 
 import static cloud.eppo.helpers.AssignmentTestCase.parseTestCaseFile;
 import static cloud.eppo.helpers.AssignmentTestCase.runTestCase;
+import static cloud.eppo.helpers.TestUtils.mockHttpError;
 import static cloud.eppo.helpers.TestUtils.mockHttpResponse;
 import static cloud.eppo.helpers.TestUtils.setBaseClientHttpClientOverrideField;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-import cloud.eppo.api.Attributes;
-import cloud.eppo.api.Configuration;
-import cloud.eppo.api.EppoValue;
-import cloud.eppo.api.IAssignmentCache;
+import cloud.eppo.api.*;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
@@ -25,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -100,6 +100,29 @@ public class BaseEppoClientTest {
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
+  }
+
+  private CompletableFuture<Void> initClientAsync(
+      boolean isGracefulMode, boolean isConfigObfuscated) {
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            isConfigObfuscated ? "android" : "java",
+            "3.0.0",
+            TEST_HOST,
+            mockAssignmentLogger,
+            null,
+            null,
+            isGracefulMode,
+            isConfigObfuscated,
+            true,
+            null,
+            null,
+            null);
+
+    return eppoClient.loadConfigurationAsync();
   }
 
   private void initClientWithAssignmentCache(IAssignmentCache cache) {
@@ -270,6 +293,51 @@ public class BaseEppoClientTest {
       String config, boolean isObfuscated) {
     return CompletableFuture.completedFuture(
         Configuration.builder(config.getBytes(), isObfuscated).build());
+  }
+
+  @Test
+  public void testGracefulInitializationFailure() {
+    // Set up bad HTTP response
+    mockHttpError();
+
+    // Initialize and no exception should be thrown.
+    assertDoesNotThrow(() -> initClient(true, false));
+  }
+
+  @Test
+  public void testNonGracefulInitializationFailure() {
+    // Set up bad HTTP response
+    mockHttpError();
+
+    // Initialize and assert exception thrown
+    assertThrows(Exception.class, () -> initClient(false, false));
+  }
+
+  @Test
+  public void testGracefulAsyncInitializationFailure() {
+    // Set up bad HTTP response
+    mockHttpError();
+
+    // Initialize
+    CompletableFuture<Void> init = initClientAsync(true, false);
+
+    // Wait for initialization; future should not complete exceptionally (equivalent of exception
+    // being thrown).
+    init.join();
+    assertFalse(init.isCompletedExceptionally());
+  }
+
+  @Test
+  public void testNonGracefulAsyncInitializationFailure() {
+    // Set up bad HTTP response
+    mockHttpError();
+
+    // Initialize
+    CompletableFuture<Void> init = initClientAsync(false, false);
+
+    // Exceptions thrown in CompletableFutures are wrapped in a CompletionException.
+    assertThrows(CompletionException.class, init::join);
+    assertTrue(init.isCompletedExceptionally());
   }
 
   @Test
