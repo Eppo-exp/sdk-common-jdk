@@ -66,7 +66,7 @@ public class BaseEppoClientTest {
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
-            "3.5.1",
+            "100.1.0",
             TEST_HOST,
             mockAssignmentLogger,
             null,
@@ -86,7 +86,7 @@ public class BaseEppoClientTest {
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
-            "3.5.1",
+            "100.1.0",
             TEST_HOST,
             mockAssignmentLogger,
             null,
@@ -110,7 +110,7 @@ public class BaseEppoClientTest {
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
-            "3.5.1",
+            "100.1.0",
             TEST_HOST,
             mockAssignmentLogger,
             null,
@@ -132,7 +132,7 @@ public class BaseEppoClientTest {
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
             "java",
-            "3.5.1",
+            "100.1.0",
             TEST_HOST,
             mockAssignmentLogger,
             null,
@@ -436,7 +436,7 @@ public class BaseEppoClientTest {
     Map<String, String> expectedMeta = new HashMap<>();
     expectedMeta.put("obfuscated", "false");
     expectedMeta.put("sdkLanguage", "java");
-    expectedMeta.put("sdkLibVersion", "3.5.1");
+    expectedMeta.put("sdkLibVersion", "100.1.0");
 
     assertEquals(expectedMeta, capturedAssignment.getMetaData());
   }
