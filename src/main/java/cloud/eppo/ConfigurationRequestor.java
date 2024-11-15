@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
-  private static final String FLAG_CONFIG_PATH = "/api/flag-config/v1/config";
-  private static final String BANDIT_PARAMETER_PATH = "/api/flag-config/v1/bandits";
 
   private final EppoHttpClient client;
   private final IConfigurationStore configurationStore;
@@ -90,13 +88,13 @@ public class ConfigurationRequestor {
     // Reuse the `lastConfig` as its bandits may be useful
     Configuration lastConfig = configurationStore.getConfiguration();
 
-    byte[] flagConfigurationJsonBytes = client.get(FLAG_CONFIG_PATH);
+    byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
     Configuration.Builder configBuilder =
         Configuration.builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
             .banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-      byte[] banditParametersJsonBytes = client.get(BANDIT_PARAMETER_PATH);
+      byte[] banditParametersJsonBytes = client.get(Constants.BANDIT_ENDPOINT);
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
 
@@ -116,7 +114,7 @@ public class ConfigurationRequestor {
 
     remoteFetchFuture =
         client
-            .getAsync(FLAG_CONFIG_PATH)
+            .getAsync(Constants.FLAG_CONFIG_ENDPOINT)
             .thenApply(
                 flagConfigJsonBytes -> {
                   synchronized (this) {
@@ -128,7 +126,8 @@ public class ConfigurationRequestor {
                     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
                       byte[] banditParametersJsonBytes;
                       try {
-                        banditParametersJsonBytes = client.getAsync(BANDIT_PARAMETER_PATH).get();
+                        banditParametersJsonBytes =
+                            client.getAsync(Constants.BANDIT_ENDPOINT).get();
                       } catch (InterruptedException | ExecutionException e) {
                         log.error("Error fetching from remote: " + e.getMessage());
                         throw new RuntimeException(e);

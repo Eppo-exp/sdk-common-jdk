@@ -21,6 +21,7 @@ public class Constants {
   public static final String RAC_ENDPOINT = "/randomized_assignment/v3/config";
 
   public static final String BANDIT_ENDPOINT = "/flag-config/v1/bandits";
+  public static final String FLAG_CONFIG_ENDPOINT = "/flag-config/v1/config";
 
   /** Caching Settings */
   public static final String EXPERIMENT_CONFIGURATION_CACHE_KEY = "experiment-configuration";
