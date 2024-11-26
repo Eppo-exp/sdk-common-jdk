@@ -40,11 +40,12 @@ public class BaseEppoClientTest {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClientTest.class);
   private static final String DUMMY_FLAG_API_KEY = "dummy-flags-api-key"; // Will load flags-v1
 
-  // Use the branch specified by env variable `TEST_DATA_BRANCH`.
+  // Use branch if specified by env variable `TEST_DATA_BRANCH`.
   private static final String TEST_BRANCH = System.getenv("TEST_DATA_BRANCH");
+  private static final String TEST_HOST_BASE =
+      "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
   private static final String TEST_HOST =
-      "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile/"
-          + (TEST_BRANCH != null ? "b/" + TEST_BRANCH : "");
+      TEST_HOST_BASE + (TEST_BRANCH != null ? "/b/" + TEST_BRANCH : "");
 
   private final ObjectMapper mapper =
       new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
