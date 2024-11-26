@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '3.5.4'
+version = '3.5.5-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 java {
@@ -17,17 +17,17 @@ java {
 }
 
 dependencies {
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.1'
   implementation 'com.github.zafarkhaja:java-semver:0.10.2'
   implementation "com.squareup.okhttp3:okhttp:4.12.0"
   // For LRU and expiring maps
   implementation 'org.apache.commons:commons-collections4:4.4'
   implementation 'org.slf4j:slf4j-api:2.0.16'
   testImplementation 'org.slf4j:slf4j-simple:2.0.16'
-  testImplementation platform('org.junit:junit-bom:5.10.3')
+  testImplementation platform('org.junit:junit-bom:5.11.3')
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
-  testImplementation 'commons-io:commons-io:2.17.0'
+  testImplementation 'commons-io:commons-io:2.18.0'
   testImplementation 'com.google.truth:truth:1.4.4'
   testImplementation ('org.mockito:mockito-core:4.11.0') {
     exclude group: 'net.bytebuddy', module: 'byte-buddy' // mockito 4's version doesn't work with Java 21
