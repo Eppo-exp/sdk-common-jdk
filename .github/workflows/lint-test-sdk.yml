@@ -5,7 +5,7 @@ on:
     paths:
       - '**/*'
   push:
-    branches: [main, tp/**]
+    branches: [main]
 
   workflow_dispatch:
 
