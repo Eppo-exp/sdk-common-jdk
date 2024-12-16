@@ -57,6 +57,7 @@ public class BaseEppoClient {
       @NotNull String sdkName,
       @NotNull String sdkVersion,
       @Nullable String apiBaseUrl,
+      @Deprecated @Nullable String apiHost, // To be removed in v4. use `apiBaseUrl` instead.
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
       @Nullable IConfigurationStore configurationStore,
@@ -75,7 +76,8 @@ public class BaseEppoClient {
           "Unable to initialize Eppo SDK due to missing SDK name or version");
     }
     if (apiBaseUrl == null) {
-      apiBaseUrl = Constants.DEFAULT_BASE_URL;
+      apiBaseUrl =
+          apiHost != null ? Constants.appendApiPathToHost(apiHost) : Constants.DEFAULT_BASE_URL;
     }
 
     this.assignmentCache = assignmentCache;

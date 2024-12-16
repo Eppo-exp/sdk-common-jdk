@@ -5,11 +5,7 @@ import static cloud.eppo.helpers.AssignmentTestCase.runTestCase;
 import static cloud.eppo.helpers.TestUtils.mockHttpError;
 import static cloud.eppo.helpers.TestUtils.mockHttpResponse;
 import static cloud.eppo.helpers.TestUtils.setBaseClientHttpClientOverrideField;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.*;
@@ -22,10 +18,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,10 +42,10 @@ public class BaseEppoClientTest {
 
   // Use branch if specified by env variable `TEST_DATA_BRANCH`.
   private static final String TEST_BRANCH = System.getenv("TEST_DATA_BRANCH");
-  private static final String CLOUD_API_URL =
+  private static final String TEST_API_CLOUD_FUNCTION_URL =
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
   private static final String TEST_BASE_URL =
-      CLOUD_API_URL + (TEST_BRANCH != null ? "/b/" + TEST_BRANCH : "");
+      TEST_API_CLOUD_FUNCTION_URL + (TEST_BRANCH != null ? "/b/" + TEST_BRANCH : "") + "/api";
 
   private final ObjectMapper mapper =
       new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
@@ -74,6 +74,7 @@ public class BaseEppoClientTest {
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
             TEST_BASE_URL,
+            null,
             mockAssignmentLogger,
             null,
             null,
@@ -94,6 +95,7 @@ public class BaseEppoClientTest {
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
             TEST_BASE_URL,
+            null,
             mockAssignmentLogger,
             null,
             null,
@@ -118,6 +120,7 @@ public class BaseEppoClientTest {
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
             TEST_BASE_URL,
+            null,
             mockAssignmentLogger,
             null,
             null,
@@ -140,6 +143,7 @@ public class BaseEppoClientTest {
             "java",
             "100.1.0",
             TEST_BASE_URL,
+            null,
             mockAssignmentLogger,
             null,
             null,
@@ -178,6 +182,49 @@ public class BaseEppoClientTest {
 
   private static Stream<Arguments> getAssignmentTestData() {
     return AssignmentTestCase.getAssignmentTestData();
+  }
+
+  @Test
+  public void testBaseUrlBackwardsCompatibility() throws IOException, InterruptedException {
+    // Base client must be buildable with a HOST (i.e. no `/api` postfix)
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    MockWebServer mockWebServer = new MockWebServer();
+    URL mockServerBaseUrl = mockWebServer.url("").url(); // get base url of mockwebserver
+
+    // Remove trailing slash to mimic typical "host" parameter of "https://fscdn.eppo.cloud"
+    String testHost = mockServerBaseUrl.toString().replaceAll("/$", "");
+
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "100.1.0",
+            null,
+            testHost,
+            mockAssignmentLogger,
+            null,
+            null,
+            false,
+            false,
+            true,
+            null,
+            null,
+            null);
+
+    eppoClient.loadConfiguration();
+
+    // Test what path the call was sent to
+    RecordedRequest request = mockWebServer.takeRequest();
+    assertNotNull(request);
+    assertEquals("GET", request.getMethod());
+
+    // The "/api" part comes from appending it on to a "host" parameter but not a base URL param.
+    assertEquals(
+        "/api/flag-config/v1/config?apiKey=dummy-flags-api-key&sdkName=java&sdkVersion=100.1.0",
+        request.getPath());
   }
 
   @Test
@@ -287,7 +334,7 @@ public class BaseEppoClientTest {
   @Test
   public void testInvalidConfigJSON() {
 
-    mockHttpResponse(TEST_BASE_URL, "{}");
+    mockHttpResponse("{}");
 
     initClient(false, false);
 

@@ -40,6 +40,7 @@ public class ProfileBaseEppoClientTest {
             "java",
             "3.0.0",
             TEST_HOST,
+            null,
             noOpAssignmentLogger,
             null,
             null,
