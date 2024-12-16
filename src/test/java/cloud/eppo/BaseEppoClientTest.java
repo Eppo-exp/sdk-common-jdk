@@ -334,7 +334,7 @@ public class BaseEppoClientTest {
   @Test
   public void testInvalidConfigJSON() {
 
-    mockHttpResponse("{}");
+    mockHttpResponse(TEST_BASE_URL, "{}");
 
     initClient(false, false);
 
