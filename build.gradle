@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '3.5.5-SNAPSHOT'
+version = '3.6.0'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 java {
