@@ -27,6 +27,21 @@ public class TestUtils {
     setBaseClientHttpClientOverrideField(mockHttpClient);
   }
 
+  public static void mockHttpError() {
+    // Create a mock instance of EppoHttpClient
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+
+    // Mock sync get
+    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
+
+    // Mock async get
+    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
+    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
+    mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
+
+    setBaseClientHttpClientOverrideField(mockHttpClient);
+  }
+
   public static void setBaseClientHttpClientOverrideField(EppoHttpClient httpClient) {
     setBaseClientOverrideField("httpClientOverride", httpClient);
   }

@@ -7,10 +7,26 @@ on:
   push:
     branches: [main]
 
+  workflow_dispatch:
+
+  workflow_call:
+    inputs:
+      test_data_branch:
+        type: string
+        description: The branch in sdk-test-data to target for testcase files
+        required: false
+        default: main
+      sdk_branch:
+        type: string
+        description: The branch of the SDK to test
+        required: false
+
 env:
   ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
   ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
   CI: true
+  SDK_BRANCH: ${{ inputs.sdk_branch  || github.head_ref || github.ref_name || 'main' }}
+  TEST_DATA_BRANCH: ${{ inputs.test_data_branch || 'main' }}
 
 jobs:
   lint-test-sdk:
@@ -21,6 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          repository: Eppo-exp/sdk-common-jdk
+          ref: ${{ env.SDK_BRANCH }}
           fetch-depth: 0
 
       - name: Set up JDK ${{ matrix.java-version }}
@@ -32,4 +50,4 @@ jobs:
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Run tests
-        run: make test
+        run: make test branchName=${TEST_DATA_BRANCH}
