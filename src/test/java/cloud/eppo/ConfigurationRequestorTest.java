@@ -58,7 +58,7 @@ public class ConfigurationRequestorTest {
     String fetchedFlagConfig =
         FileUtils.readFileToString(differentFlagConfigFile, StandardCharsets.UTF_8);
 
-    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+    when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
 
     // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
@@ -98,7 +98,7 @@ public class ConfigurationRequestorTest {
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
 
-    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+    when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
 
     // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
@@ -135,7 +135,7 @@ public class ConfigurationRequestorTest {
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
 
-    when(mockHttpClient.getAsync("/api/flag-config/v1/config")).thenReturn(configFetchFuture);
+    when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
 
     // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
