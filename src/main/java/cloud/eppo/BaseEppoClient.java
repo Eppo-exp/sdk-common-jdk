@@ -52,12 +52,13 @@ public class BaseEppoClient {
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
+  /** @param host To be removed in v4. use `apiBaseUrl` instead. */
   protected BaseEppoClient(
       @NotNull String apiKey,
       @NotNull String sdkName,
       @NotNull String sdkVersion,
+      @Deprecated @Nullable String host,
       @Nullable String apiBaseUrl,
-      @Deprecated @Nullable String apiHost, // To be removed in v4. use `apiBaseUrl` instead.
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
       @Nullable IConfigurationStore configurationStore,
@@ -76,8 +77,7 @@ public class BaseEppoClient {
           "Unable to initialize Eppo SDK due to missing SDK name or version");
     }
     if (apiBaseUrl == null) {
-      apiBaseUrl =
-          apiHost != null ? Constants.appendApiPathToHost(apiHost) : Constants.DEFAULT_BASE_URL;
+      apiBaseUrl = host != null ? Constants.appendApiPathToHost(host) : Constants.DEFAULT_BASE_URL;
     }
 
     this.assignmentCache = assignmentCache;
