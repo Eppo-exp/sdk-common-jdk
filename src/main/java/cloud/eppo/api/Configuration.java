@@ -156,6 +156,11 @@ public class Configuration {
     return flags == null || flags.isEmpty();
   }
 
+  public static Builder builder(byte[] flagJson) {
+    return new Builder(flagJson);
+  }
+
+  @Deprecated // isConfigObfuscated is determined from the byte payload
   public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
     return new Builder(flagJson, isConfigObfuscated);
   }
@@ -186,10 +191,12 @@ public class Configuration {
       }
     }
 
+    @Deprecated // isConfigObfuscated is determined from the byte payload
     public Builder(String flagJson, boolean isConfigObfuscated) {
       this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
     }
 
+    @Deprecated // isConfigObfuscated is determined from the byte payload
     public Builder(byte[] flagJson, boolean isConfigObfuscated) {
       this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
     }

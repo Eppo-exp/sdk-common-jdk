@@ -3,7 +3,11 @@ package cloud.eppo;
 /** Constants Class */
 public class Constants {
   /** Base URL */
-  public static final String DEFAULT_BASE_URL = "https://fscdn.eppo.cloud";
+  public static final String DEFAULT_BASE_URL = "https://fscdn.eppo.cloud/api";
+
+  static String appendApiPathToHost(String host) {
+    return host + "/api";
+  }
 
   public static final int REQUEST_TIMEOUT_MILLIS = 1000;
 
@@ -20,8 +24,8 @@ public class Constants {
   /** RAC settings */
   public static final String RAC_ENDPOINT = "/randomized_assignment/v3/config";
 
-  public static final String BANDIT_ENDPOINT = "/api/flag-config/v1/bandits";
-  public static final String FLAG_CONFIG_ENDPOINT = "/api/flag-config/v1/config";
+  public static final String BANDIT_ENDPOINT = "/flag-config/v1/bandits";
+  public static final String FLAG_CONFIG_ENDPOINT = "/flag-config/v1/config";
 
   /** Caching Settings */
   public static final String EXPERIMENT_CONFIGURATION_CACHE_KEY = "experiment-configuration";

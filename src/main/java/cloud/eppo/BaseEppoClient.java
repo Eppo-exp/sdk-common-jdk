@@ -52,11 +52,13 @@ public class BaseEppoClient {
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
+  /** @param host To be removed in v4. use `apiBaseUrl` instead. */
   protected BaseEppoClient(
       @NotNull String apiKey,
       @NotNull String sdkName,
       @NotNull String sdkVersion,
-      @Nullable String host,
+      @Deprecated @Nullable String host,
+      @Nullable String apiBaseUrl,
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
       @Nullable IConfigurationStore configurationStore,
@@ -74,14 +76,14 @@ public class BaseEppoClient {
       throw new IllegalArgumentException(
           "Unable to initialize Eppo SDK due to missing SDK name or version");
     }
-    if (host == null) {
-      host = Constants.DEFAULT_BASE_URL;
+    if (apiBaseUrl == null) {
+      apiBaseUrl = host != null ? Constants.appendApiPathToHost(host) : Constants.DEFAULT_BASE_URL;
     }
 
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient = buildHttpClient(host, apiKey, sdkName, sdkVersion);
+    EppoHttpClient httpClient = buildHttpClient(apiBaseUrl, apiKey, sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
@@ -103,10 +105,10 @@ public class BaseEppoClient {
   }
 
   private EppoHttpClient buildHttpClient(
-      String host, String apiKey, String sdkName, String sdkVersion) {
+      String apiBaseUrl, String apiKey, String sdkName, String sdkVersion) {
     return httpClientOverride != null
         ? httpClientOverride
-        : new EppoHttpClient(host, apiKey, sdkName, sdkVersion);
+        : new EppoHttpClient(apiBaseUrl, apiKey, sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {

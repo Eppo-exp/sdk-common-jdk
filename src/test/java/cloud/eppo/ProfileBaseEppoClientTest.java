@@ -39,6 +39,7 @@ public class ProfileBaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "3.0.0",
+            null,
             TEST_HOST,
             noOpAssignmentLogger,
             null,
