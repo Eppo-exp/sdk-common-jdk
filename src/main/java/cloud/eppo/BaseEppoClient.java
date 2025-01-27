@@ -40,6 +40,7 @@ public class BaseEppoClient {
   private boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
+  private Timer pollTimer;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
     return initialConfigFuture;
@@ -125,26 +126,37 @@ public class BaseEppoClient {
     }
   }
 
-  private Timer pollTimer;
-
   protected void stopPolling() {
     if (pollTimer != null) {
       pollTimer.cancel();
     }
   }
 
+  /**
+   * Start polling using the default interval and jitter.
+   */
   protected void startPolling() {
     startPolling(DEFAULT_POLLING_INTERVAL_MILLIS);
   }
 
+  /**
+   * Start polling using the provided polling interval and default jitter of 10%
+   * @param pollingIntervalMs The base number of milliseconds to wait between configuration fetches.
+   */
   void startPolling(long pollingIntervalMs) {
     startPolling(pollingIntervalMs, pollingIntervalMs / DEFAULT_JITTER_INTERVAL_RATIO);
   }
 
-  protected void startPolling(long pollingIntervalMs, long pollingJitter) {
+  /**
+   * Start polling using the provided interval and jitter.
+   * @param pollingIntervalMs The base number of milliseconds to wait between configuration fetches.
+   * @param pollingJitterMs The max number of milliseconds to offset each polling interval. The SDK selects a random
+   *                        number between 0 and pollingJitterMS to offset the polling interval by.
+   */
+  protected void startPolling(long pollingIntervalMs, long pollingJitterMs) {
     stopPolling();
 
-    // Set up polling for experiment configurations
+    // Set up polling for UFC
     pollTimer = new Timer(true);
     FetchConfigurationTask fetchConfigurationsTask =
         new FetchConfigurationTask(
@@ -154,7 +166,7 @@ public class BaseEppoClient {
             },
             pollTimer,
             pollingIntervalMs,
-            pollingJitter);
+            pollingJitterMs);
 
     // We don't want to fetch right away, so we schedule the next fetch.
     // Graceful mode is implicit here because `FetchConfigurationsTask` catches and
