@@ -1,5 +1,7 @@
 package cloud.eppo;
 
+import static cloud.eppo.Constants.DEFAULT_JITTER_INTERVAL_RATIO;
+import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
@@ -15,6 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -120,6 +123,43 @@ public class BaseEppoClient {
         throw ex;
       }
     }
+  }
+
+  private Timer pollTimer;
+
+  protected void stopPolling() {
+    if (pollTimer != null) {
+      pollTimer.cancel();
+    }
+  }
+
+  protected void startPolling() {
+    startPolling(DEFAULT_POLLING_INTERVAL_MILLIS);
+  }
+
+  void startPolling(long pollingIntervalMs) {
+    startPolling(pollingIntervalMs, pollingIntervalMs / DEFAULT_JITTER_INTERVAL_RATIO);
+  }
+
+  protected void startPolling(long pollingIntervalMs, long pollingJitter) {
+    stopPolling();
+
+    // Set up polling for experiment configurations
+    pollTimer = new Timer(true);
+    FetchConfigurationTask fetchConfigurationsTask =
+        new FetchConfigurationTask(
+            () -> {
+              log.debug("[Eppo SDK] Polling callback");
+              this.loadConfiguration();
+            },
+            pollTimer,
+            pollingIntervalMs,
+            pollingJitter);
+
+    // We don't want to fetch right away, so we schedule the next fetch.
+    // Graceful mode is implicit here because `FetchConfigurationsTask` catches and
+    // logs errors without rethrowing.
+    fetchConfigurationsTask.scheduleNext();
   }
 
   protected CompletableFuture<Void> loadConfigurationAsync() {

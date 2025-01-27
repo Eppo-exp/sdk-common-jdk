@@ -12,12 +12,19 @@ public class FetchConfigurationTask extends TimerTask {
   private final long intervalInMillis;
   private final long jitterInMillis;
 
-  FetchConfigurationTask(
+  public FetchConfigurationTask(
       Runnable runnable, Timer timer, long intervalInMillis, long jitterInMillis) {
     this.runnable = runnable;
     this.timer = timer;
     this.intervalInMillis = intervalInMillis;
     this.jitterInMillis = jitterInMillis;
+  }
+
+  public void scheduleNext() {
+    long delay = this.intervalInMillis - (long) (Math.random() * this.jitterInMillis);
+    FetchConfigurationTask nextTask =
+        new FetchConfigurationTask(runnable, timer, intervalInMillis, jitterInMillis);
+    timer.schedule(nextTask, delay);
   }
 
   @Override
@@ -28,10 +35,6 @@ public class FetchConfigurationTask extends TimerTask {
     } catch (Exception e) {
       log.error("[Eppo SDK] Error fetching experiment configuration", e);
     }
-
-    long delay = this.intervalInMillis - (long) (Math.random() * this.jitterInMillis);
-    FetchConfigurationTask nextTask =
-        new FetchConfigurationTask(runnable, timer, intervalInMillis, jitterInMillis);
-    timer.schedule(nextTask, delay);
+    scheduleNext();
   }
 }

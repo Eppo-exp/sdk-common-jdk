@@ -334,7 +334,7 @@ public class BaseEppoClientTest {
   @Test
   public void testInvalidConfigJSON() {
 
-    mockHttpResponse(TEST_BASE_URL, "{}");
+    mockHttpResponse("{}");
 
     initClient(false, false);
 
@@ -569,4 +569,139 @@ public class BaseEppoClientTest {
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
   }
+
+  @Test
+  public void testPolling() {
+    EppoHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+
+    BaseEppoClient client =
+        eppoClient =
+            new BaseEppoClient(
+                DUMMY_FLAG_API_KEY,
+                "java",
+                "100.1.0",
+                null,
+                TEST_BASE_URL,
+                mockAssignmentLogger,
+                null,
+                null,
+                false,
+                false,
+                true,
+                null,
+                null,
+                null);
+
+    client.loadConfiguration();
+    client.startPolling(20);
+
+    // Method will be called immediately on init
+    verify(httpClient, times(1)).get(anyString());
+    assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
+
+    // Sleep for 25 ms to allow another polling cycle to complete
+    sleepUninterruptedly(25);
+
+    // Now, the method should have been called twice
+    verify(httpClient, times(2)).get(anyString());
+
+    eppoClient.stopPolling();
+    assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
+
+    sleepUninterruptedly(25);
+
+    // No more calls since stopped
+    verify(httpClient, times(2)).get(anyString());
+
+    // Set up a different config to be served
+    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    client.startPolling(20);
+
+    // True until the next config is fetched.
+    assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
+
+    sleepUninterruptedly(25);
+
+    assertFalse(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
+
+    eppoClient.stopPolling();
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private void sleepUninterruptedly(long sleepMs) {
+    try {
+      Thread.sleep(sleepMs);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static final String BOOL_FLAG_CONFIG =
+      ("{\n"
+          + "  \"createdAt\": \"2024-04-17T19:40:53.716Z\",\n"
+          + "  \"format\": \"SERVER\",\n"
+          + "  \"environment\": {\n"
+          + "    \"name\": \"Test\"\n"
+          + "  },\n"
+          + "  \"flags\": {\n"
+          + "    \"bool_flag\": {\n"
+          + "      \"key\": \"bool_flag\",\n"
+          + "      \"enabled\": true,\n"
+          + "      \"variationType\": \"BOOLEAN\",\n"
+          + "      \"variations\": {\n"
+          + "        \"on\": {\n"
+          + "          \"key\": \"on\",\n"
+          + "          \"value\": true\n"
+          + "        }\n"
+          + "      },\n"
+          + "      \"allocations\": [\n"
+          + "        {\n"
+          + "          \"key\": \"on\",\n"
+          + "          \"doLog\": true,\n"
+          + "          \"splits\": [\n"
+          + "            {\n"
+          + "              \"variationKey\": \"on\",\n"
+          + "              \"shards\": []\n"
+          + "            }\n"
+          + "          ]\n"
+          + "        }\n"
+          + "      ],\n"
+          + "      \"totalShards\": 10000\n"
+          + "    }\n"
+          + "  }\n"
+          + "}");
+  private static final String DISABLED_BOOL_FLAG_CONFIG =
+      ("{\n"
+          + "  \"createdAt\": \"2024-04-17T19:40:53.716Z\",\n"
+          + "  \"format\": \"SERVER\",\n"
+          + "  \"environment\": {\n"
+          + "    \"name\": \"Test\"\n"
+          + "  },\n"
+          + "  \"flags\": {\n"
+          + "    \"bool_flag\": {\n"
+          + "      \"key\": \"bool_flag\",\n"
+          + "      \"enabled\": false,\n"
+          + "      \"variationType\": \"BOOLEAN\",\n"
+          + "      \"variations\": {\n"
+          + "        \"on\": {\n"
+          + "          \"key\": \"on\",\n"
+          + "          \"value\": true\n"
+          + "        }\n"
+          + "      },\n"
+          + "      \"allocations\": [\n"
+          + "        {\n"
+          + "          \"key\": \"on\",\n"
+          + "          \"doLog\": true,\n"
+          + "          \"splits\": [\n"
+          + "            {\n"
+          + "              \"variationKey\": \"on\",\n"
+          + "              \"shards\": []\n"
+          + "            }\n"
+          + "          ]\n"
+          + "        }\n"
+          + "      ],\n"
+          + "      \"totalShards\": 10000\n"
+          + "    }\n"
+          + "  }\n"
+          + "}");
 }
