@@ -12,7 +12,7 @@ import okhttp3.*;
 public class TestUtils {
 
   @SuppressWarnings("SameParameterValue")
-  public static void mockHttpResponse(String host, String responseBody) {
+  public static EppoHttpClient mockHttpResponse(String responseBody) {
     // Create a mock instance of EppoHttpClient
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
@@ -25,6 +25,7 @@ public class TestUtils {
     mockAsyncResponse.complete(responseBody.getBytes());
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
+    return mockHttpClient;
   }
 
   public static void mockHttpError() {
