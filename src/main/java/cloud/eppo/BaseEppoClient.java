@@ -132,29 +132,30 @@ public class BaseEppoClient {
     }
   }
 
-  /**
-   * Start polling using the default interval and jitter.
-   */
+  /** Start polling using the default interval and jitter. */
   protected void startPolling() {
     startPolling(DEFAULT_POLLING_INTERVAL_MILLIS);
   }
 
   /**
    * Start polling using the provided polling interval and default jitter of 10%
+   *
    * @param pollingIntervalMs The base number of milliseconds to wait between configuration fetches.
    */
-  void startPolling(long pollingIntervalMs) {
+  protected void startPolling(long pollingIntervalMs) {
     startPolling(pollingIntervalMs, pollingIntervalMs / DEFAULT_JITTER_INTERVAL_RATIO);
   }
 
   /**
    * Start polling using the provided interval and jitter.
+   *
    * @param pollingIntervalMs The base number of milliseconds to wait between configuration fetches.
-   * @param pollingJitterMs The max number of milliseconds to offset each polling interval. The SDK selects a random
-   *                        number between 0 and pollingJitterMS to offset the polling interval by.
+   * @param pollingJitterMs The max number of milliseconds to offset each polling interval. The SDK
+   *     selects a random number between 0 and pollingJitterMS to offset the polling interval by.
    */
   protected void startPolling(long pollingIntervalMs, long pollingJitterMs) {
     stopPolling();
+    log.debug("Started polling at " + pollingIntervalMs + "," + pollingJitterMs);
 
     // Set up polling for UFC
     pollTimer = new Timer(true);

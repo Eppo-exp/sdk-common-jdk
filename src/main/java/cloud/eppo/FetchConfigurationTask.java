@@ -11,17 +11,25 @@ public class FetchConfigurationTask extends TimerTask {
   private final Timer timer;
   private final long intervalInMillis;
   private final long jitterInMillis;
+  private final long maxJitter;
 
   public FetchConfigurationTask(
       Runnable runnable, Timer timer, long intervalInMillis, long jitterInMillis) {
+    assert (jitterInMillis > 0);
+
     this.runnable = runnable;
     this.timer = timer;
     this.intervalInMillis = intervalInMillis;
+    this.maxJitter = intervalInMillis / 2;
     this.jitterInMillis = jitterInMillis;
   }
 
   public void scheduleNext() {
-    long delay = this.intervalInMillis - (long) (Math.random() * this.jitterInMillis);
+    // Limit jitter to half the interval. Also, prevents user-provided jitter from under-running the
+    // delay below 0.
+    long jitter =
+        Math.min(maxJitter, Math.round(Math.floor((Math.random() * this.jitterInMillis))));
+    long delay = this.intervalInMillis - jitter;
     FetchConfigurationTask nextTask =
         new FetchConfigurationTask(runnable, timer, intervalInMillis, jitterInMillis);
     timer.schedule(nextTask, delay);
