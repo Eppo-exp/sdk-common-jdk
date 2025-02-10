@@ -575,21 +575,18 @@ public class BaseEppoClientTest {
   public void testGracefulPolling() {
     Timer pollTimer = new Timer();
     final AtomicInteger callCount = new AtomicInteger(0);
-    Runnable runnerTask = new Runnable() {
-      @Override
-      public void run() {
-        callCount.incrementAndGet();
-      }
-    };
+    Runnable runnerTask =
+        new Runnable() {
+          @Override
+          public void run() {
+            callCount.incrementAndGet();
+          }
+        };
 
-    FetchConfigurationTask task = new FetchConfigurationTask(
-        runnerTask,
-        pollTimer,
-        50,
-        5
-    );
+    FetchConfigurationTask task = new FetchConfigurationTask(runnerTask, pollTimer, 50, 5);
 
-    // Trigger an unexpected state; the timer is cancelled but the FetchConfigurationTask attempts to schedule a runnable.
+    // Trigger an unexpected state; the timer is cancelled but the FetchConfigurationTask attempts
+    // to schedule a runnable.
     pollTimer.cancel();
     task.scheduleNext();
 
@@ -600,7 +597,6 @@ public class BaseEppoClientTest {
 
     // No exception to be thrown if illegal timer state is properly caught.
   }
-
 
   @Test
   public void testPolling() {
