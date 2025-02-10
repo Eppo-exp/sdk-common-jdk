@@ -22,6 +22,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -568,6 +569,33 @@ public class BaseEppoClientTest {
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testGracefulPolling() {
+    Timer pollTimer = new Timer();
+    final AtomicInteger callCount = new AtomicInteger(0);
+    Runnable runnerTask =
+        new Runnable() {
+          @Override
+          public void run() {
+            callCount.incrementAndGet();
+          }
+        };
+
+    FetchConfigurationTask task = new FetchConfigurationTask(runnerTask, pollTimer, 50, 5);
+
+    // Trigger an unexpected state; the timer is cancelled but the FetchConfigurationTask attempts
+    // to schedule a runnable.
+    pollTimer.cancel();
+    task.scheduleNext();
+
+    sleepUninterruptedly(50);
+
+    // If the Timer has been cancelled, FetchConfigurationTask doesn't  attempt to reschedule.
+    assertEquals(0, callCount.get());
+
+    // No exception to be thrown if illegal timer state is properly caught.
   }
 
   @Test

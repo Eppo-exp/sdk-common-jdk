@@ -32,7 +32,12 @@ public class FetchConfigurationTask extends TimerTask {
     long delay = this.intervalInMillis - jitter;
     FetchConfigurationTask nextTask =
         new FetchConfigurationTask(runnable, timer, intervalInMillis, jitterInMillis);
-    timer.schedule(nextTask, delay);
+
+    try {
+      timer.schedule(nextTask, delay);
+    } catch (IllegalStateException e) {
+      log.error("[Eppo SDK] Error scheduling next fetch task", e);
+    }
   }
 
   @Override
