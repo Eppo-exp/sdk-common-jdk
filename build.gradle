@@ -30,7 +30,7 @@ dependencies {
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
   testImplementation 'commons-io:commons-io:2.18.0'
   testImplementation 'com.google.truth:truth:1.4.4'
-  testImplementation ('org.mockito:mockito-core:4.11.0') {
+  testImplementation ('org.mockito:mockito-core:5.15.2') {
     exclude group: 'net.bytebuddy', module: 'byte-buddy' // mockito 4's version doesn't work with Java 21
   }
   testImplementation 'net.bytebuddy:byte-buddy:1.17.0' // Use the latest available version
