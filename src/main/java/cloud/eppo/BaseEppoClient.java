@@ -203,7 +203,7 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    Configuration config = configurationStore.getConfiguration();
+    Configuration config = getConfiguration();
 
     FlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
@@ -496,7 +496,7 @@ public class BaseEppoClient {
       Actions actions,
       String defaultValue) {
     BanditResult result = new BanditResult(defaultValue, null);
-    final Configuration config = configurationStore.getConfiguration();
+    final Configuration config = getConfiguration();
     try {
       String assignedVariation =
           getStringAssignment(
@@ -578,5 +578,9 @@ public class BaseEppoClient {
 
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
     this.isGracefulMode = isGracefulFailureMode;
+  }
+
+  public Configuration getConfiguration() {
+    return configurationStore.getConfiguration();
   }
 }

@@ -121,6 +121,19 @@ public class Configuration {
     return flags.get(flagKeyForLookup);
   }
 
+  /**
+   * Gets the Variation Type for the specified flag if it exists, otherwise returns null.
+   *
+   * @return The Flag's variation type or null.
+   */
+  public @Nullable VariationType getFlagType(String flagKey) {
+    FlagConfig flag = getFlag(flagKey);
+    if (flag == null) {
+      return null;
+    }
+    return flag.getVariationType();
+  }
+
   public String banditKeyForVariation(String flagKey, String variationValue) {
     // Note: In practice this double loop should be quite quick as the number of bandits and bandit
     // variations will be small. Should this ever change, we can optimize things.
