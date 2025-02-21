@@ -581,7 +581,7 @@ public class BaseEppoClient {
   }
 
   /**
-   * Gets the configuration object used by the EppoClient for assignment and bandit evaluation.
+   * Returns the configuration object used by the EppoClient for assignment and bandit evaluation.
    *
    * <p>The configuration object is for debugging (inspect the loaded config) and other advanced use
    * cases where flag metadata or a list of flag keys, for example, is required.

@@ -123,7 +123,7 @@ public class Configuration {
   }
 
   /**
-   * Gets the Variation Type for the specified flag if it exists, otherwise returns null.
+   * Returns the Variation Type for the specified flag if it exists, otherwise returns null.
    *
    * @return The flag's variation type or null.
    */
