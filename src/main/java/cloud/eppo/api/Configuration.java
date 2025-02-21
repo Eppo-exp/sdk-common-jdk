@@ -66,7 +66,8 @@ public class Configuration {
 
   private final byte[] banditParamsJson;
 
-  private Configuration(
+  /** Default visibility for tests. */
+  Configuration(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
       Map<String, BanditParameters> bandits,
@@ -119,6 +120,19 @@ public class Configuration {
       log.warn("Request for flag {} with empty flags", flagKey);
     }
     return flags.get(flagKeyForLookup);
+  }
+
+  /**
+   * Returns the Variation Type for the specified flag if it exists, otherwise returns null.
+   *
+   * @return The flag's variation type or null.
+   */
+  public @Nullable VariationType getFlagType(String flagKey) {
+    FlagConfig flag = getFlag(flagKey);
+    if (flag == null) {
+      return null;
+    }
+    return flag.getVariationType();
   }
 
   public String banditKeyForVariation(String flagKey, String variationValue) {

@@ -203,7 +203,7 @@ public class BaseEppoClient {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    Configuration config = configurationStore.getConfiguration();
+    Configuration config = getConfiguration();
 
     FlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
@@ -496,7 +496,7 @@ public class BaseEppoClient {
       Actions actions,
       String defaultValue) {
     BanditResult result = new BanditResult(defaultValue, null);
-    final Configuration config = configurationStore.getConfiguration();
+    final Configuration config = getConfiguration();
     try {
       String assignedVariation =
           getStringAssignment(
@@ -578,5 +578,21 @@ public class BaseEppoClient {
 
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
     this.isGracefulMode = isGracefulFailureMode;
+  }
+
+  /**
+   * Returns the configuration object used by the EppoClient for assignment and bandit evaluation.
+   *
+   * <p>The configuration object is for debugging (inspect the loaded config) and other advanced use
+   * cases where flag metadata or a list of flag keys, for example, is required.
+   *
+   * <p>It is not recommended to use the list of keys to preload assignments as assignment
+   * computation also logs its use which will affect your metrics.
+   *
+   * @see <a href="https://docs.geteppo.com/sdks/best-practices/where-to-assign/">Where To
+   *     Assign</a> for more details.
+   */
+  public Configuration getConfiguration() {
+    return configurationStore.getConfiguration();
   }
 }
