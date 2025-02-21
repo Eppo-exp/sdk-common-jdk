@@ -13,6 +13,7 @@ import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
+import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -653,6 +654,103 @@ public class BaseEppoClientTest {
     assertFalse(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     eppoClient.stopPolling();
+  }
+
+  @Test
+  public void testGetConfiguration() {
+    // Initialize client with default settings
+    initClient();
+
+    // Get configuration
+    Configuration config = eppoClient.getConfiguration();
+
+    // Verify configuration is not null
+    assertNotNull(config);
+
+    // Verify some known flags from the test configuration
+    assertNotNull(config.getFlag("numeric_flag"));
+    assertEquals(VariationType.NUMERIC, config.getFlagType("numeric_flag"));
+
+    // Verify a non-existent flag returns null
+    assertNull(config.getFlag("non_existent_flag"));
+  }
+
+  @Test
+  public void testGetConfigurationWithInitialConfig() {
+    try {
+      // Load initial configuration from file
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
+
+      // Initialize client with initial configuration
+      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
+
+      // Get configuration
+      Configuration config = eppoClient.getConfiguration();
+
+      // Verify configuration is not null
+      assertNotNull(config);
+
+      // Verify known flag from initial configuration
+      FlagConfig numericFlag = config.getFlag("numeric_flag");
+      assertNotNull(numericFlag);
+      assertEquals(VariationType.NUMERIC, numericFlag.getVariationType());
+
+      // verify `no_allocations_flag` DNE
+      assertNull(config.getFlag("no_allocations_flag"));
+
+      // Load new configuration
+      eppoClient.loadConfiguration();
+
+      // Get updated configuration
+      Configuration updatedConfig = eppoClient.getConfiguration();
+
+      // Verify numeric_flag is still there.
+      assertNotNull(updatedConfig.getFlag("numeric_flag"));
+      // verify `no_allocations_flag` exists now
+      assertNotNull(updatedConfig.getFlag("no_allocations_flag"));
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  public void testGetConfigurationBeforeInitialization() {
+    // Create client without loading configuration
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "100.1.0",
+            null,
+            TEST_BASE_URL,
+            mockAssignmentLogger,
+            null,
+            null,
+            false,
+            false,
+            true,
+            null,
+            null,
+            null);
+
+    // Get configuration before loading
+    Configuration config = eppoClient.getConfiguration();
+
+    // Verify we get an empty configuration
+    assertNotNull(config);
+    assertTrue(config.isEmpty());
+
+    eppoClient.loadConfiguration();
+
+    // Get configuration again after loading
+    Configuration nextConfig = eppoClient.getConfiguration();
+
+    // Verify we get an empty configuration
+    assertNotNull(nextConfig);
+    assertFalse(nextConfig.isEmpty());
   }
 
   @SuppressWarnings("SameParameterValue")

@@ -66,7 +66,8 @@ public class Configuration {
 
   private final byte[] banditParamsJson;
 
-  private Configuration(
+  /** Default visibility for tests. */
+  Configuration(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
       Map<String, BanditParameters> bandits,
@@ -124,7 +125,7 @@ public class Configuration {
   /**
    * Gets the Variation Type for the specified flag if it exists, otherwise returns null.
    *
-   * @return The Flag's variation type or null.
+   * @return The flag's variation type or null.
    */
   public @Nullable VariationType getFlagType(String flagKey) {
     FlagConfig flag = getFlag(flagKey);
