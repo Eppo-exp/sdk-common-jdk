@@ -1,13 +1,11 @@
 package cloud.eppo.callback;
 
-import cloud.eppo.ConfigurationRequestor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A generic callback manager that allows registration and notification of callbacks.
@@ -40,14 +38,17 @@ public class CallbackManager<T> {
    *
    * @param data The data to pass to all callbacks
    */
-  public void notify(T data) {
-    subscribers.values().forEach(callback ->{
-      try {
-        callback.accept(data);
-      } catch (Exception e) {
-        log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
-      }
-    });
+  public void notifyCallbacks(T data) {
+    subscribers
+        .values()
+        .forEach(
+            callback -> {
+              try {
+                callback.accept(data);
+              } catch (Exception e) {
+                log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
+              }
+            });
   }
 
   /** Remove all subscribers. */

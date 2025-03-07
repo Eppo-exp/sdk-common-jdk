@@ -1,8 +1,10 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
+import cloud.eppo.callback.CallbackManager;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,8 @@ public class ConfigurationRequestor {
   private CompletableFuture<Void> remoteFetchFuture = null;
   private CompletableFuture<Boolean> configurationFuture = null;
   private boolean initialConfigSet = false;
+
+  private final CallbackManager<Void> configChangeManager = new CallbackManager<>();
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
@@ -36,8 +40,7 @@ public class ConfigurationRequestor {
       throw new IllegalStateException("Initial configuration has already been set");
     }
 
-    initialConfigSet =
-        configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
+    initialConfigSet = saveConfigurationAndNotify(configuration).thenApply(v -> true).join();
   }
 
   /**
@@ -65,10 +68,7 @@ public class ConfigurationRequestor {
                       return false;
                     } else {
                       initialConfigSet =
-                          configurationStore
-                              .saveConfiguration(config)
-                              .thenApply((s) -> true)
-                              .join();
+                          saveConfigurationAndNotify(config).thenApply((s) -> true).join();
                       return true;
                     }
                   }
@@ -98,7 +98,7 @@ public class ConfigurationRequestor {
       configBuilder.banditParameters(banditParametersJsonBytes);
     }
 
-    configurationStore.saveConfiguration(configBuilder.build()).join();
+    saveConfigurationAndNotify(configBuilder.build()).join();
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
@@ -115,7 +115,7 @@ public class ConfigurationRequestor {
     remoteFetchFuture =
         client
             .getAsync(Constants.FLAG_CONFIG_ENDPOINT)
-            .thenApply(
+            .thenCompose(
                 flagConfigJsonBytes -> {
                   synchronized (this) {
                     Configuration.Builder configBuilder =
@@ -137,9 +137,23 @@ public class ConfigurationRequestor {
                       }
                     }
 
-                    return configurationStore.saveConfiguration(configBuilder.build()).join();
+                    return saveConfigurationAndNotify(configBuilder.build());
                   }
                 });
     return remoteFetchFuture;
+  }
+
+  private CompletableFuture<Void> saveConfigurationAndNotify(Configuration configuration) {
+    CompletableFuture<Void> saveFuture = configurationStore.saveConfiguration(configuration);
+    return saveFuture.thenRun(
+        () -> {
+          synchronized (configChangeManager) {
+            configChangeManager.notifyCallbacks(null);
+          }
+        });
+  }
+
+  public Runnable onConfigurationChange(Consumer<Void> callback) {
+    return configChangeManager.subscribe(callback);
   }
 }
