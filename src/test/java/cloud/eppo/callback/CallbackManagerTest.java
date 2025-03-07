@@ -25,15 +25,29 @@ public class CallbackManagerTest {
   }
 
   @Test
+  public void testThrowingCallback() {
+    CallbackManager<String> manager = new CallbackManager<>();
+    List<String> received = new ArrayList<>();
+
+    Runnable unsubscribe1 = manager.subscribe((s)-> {
+      throw new RuntimeException("test message");
+    });
+    Runnable unsubscribe2 = manager.subscribe(received::add);
+
+    manager.notify("value");
+    assertEquals(1, received.size());
+  }
+
+  @Test
   public void testMultipleSubscribers() {
-    CallbackManager<Integer> CallbackManager = new CallbackManager<>();
+    CallbackManager<Integer> manager = new CallbackManager<>();
     List<Integer> received1 = new ArrayList<>();
     List<Integer> received2 = new ArrayList<>();
 
-    CallbackManager.subscribe(received1::add);
-    CallbackManager.subscribe(received2::add);
+    manager.subscribe(received1::add);
+    manager.subscribe(received2::add);
 
-    CallbackManager.notify(42);
+    manager.notify(42);
 
     assertEquals(1, received1.size());
     assertEquals(1, received2.size());
