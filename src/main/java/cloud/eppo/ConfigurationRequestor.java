@@ -21,7 +21,7 @@ public class ConfigurationRequestor {
   private CompletableFuture<Boolean> configurationFuture = null;
   private boolean initialConfigSet = false;
 
-  private final CallbackManager<Void> configChangeManager = new CallbackManager<>();
+  private final CallbackManager<Configuration> configChangeManager = new CallbackManager<>();
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
@@ -148,12 +148,12 @@ public class ConfigurationRequestor {
     return saveFuture.thenRun(
         () -> {
           synchronized (configChangeManager) {
-            configChangeManager.notifyCallbacks(null);
+            configChangeManager.notifyCallbacks(configuration);
           }
         });
   }
 
-  public Runnable onConfigurationChange(Consumer<Void> callback) {
+  public Runnable onConfigurationChange(Consumer<Configuration> callback) {
     return configChangeManager.subscribe(callback);
   }
 }
