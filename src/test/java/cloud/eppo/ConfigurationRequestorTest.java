@@ -10,6 +10,8 @@ import cloud.eppo.api.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
@@ -176,29 +178,30 @@ public class ConfigurationRequestorTest {
   }
 
   @Test
-  public void testConfigurationChangeListener() {
+  public void testConfigurationChangeListener() throws IOException {
     // Setup mock response
-    when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    when(mockHttpClient.get(anyString())).thenReturn(flagConfig.getBytes());
     when(mockConfigStore.saveConfiguration(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
 
-    AtomicInteger callCount = new AtomicInteger(0);
+    List<Configuration> receivedConfigs = new ArrayList<>();
 
     // Subscribe to configuration changes
-    Runnable unsubscribe = requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+    Runnable unsubscribe = requestor.onConfigurationChange(receivedConfigs::add);
 
     // Initial fetch should trigger the callback
     requestor.fetchAndSaveFromRemote();
-    assertEquals(1, callCount.get());
+    assertEquals(1, receivedConfigs.size());
 
-    // Another fetch should trigger the callback again
+    // Another fetch should trigger the callback again (fetches aren't optimized with eTag yet).
     requestor.fetchAndSaveFromRemote();
-    assertEquals(2, callCount.get());
+    assertEquals(2, receivedConfigs.size());
 
     // Unsubscribe should prevent further callbacks
     unsubscribe.run();
     requestor.fetchAndSaveFromRemote();
-    assertEquals(2, callCount.get()); // Count should remain the same
+    assertEquals(2, receivedConfigs.size()); // Count should remain the same
   }
 
   @Test

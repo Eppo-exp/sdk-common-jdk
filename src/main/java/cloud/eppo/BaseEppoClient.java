@@ -588,7 +588,7 @@ public class BaseEppoClient {
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.
    */
-  public Runnable onConfigurationChange(Consumer<Void> callback) {
+  public Runnable onConfigurationChange(Consumer<Configuration> callback) {
     return requestor.onConfigurationChange(callback);
   }
 
