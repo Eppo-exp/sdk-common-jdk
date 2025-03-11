@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -578,6 +579,17 @@ public class BaseEppoClient {
 
   public void setIsGracefulFailureMode(boolean isGracefulFailureMode) {
     this.isGracefulMode = isGracefulFailureMode;
+  }
+
+  /**
+   * Subscribe to changes to the configuration.
+   *
+   * @param callback A function to be executed when the configuration changes.
+   * @return a Runnable which, when called unsubscribes the callback from configuration change
+   *     events.
+   */
+  public Runnable onConfigurationChange(Consumer<Configuration> callback) {
+    return requestor.onConfigurationChange(callback);
   }
 
   /**

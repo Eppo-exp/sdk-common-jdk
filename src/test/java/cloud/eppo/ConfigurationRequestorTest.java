@@ -2,6 +2,7 @@ package cloud.eppo;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -9,8 +10,12 @@ import cloud.eppo.api.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -159,5 +164,137 @@ public class ConfigurationRequestorTest {
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
 
     assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
+  }
+
+  private ConfigurationStore mockConfigStore;
+  private EppoHttpClient mockHttpClient;
+  private ConfigurationRequestor requestor;
+
+  @BeforeEach
+  public void setup() {
+    mockConfigStore = mock(ConfigurationStore.class);
+    mockHttpClient = mock(EppoHttpClient.class);
+    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, false, true);
+  }
+
+  @Test
+  public void testConfigurationChangeListener() throws IOException {
+    // Setup mock response
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    when(mockHttpClient.get(anyString())).thenReturn(flagConfig.getBytes());
+    when(mockConfigStore.saveConfiguration(any()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+
+    List<Configuration> receivedConfigs = new ArrayList<>();
+
+    // Subscribe to configuration changes
+    Runnable unsubscribe = requestor.onConfigurationChange(receivedConfigs::add);
+
+    // Initial fetch should trigger the callback
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, receivedConfigs.size());
+
+    // Another fetch should trigger the callback again (fetches aren't optimized with eTag yet).
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(2, receivedConfigs.size());
+
+    // Unsubscribe should prevent further callbacks
+    unsubscribe.run();
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(2, receivedConfigs.size()); // Count should remain the same
+  }
+
+  @Test
+  public void testMultipleConfigurationChangeListeners() {
+    // Setup mock response
+    when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+    when(mockConfigStore.saveConfiguration(any()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+
+    AtomicInteger callCount1 = new AtomicInteger(0);
+    AtomicInteger callCount2 = new AtomicInteger(0);
+
+    // Subscribe multiple listeners
+    Runnable unsubscribe1 = requestor.onConfigurationChange(v -> callCount1.incrementAndGet());
+    Runnable unsubscribe2 = requestor.onConfigurationChange(v -> callCount2.incrementAndGet());
+
+    // Fetch should trigger both callbacks
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, callCount1.get());
+    assertEquals(1, callCount2.get());
+
+    // Unsubscribe first listener
+    unsubscribe1.run();
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, callCount1.get()); // Should not increase
+    assertEquals(2, callCount2.get()); // Should increase
+
+    // Unsubscribe second listener
+    unsubscribe2.run();
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, callCount1.get()); // Should not increase
+    assertEquals(2, callCount2.get()); // Should not increase
+  }
+
+  @Test
+  public void testConfigurationChangeListenerIgnoresFailedFetch() {
+    // Setup mock response to simulate failure
+    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Fetch failed"));
+
+    AtomicInteger callCount = new AtomicInteger(0);
+    requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+
+    // Failed fetch should not trigger the callback
+    try {
+      requestor.fetchAndSaveFromRemote();
+    } catch (Exception e) {
+      // Expected
+    }
+    assertEquals(0, callCount.get());
+  }
+
+  @Test
+  public void testConfigurationChangeListenerIgnoresFailedSave() {
+    // Setup mock responses
+    when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+    when(mockConfigStore.saveConfiguration(any()))
+        .thenReturn(
+            CompletableFuture.supplyAsync(
+                () -> {
+                  throw new RuntimeException("Save failed");
+                }));
+
+    AtomicInteger callCount = new AtomicInteger(0);
+    requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+
+    // Failed save should not trigger the callback
+    try {
+      requestor.fetchAndSaveFromRemote();
+    } catch (RuntimeException e) {
+      // Pass
+    }
+    assertEquals(0, callCount.get());
+  }
+
+  @Test
+  public void testConfigurationChangeListenerAsyncSave() {
+    // Setup mock responses
+    when(mockHttpClient.getAsync(anyString()))
+        .thenReturn(CompletableFuture.completedFuture("{\"flags\":{}}".getBytes()));
+
+    CompletableFuture<Void> saveFuture = new CompletableFuture<>();
+    when(mockConfigStore.saveConfiguration(any())).thenReturn(saveFuture);
+
+    AtomicInteger callCount = new AtomicInteger(0);
+    requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+
+    // Start fetch
+    CompletableFuture<Void> fetch = requestor.fetchAndSaveFromRemoteAsync();
+    assertEquals(0, callCount.get()); // Callback should not be called yet
+
+    // Complete the save
+    saveFuture.complete(null);
+    fetch.join();
+    assertEquals(1, callCount.get()); // Callback should be called after save completes
   }
 }
