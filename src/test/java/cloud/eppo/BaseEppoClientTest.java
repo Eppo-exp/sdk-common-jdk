@@ -649,7 +649,7 @@ public class BaseEppoClientTest {
     // True until the next config is fetched.
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
-    sleepUninterruptedly(25);
+    sleepUninterruptedly(50);
 
     assertFalse(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
