@@ -3,20 +3,25 @@ package cloud.eppo;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper for an SDK key; built from the SDK Key token string, this class extracts encoded fields,
  * such as the customer-specific service gateway subdomain
  */
 public class SDKKey {
-  private final String sdkKey;
+  private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
+
+  private final String sdkTokenString;
   private final Map<String, String> decodedParams;
 
-  public SDKKey(String sdkKey) {
-    this.sdkKey = sdkKey;
-    this.decodedParams = decodeToken(sdkKey);
+  /** @param sdkToken The "SDK Key" string provided by the user. */
+  public SDKKey(String sdkToken) {
+    this.sdkTokenString = sdkToken;
+    this.decodedParams = decodeToken(sdkToken);
   }
 
   private Map<String, String> decodeToken(String token) {
@@ -32,7 +37,7 @@ public class SDKKey {
       }
 
       String decodedString = Utils.base64Decode(payload);
-      final Map<String, String> query_pairs = new LinkedHashMap<>();
+      final Map<String, String> query_pairs = new HashMap<>();
       final String[] pairs = decodedString.split("&");
 
       for (String pair : pairs) {
@@ -51,6 +56,7 @@ public class SDKKey {
       return query_pairs;
 
     } catch (Exception e) {
+      log.error("[Eppo SDK] error parsing SDK Key {}", token, e);
       return Collections.emptyMap();
     }
   }
@@ -66,7 +72,7 @@ public class SDKKey {
 
   /** Gets the full SDK Key token string. */
   public String getToken() {
-    return sdkKey;
+    return sdkTokenString;
   }
 
   /**
@@ -75,6 +81,6 @@ public class SDKKey {
    * @return true if the token is valid and contains required parameters
    */
   public boolean isValid() {
-    return !decodedParams.isEmpty() && getSubdomain() != null;
+    return !decodedParams.isEmpty();
   }
 }

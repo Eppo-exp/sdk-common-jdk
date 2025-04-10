@@ -13,29 +13,29 @@ public class SDKKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SDKKey decoder = new SDKKey(token);
+    SDKKey sdkKey = new SDKKey(token);
 
-    assertTrue(decoder.isValid());
-    assertEquals("test-subdomain", decoder.getSubdomain());
-    assertEquals(token, decoder.getToken());
+    assertTrue(sdkKey.isValid());
+    assertEquals("test-subdomain", sdkKey.getSubdomain());
+    assertEquals(token, sdkKey.getToken());
   }
 
   @Test
   public void testInvalidToken() {
-    SDKKey decoder = new SDKKey("invalid-token");
+    SDKKey sdkKey = new SDKKey("invalid-token");
 
-    assertFalse(decoder.isValid());
-    assertNull(decoder.getSubdomain());
-    assertEquals("invalid-token", decoder.getToken());
+    assertFalse(sdkKey.isValid());
+    assertNull(sdkKey.getSubdomain());
+    assertEquals("invalid-token", sdkKey.getToken());
   }
 
   @Test
   public void testEmptyToken() {
-    SDKKey decoder = new SDKKey("");
+    SDKKey sdkKey = new SDKKey("");
 
-    assertFalse(decoder.isValid());
-    assertNull(decoder.getSubdomain());
-    assertEquals("", decoder.getToken());
+    assertFalse(sdkKey.isValid());
+    assertNull(sdkKey.getSubdomain());
+    assertEquals("", sdkKey.getToken());
   }
 
   @Test
@@ -44,11 +44,12 @@ public class SDKKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SDKKey decoder = new SDKKey(token);
+    SDKKey sdkKey = new SDKKey(token);
 
-    assertFalse(decoder.isValid());
-    assertNull(decoder.getSubdomain());
-    assertEquals(token, decoder.getToken());
+    // Key is valid with any encoded data.
+    assertTrue(sdkKey.isValid());
+    assertNull(sdkKey.getSubdomain());
+    assertEquals(token, sdkKey.getToken());
   }
 
   @Test
@@ -57,11 +58,11 @@ public class SDKKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SDKKey decoder = new SDKKey(token);
+    SDKKey sdkKey = new SDKKey(token);
 
-    assertTrue(decoder.isValid());
-    assertEquals("test-subdomain", decoder.getSubdomain());
-    assertEquals(token, decoder.getToken());
+    assertTrue(sdkKey.isValid());
+    assertEquals("test-subdomain", sdkKey.getSubdomain());
+    assertEquals(token, sdkKey.getToken());
   }
 
   @Test
@@ -70,21 +71,21 @@ public class SDKKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SDKKey decoder = new SDKKey(token);
+    SDKKey sdkKey = new SDKKey(token);
 
-    assertTrue(decoder.isValid());
-    assertEquals("test subdomain", decoder.getSubdomain());
-    assertEquals(token, decoder.getToken());
+    assertTrue(sdkKey.isValid());
+    assertEquals("test subdomain", sdkKey.getSubdomain());
+    assertEquals(token, sdkKey.getToken());
   }
 
   @Test
   public void testTokenWithMalformedBase64() {
     String token = "signature.not-valid-base64";
 
-    SDKKey decoder = new SDKKey(token);
+    SDKKey sdkKey = new SDKKey(token);
 
-    assertFalse(decoder.isValid());
-    assertNull(decoder.getSubdomain());
-    assertEquals(token, decoder.getToken());
+    assertFalse(sdkKey.isValid());
+    assertNull(sdkKey.getSubdomain());
+    assertEquals(token, sdkKey.getToken());
   }
 }

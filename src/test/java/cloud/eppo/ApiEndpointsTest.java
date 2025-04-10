@@ -26,6 +26,12 @@ public class ApiEndpointsTest {
   }
 
   @Test
+  public void testCustomBaseUrlWithPort() {
+    ApiEndpoints endpoints = new ApiEndpoints(plainKey, "http://custom.domain/api:1337");
+    assertEquals("http://custom.domain/api:1337", endpoints.getBaseUrl());
+  }
+
+  @Test
   public void testCustomBaseUrlWithProtocolRelative() {
     ApiEndpoints endpoints = new ApiEndpoints(plainKey, "//custom.domain/api");
     assertEquals("//custom.domain/api", endpoints.getBaseUrl());
