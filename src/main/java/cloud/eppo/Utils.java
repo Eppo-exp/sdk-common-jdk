@@ -1,12 +1,15 @@
 package cloud.eppo;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
+import net.iharder.Base64;
+
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
 import java.util.Date;
 import java.util.Locale;
 import org.slf4j.Logger;
@@ -105,14 +108,21 @@ public final class Utils {
     if (input == null) {
       return null;
     }
-    return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
+    return Base64.encodeBytes(input.getBytes(StandardCharsets.UTF_8));
   }
 
   public static String base64Decode(String input) {
     if (input == null) {
       return null;
     }
-    byte[] decodedBytes = Base64.getDecoder().decode(input);
+    byte[] decodedBytes;
+    try {
+      decodedBytes = Base64.decode(input);
+    } catch (IOException rethrow) {
+      // java.util.Base64 throws IllegalArgumentException
+      // on base64 format errors
+      throw new IllegalArgumentException(rethrow);
+    }
     if (decodedBytes.length == 0 && !input.isEmpty()) {
       throw new RuntimeException(
           "zero byte output from Base64; if not running on Android hardware be sure to use RobolectricTestRunner");

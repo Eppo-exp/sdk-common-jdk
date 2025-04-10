@@ -20,6 +20,8 @@ dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.3'
   implementation 'com.github.zafarkhaja:java-semver:0.10.2'
   implementation "com.squareup.okhttp3:okhttp:4.12.0"
+  // For base64 that works on on Android API 21
+  implementation "net.iharder:base64:2.3.8"
   // For LRU and expiring maps
   implementation 'org.apache.commons:commons-collections4:4.4'
   implementation 'org.slf4j:slf4j-api:2.0.17'
