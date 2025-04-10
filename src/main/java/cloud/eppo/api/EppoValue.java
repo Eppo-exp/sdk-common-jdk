@@ -101,7 +101,17 @@ public class EppoValue {
       case STRING:
         return this.stringValue;
       case ARRAY_OF_STRING:
-        return String.join(" ,", this.stringArrayValue);
+        if (this.stringArrayValue.isEmpty()) {
+          return "";
+        } else {
+          StringBuilder stringBuilder = new StringBuilder();
+          String delimiter = " ,";
+          for (String string : this.stringArrayValue) {
+            stringBuilder.append(string).append(delimiter);
+          }
+          stringBuilder.setLength(stringBuilder.length() - delimiter.length());
+          return stringBuilder.toString();
+        }
       case NULL:
         return "";
       default:
