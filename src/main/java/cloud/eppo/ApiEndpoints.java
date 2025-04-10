@@ -46,7 +46,7 @@ public class ApiEndpoints {
     } else if (sdkKey.isValid()) {
       String subdomain = sdkKey.getSubdomain();
       if (subdomain != null) {
-        String domainPart = DEFAULT_BASE_URL.replaceAll("^(https?://|//)", "");
+        String domainPart = DEFAULT_BASE_URL.replaceAll("^(https?:)?//", "");
         effectiveUrl = subdomain + "." + domainPart;
       } else {
         effectiveUrl = DEFAULT_BASE_URL;
