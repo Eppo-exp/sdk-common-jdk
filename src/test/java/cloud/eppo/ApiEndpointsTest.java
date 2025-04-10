@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 public class ApiEndpointsTest {
-  final SdkKey plainKey = new SdkKey("flat token");
+  final SDKKey plainKey = new SDKKey("flat token");
 
   @Test
   public void testDefaultBaseUrl() {
@@ -26,6 +26,12 @@ public class ApiEndpointsTest {
   }
 
   @Test
+  public void testCustomBaseUrlWithPort() {
+    ApiEndpoints endpoints = new ApiEndpoints(plainKey, "http://custom.domain/api:1337");
+    assertEquals("http://custom.domain/api:1337", endpoints.getBaseUrl());
+  }
+
+  @Test
   public void testCustomBaseUrlWithProtocolRelative() {
     ApiEndpoints endpoints = new ApiEndpoints(plainKey, "//custom.domain/api");
     assertEquals("//custom.domain/api", endpoints.getBaseUrl());
@@ -43,7 +49,7 @@ public class ApiEndpointsTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SdkKey sdkKey = new SdkKey(token);
+    SDKKey sdkKey = new SDKKey(token);
     ApiEndpoints endpoints = new ApiEndpoints(sdkKey, null);
 
     assertEquals("https://test-subdomain.fscdn.eppo.cloud/api", endpoints.getBaseUrl());
@@ -55,7 +61,7 @@ public class ApiEndpointsTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SdkKey decoder = new SdkKey(token);
+    SDKKey decoder = new SDKKey(token);
     ApiEndpoints endpoints = new ApiEndpoints(decoder, "custom.domain/api");
 
     assertEquals("https://custom.domain/api", endpoints.getBaseUrl());
@@ -69,7 +75,7 @@ public class ApiEndpointsTest {
 
   @Test
   public void testInvalidToken() {
-    SdkKey sdkKey = new SdkKey("invalid-token");
+    SDKKey sdkKey = new SDKKey("invalid-token");
     ApiEndpoints endpoints = new ApiEndpoints(sdkKey, null);
 
     assertEquals("https://fscdn.eppo.cloud/api", endpoints.getBaseUrl());
