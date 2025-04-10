@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -52,6 +54,43 @@ public class EppoHttpClient {
       log.error("Config fetch interrupted", e);
       throw new RuntimeException(e);
     }
+  }
+
+  public byte[] getJava6(String path) {
+    Request request = buildRequest(path);
+    Call call = client.newCall(request);
+    Response response = null;
+    try {
+      response = call.execute();
+      try {
+        if (response.isSuccessful() && response.body() != null) {
+          log.debug("Fetch successful");
+          return response.body().bytes();
+        } else {
+          if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+            new RuntimeException("Invalid API key");
+          } else {
+            log.debug("Fetch failed with status code: {}", response.code());
+            new RuntimeException("Bad response from URL " + request.url());
+          }
+        }
+      } catch (IOException ex) {
+        new RuntimeException(
+                "Failed to read response from URL {}" + request.url(), ex);
+      } finally {
+        if (response != null) {
+          response.close();
+        }
+      }
+    } catch (IOException e) {
+      log.error(
+          "Http request failure: {} {}",
+          e.getMessage(),
+          Arrays.toString(e.getStackTrace()),
+          e);
+      new RuntimeException("Unable to fetch from URL " + request.url());
+    }
+    throw new RuntimeException("Java compiler not smart enough to know all paths are covered");
   }
 
   public CompletableFuture<byte[]> getAsync(String path) {
