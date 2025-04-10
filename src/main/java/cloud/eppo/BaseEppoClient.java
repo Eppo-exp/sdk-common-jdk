@@ -74,13 +74,6 @@ public class BaseEppoClient {
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache) {
 
-    if (apiKey == null) {
-      throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
-    }
-    if (sdkName == null || sdkVersion == null) {
-      throw new IllegalArgumentException(
-          "Unable to initialize Eppo SDK due to missing SDK name or version");
-    }
     if (apiBaseUrl == null) {
       apiBaseUrl = host != null ? Constants.appendApiPathToHost(host) : Constants.DEFAULT_BASE_URL;
     }
@@ -88,7 +81,8 @@ public class BaseEppoClient {
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient = buildHttpClient(apiBaseUrl, apiKey, sdkName, sdkVersion);
+    EppoHttpClient httpClient =
+        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
@@ -110,10 +104,12 @@ public class BaseEppoClient {
   }
 
   private EppoHttpClient buildHttpClient(
-      String apiBaseUrl, String apiKey, String sdkName, String sdkVersion) {
+      String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
+    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
+
     return httpClientOverride != null
         ? httpClientOverride
-        : new EppoHttpClient(apiBaseUrl, apiKey, sdkName, sdkVersion);
+        : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {
