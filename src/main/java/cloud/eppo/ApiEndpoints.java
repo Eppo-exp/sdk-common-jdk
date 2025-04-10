@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ApiEndpoints {
 
-  private final SdkKey sdkToken;
+  private final SDKKey sdkToken;
   private final String baseUrl;
 
   /**
@@ -20,7 +20,7 @@ public class ApiEndpoints {
    * @param sdkKey SDK Key instance for subdomain
    * @param baseUrl Custom base URL (optional)
    */
-  public ApiEndpoints(@NotNull SdkKey sdkKey, @Nullable String baseUrl) {
+  public ApiEndpoints(@NotNull SDKKey sdkKey, @Nullable String baseUrl) {
     this.sdkToken = sdkKey;
     this.baseUrl = baseUrl;
   }

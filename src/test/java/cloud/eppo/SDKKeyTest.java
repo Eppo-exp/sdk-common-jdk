@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-public class SdkKeyTest {
+public class SDKKeyTest {
 
   @Test
   public void testValidToken() {
@@ -13,7 +13,7 @@ public class SdkKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SdkKey decoder = new SdkKey(token);
+    SDKKey decoder = new SDKKey(token);
 
     assertTrue(decoder.isValid());
     assertEquals("test-subdomain", decoder.getSubdomain());
@@ -22,7 +22,7 @@ public class SdkKeyTest {
 
   @Test
   public void testInvalidToken() {
-    SdkKey decoder = new SdkKey("invalid-token");
+    SDKKey decoder = new SDKKey("invalid-token");
 
     assertFalse(decoder.isValid());
     assertNull(decoder.getSubdomain());
@@ -31,7 +31,7 @@ public class SdkKeyTest {
 
   @Test
   public void testEmptyToken() {
-    SdkKey decoder = new SdkKey("");
+    SDKKey decoder = new SDKKey("");
 
     assertFalse(decoder.isValid());
     assertNull(decoder.getSubdomain());
@@ -44,7 +44,7 @@ public class SdkKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SdkKey decoder = new SdkKey(token);
+    SDKKey decoder = new SDKKey(token);
 
     assertFalse(decoder.isValid());
     assertNull(decoder.getSubdomain());
@@ -57,7 +57,7 @@ public class SdkKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SdkKey decoder = new SdkKey(token);
+    SDKKey decoder = new SDKKey(token);
 
     assertTrue(decoder.isValid());
     assertEquals("test-subdomain", decoder.getSubdomain());
@@ -70,7 +70,7 @@ public class SdkKeyTest {
     String encodedPayload = Utils.base64Encode(payload);
     String token = "signature." + encodedPayload;
 
-    SdkKey decoder = new SdkKey(token);
+    SDKKey decoder = new SDKKey(token);
 
     assertTrue(decoder.isValid());
     assertEquals("test subdomain", decoder.getSubdomain());
@@ -81,7 +81,7 @@ public class SdkKeyTest {
   public void testTokenWithMalformedBase64() {
     String token = "signature.not-valid-base64";
 
-    SdkKey decoder = new SdkKey(token);
+    SDKKey decoder = new SDKKey(token);
 
     assertFalse(decoder.isValid());
     assertNull(decoder.getSubdomain());

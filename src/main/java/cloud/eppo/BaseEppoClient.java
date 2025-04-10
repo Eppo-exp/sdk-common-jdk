@@ -82,7 +82,7 @@ public class BaseEppoClient {
     this.banditAssignmentCache = banditAssignmentCache;
 
     EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SdkKey(apiKey), sdkName, sdkVersion);
+        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
@@ -104,7 +104,7 @@ public class BaseEppoClient {
   }
 
   private EppoHttpClient buildHttpClient(
-      String apiBaseUrl, SdkKey sdkKey, String sdkName, String sdkVersion) {
+      String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
     ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
 
     return httpClientOverride != null

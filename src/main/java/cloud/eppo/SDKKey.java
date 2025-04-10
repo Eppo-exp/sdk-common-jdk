@@ -10,11 +10,11 @@ import java.util.Map;
  * Wrapper for an SDK key; built from the SDK Key token string, this class extracts encoded fields,
  * such as the customer-specific service gateway subdomain
  */
-public class SdkKey {
+public class SDKKey {
   private final String sdkKey;
   private final Map<String, String> decodedParams;
 
-  public SdkKey(String sdkKey) {
+  public SDKKey(String sdkKey) {
     this.sdkKey = sdkKey;
     this.decodedParams = decodeToken(sdkKey);
   }
