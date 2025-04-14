@@ -6,6 +6,12 @@ import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
 import cloud.eppo.cache.AssignmentCacheEntry;
+import cloud.eppo.json.JacksonMapper;
+import cloud.eppo.json.JacksonMapperNode;
+import cloud.eppo.json.Mapper;
+import cloud.eppo.json.MapperException;
+import cloud.eppo.json.MapperJsonProcessingException;
+import cloud.eppo.json.MapperNode;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
@@ -27,9 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class BaseEppoClient {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
-  private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
+  private final Mapper mapper;
 
   protected final ConfigurationRequestor requestor;
 
@@ -73,6 +77,46 @@ public class BaseEppoClient {
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache) {
+    this(
+        new JacksonMapper(),
+        apiKey,
+        sdkName,
+        sdkVersion,
+        host,
+        apiBaseUrl,
+        assignmentLogger,
+        banditLogger,
+        configurationStore,
+        isGracefulMode,
+        expectObfuscatedConfig,
+        supportBandits,
+        initialConfiguration,
+        assignmentCache,
+        banditAssignmentCache
+    );
+  }
+
+  // It is important that the bandit assignment cache expire with a short-enough TTL to last about
+  // one user session.
+  // The recommended is 10 minutes (per @Sven)
+  /** @param host To be removed in v4. use `apiBaseUrl` instead. */
+  protected BaseEppoClient(
+      @NotNull Mapper mapper,
+      @NotNull String apiKey,
+      @NotNull String sdkName,
+      @NotNull String sdkVersion,
+      @Deprecated @Nullable String host,
+      @Nullable String apiBaseUrl,
+      @Nullable AssignmentLogger assignmentLogger,
+      @Nullable BanditLogger banditLogger,
+      @Nullable IConfigurationStore configurationStore,
+      boolean isGracefulMode,
+      boolean expectObfuscatedConfig,
+      boolean supportBandits,
+      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable IAssignmentCache assignmentCache,
+      @Nullable IAssignmentCache banditAssignmentCache) {
+    this.mapper = mapper;
 
     if (apiKey == null) {
       throw new IllegalArgumentException("Unable to initialize Eppo SDK due to missing API key");
@@ -436,7 +480,12 @@ public class BaseEppoClient {
               subjectAttributes,
               EppoValue.valueOf(defaultValue.toString()),
               VariationType.JSON);
-      return parseJsonString(value.stringValue());
+      MapperNode mapperNode = parseJsonString(value.stringValue());
+      if (mapperNode != null) {
+        return ((JacksonMapperNode) mapperNode).getJsonNode();
+      } else {
+        return null;
+      }
     } catch (Exception e) {
       return throwIfNotGraceful(e, defaultValue);
     }
@@ -482,10 +531,10 @@ public class BaseEppoClient {
     return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  private JsonNode parseJsonString(String jsonString) {
+  private MapperNode parseJsonString(String jsonString) {
     try {
       return mapper.readTree(jsonString);
-    } catch (JsonProcessingException e) {
+    } catch (MapperJsonProcessingException e) {
       return null;
     }
   }
