@@ -1,6 +1,7 @@
 package cloud.eppo.api;
 
 import cloud.eppo.ufc.dto.EppoValueType;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -101,7 +102,8 @@ public class EppoValue {
       case STRING:
         return this.stringValue;
       case ARRAY_OF_STRING:
-        return String.join(" ,", this.stringArrayValue);
+        // Java6 back-compatability
+        return joinStringArray(this.stringArrayValue);
       case NULL:
         return "";
       default:
@@ -129,5 +131,21 @@ public class EppoValue {
   @Override
   public int hashCode() {
     return Objects.hash(type, boolValue, doubleValue, stringValue, stringArrayValue);
+  }
+
+  private static String joinStringArray(List<String> stringArray) {
+    if (stringArray == null || stringArray.isEmpty()) {
+      return "";
+    }
+    String delimiter = " ,";
+    StringBuilder stringBuilder = new StringBuilder();
+    Iterator<String> iterator = stringArray.iterator();
+    while (iterator.hasNext()) {
+      stringBuilder.append(iterator.next());
+      if (iterator.hasNext()) {
+        stringBuilder.append(delimiter);
+      }
+    }
+    return stringBuilder.toString();
   }
 }
