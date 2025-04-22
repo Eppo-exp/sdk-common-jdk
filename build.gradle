@@ -28,7 +28,7 @@ dependencies {
   testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
-  testImplementation 'commons-io:commons-io:2.18.0'
+  testImplementation 'commons-io:commons-io:2.19.0'
   testImplementation 'com.google.truth:truth:1.4.4'
   testImplementation ('org.mockito:mockito-core:4.11.0') {
     exclude group: 'net.bytebuddy', module: 'byte-buddy' // mockito 4's version doesn't work with Java 21
