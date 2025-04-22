@@ -2,11 +2,10 @@ package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
+import cloud.eppo.json.JacksonMapper;
+import cloud.eppo.json.Mapper;
+import cloud.eppo.json.MapperNode;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.Collections;
 import java.util.Map;
@@ -49,9 +48,6 @@ import org.slf4j.LoggerFactory;
  * then check `requiresBanditModels()`.
  */
 public class Configuration {
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(EppoModule.eppoModule());
-
   private static final byte[] emptyFlagsBytes =
       "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
 
@@ -74,6 +70,26 @@ public class Configuration {
       boolean isConfigObfuscated,
       byte[] flagConfigJson,
       byte[] banditParamsJson) {
+    this(
+        new JacksonMapper(),
+        flags,
+        banditReferences,
+        bandits,
+        isConfigObfuscated,
+        flagConfigJson,
+        banditParamsJson
+    );
+  }
+
+  /** Default visibility for tests. */
+  Configuration(
+      Mapper mapper,
+      Map<String, FlagConfig> flags,
+      Map<String, BanditReference> banditReferences,
+      Map<String, BanditParameters> bandits,
+      boolean isConfigObfuscated,
+      byte[] flagConfigJson,
+      byte[] banditParamsJson) {
     this.flags = flags;
     this.banditReferences = banditReferences;
     this.bandits = bandits;
@@ -82,13 +98,13 @@ public class Configuration {
     // Graft the `forServer` boolean into the flagConfigJson'
     if (flagConfigJson != null && flagConfigJson.length != 0) {
       try {
-        JsonNode jNode = mapper.readTree(flagConfigJson);
+        MapperNode node = mapper.readTree(flagConfigJson);
         FlagConfigResponse.Format format =
             isConfigObfuscated
                 ? FlagConfigResponse.Format.CLIENT
                 : FlagConfigResponse.Format.SERVER;
-        ((ObjectNode) jNode).put("format", format.toString());
-        flagConfigJson = mapper.writeValueAsBytes(jNode);
+        node.put("format", format.toString());
+        flagConfigJson = mapper.writeValueAsBytes(node);
       } catch (IOException e) {
         log.error("Error adding `format` field to FlagConfigResponse JSON");
       }
@@ -99,6 +115,7 @@ public class Configuration {
 
   public static Configuration emptyConfig() {
     return new Configuration(
+        new JacksonMapper(),
         Collections.emptyMap(),
         Collections.emptyMap(),
         Collections.emptyMap(),
@@ -184,7 +201,7 @@ public class Configuration {
    * @see Configuration for usage.
    */
   public static class Builder {
-
+    private final Mapper mapper;
     private final boolean isConfigObfuscated;
     private final Map<String, FlagConfig> flags;
     private final Map<String, BanditReference> banditReferences;
@@ -192,12 +209,11 @@ public class Configuration {
     private final byte[] flagJson;
     private byte[] banditParamsJson;
 
-    private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
+    private static FlagConfigResponse parseFlagResponse(Mapper mapper, byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
         log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
         return null;
       }
-      FlagConfigResponse config;
       try {
         return mapper.readValue(flagJson, FlagConfigResponse.class);
       } catch (IOException e) {
@@ -207,16 +223,32 @@ public class Configuration {
 
     @Deprecated // isConfigObfuscated is determined from the byte payload
     public Builder(String flagJson, boolean isConfigObfuscated) {
-      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
+      this(new JacksonMapper(), flagJson, isConfigObfuscated);
+    }
+
+    private Builder(Mapper mapper, String flagJson, boolean isConfigObfuscated) {
+      this(mapper, flagJson.getBytes(), parseFlagResponse(mapper, flagJson.getBytes()), isConfigObfuscated);
     }
 
     @Deprecated // isConfigObfuscated is determined from the byte payload
     public Builder(byte[] flagJson, boolean isConfigObfuscated) {
-      this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
+      this(new JacksonMapper(), flagJson, isConfigObfuscated);
+    }
+
+    private Builder(Mapper mapper, byte[] flagJson, boolean isConfigObfuscated) {
+      this(mapper, flagJson, parseFlagResponse(mapper, flagJson), isConfigObfuscated);
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
       this(
+          new JacksonMapper(),
+          flagJson,
+          flagConfigResponse);
+    }
+
+    private Builder(Mapper mapper, byte[] flagJson, FlagConfigResponse flagConfigResponse) {
+      this(
+          mapper,
           flagJson,
           flagConfigResponse,
           flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
@@ -224,13 +256,26 @@ public class Configuration {
 
     /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */
     public Builder(byte[] flagJson) {
-      this(flagJson, parseFlagResponse(flagJson));
+      this(new JacksonMapper(), flagJson);
+    }
+
+    private Builder(Mapper mapper, byte[] flagJson) {
+      this(mapper, flagJson, parseFlagResponse(mapper, flagJson));
     }
 
     public Builder(
         byte[] flagJson,
         @Nullable FlagConfigResponse flagConfigResponse,
         boolean isConfigObfuscated) {
+      this(new JacksonMapper(), flagJson, flagConfigResponse, isConfigObfuscated);
+    }
+
+    public Builder(
+        Mapper mapper,
+        byte[] flagJson,
+        @Nullable FlagConfigResponse flagConfigResponse,
+        boolean isConfigObfuscated) {
+      this.mapper = mapper;
       this.isConfigObfuscated = isConfigObfuscated;
       this.flagJson = flagJson;
       if (flagConfigResponse == null
@@ -303,7 +348,7 @@ public class Configuration {
 
     public Configuration build() {
       return new Configuration(
-          flags, banditReferences, bandits, isConfigObfuscated, flagJson, banditParamsJson);
+          mapper, flags, banditReferences, bandits, isConfigObfuscated, flagJson, banditParamsJson);
     }
   }
 }
