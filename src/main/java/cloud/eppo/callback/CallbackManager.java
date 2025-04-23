@@ -3,7 +3,7 @@ package cloud.eppo.callback;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,12 +12,19 @@ import org.slf4j.LoggerFactory;
  *
  * @param <T> The type of data that will be passed to the callbacks
  */
-public class CallbackManager<T> {
-  private static final Logger log = LoggerFactory.getLogger(CallbackManager.class);
-  private final Map<String, Consumer<T>> subscribers;
+public class CallbackManager<T, C> {
+  public interface Dispatcher<T, C> {
+    public void dispatch(C callback, T data);
+  }
 
-  public CallbackManager() {
+  private final Dispatcher<T, C> dispatcher;
+
+  private static final Logger log = LoggerFactory.getLogger(CallbackManager.class);
+  private final Map<String, C> subscribers;
+
+  public CallbackManager(@NotNull Dispatcher<T, C> dispatcher) {
     this.subscribers = new ConcurrentHashMap<>();
+    this.dispatcher = dispatcher;
   }
 
   /**
@@ -26,7 +33,7 @@ public class CallbackManager<T> {
    * @param callback The callback function to be called with event data
    * @return A Runnable that can be called to unsubscribe the callback
    */
-  public Runnable subscribe(Consumer<T> callback) {
+  public Runnable subscribe(C callback) {
     String id = UUID.randomUUID().toString();
     subscribers.put(id, callback);
 
@@ -44,7 +51,7 @@ public class CallbackManager<T> {
         .forEach(
             callback -> {
               try {
-                callback.accept(data);
+                dispatcher.dispatch(callback, data);
               } catch (Exception e) {
                 log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
               }
