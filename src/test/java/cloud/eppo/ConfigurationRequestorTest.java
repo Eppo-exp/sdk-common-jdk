@@ -3,17 +3,19 @@ package cloud.eppo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.Configuration;
+import cloud.eppo.api.EppoActionCallback;
+import cloud.eppo.helpers.TestUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,157 +28,8 @@ public class ConfigurationRequestorTest {
   private final File differentFlagConfigFile =
       new File("src/test/resources/static/boolean-flag.json");
 
-  @Test
-  public void testInitialConfigurationFuture() throws IOException {
-    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
-
-    CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
-    byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
-
-    requestor.setInitialConfiguration(futureConfig);
-
-    // verify config is empty to start
-    assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
-    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
-
-    futureConfig.complete(Configuration.builder(flagConfig, false).build());
-
-    assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
-    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
-    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
-  }
-
-  @Test
-  public void testInitialConfigurationDoesntClobberFetch() throws IOException {
-    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
-
-    CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
-    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
-    CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
-    String fetchedFlagConfig =
-        FileUtils.readFileToString(differentFlagConfigFile, StandardCharsets.UTF_8);
-
-    when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
-
-    // Set initial config and verify that no config has been set yet.
-    requestor.setInitialConfiguration(initialConfigFuture);
-
-    assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
-    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
-
-    // The initial config contains only one flag keyed `numeric_flag`. The fetch response has only
-    // one flag keyed
-    // `boolean_flag`. We make sure to complete the fetch future first to verify the cache load does
-    // not overwrite it.
-    CompletableFuture<Void> handle = requestor.fetchAndSaveFromRemoteAsync();
-
-    // Resolve the fetch and then the initialConfig
-    configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
-
-    assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
-    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
-
-    // `numeric_flag` is only in the cache which should have been ignored.
-    assertNull(configStore.getConfiguration().getFlag("numeric_flag"));
-
-    // `boolean_flag` is available only from the fetch
-    assertNotNull(configStore.getConfiguration().getFlag("boolean_flag"));
-  }
-
-  @Test
-  public void testBrokenFetchDoesntClobberCache() throws IOException {
-    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
-
-    CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
-    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
-    CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
-
-    when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
-
-    // Set initial config and verify that no config has been set yet.
-    requestor.setInitialConfiguration(initialConfigFuture);
-
-    assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
-    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
-
-    requestor.fetchAndSaveFromRemoteAsync();
-
-    // Resolve the initial config
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
-
-    // Error out the fetch
-    configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
-
-    assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
-    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
-
-    // `numeric_flag` is only in the cache which should be available
-    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
-
-    assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
-  }
-
-  @Test
-  public void testCacheWritesAfterBrokenFetch() throws IOException {
-    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
-
-    CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
-    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
-    CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
-
-    when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
-
-    // Set initial config and verify that no config has been set yet.
-    requestor.setInitialConfiguration(initialConfigFuture);
-    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
-
-    // default configuration is empty config.
-    assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
-
-    // Fetch from remote with an error
-    requestor.fetchAndSaveFromRemoteAsync();
-    configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
-
-    // Resolve the initial config after the fetch throws an error.
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
-
-    // Verify that a configuration was saved by the requestor
-    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
-    assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
-
-    // `numeric_flag` is only in the cache which should be available
-    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
-
-    assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
-  }
-
   private ConfigurationStore mockConfigStore;
-  private EppoHttpClient mockHttpClient;
+  private IEppoHttpClient mockHttpClient;
   private ConfigurationRequestor requestor;
 
   @BeforeEach
@@ -187,45 +40,154 @@ public class ConfigurationRequestorTest {
   }
 
   @Test
+  public void testBrokenFetchDoesntClobberCache() throws IOException, InterruptedException {
+    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
+    TestUtils.DelayedHttpClient mockHttpClient = new TestUtils.DelayedHttpClient("".getBytes());
+
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+
+    // Set initial config and verify that it has been set.
+    requestor.setInitialConfiguration(Configuration.builder(flagConfig.getBytes()).build());
+    assertFalse(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
+
+    CountDownLatch latch = new CountDownLatch(1);
+    requestor.fetchAndSaveFromRemoteAsync(
+        new EppoActionCallback<Configuration>() {
+
+          @Override
+          public void onSuccess(Configuration data) {
+            fail("Unexpected success");
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            latch.countDown();
+          }
+        });
+
+    // Error out the fetch
+    mockHttpClient.fail(new Exception("Intentional exception"));
+
+    assertFalse(configStore.getConfiguration().isEmpty());
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
+
+    // `numeric_flag` is only in the cache which should be available
+    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
+
+    assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
+
+    // Ensure fetch failure callback is called
+    assertTrue(latch.await(1, TimeUnit.SECONDS));
+  }
+
+  @Test
+  public void testCacheWritesAfterBrokenFetch() throws IOException, InterruptedException {
+    IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
+    TestUtils.DelayedHttpClient mockHttpClient = new TestUtils.DelayedHttpClient("".getBytes());
+
+    ConfigurationRequestor requestor =
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
+    assertTrue(configStore.getConfiguration().isEmpty());
+
+    CountDownLatch latch = new CountDownLatch(1);
+    requestor.fetchAndSaveFromRemoteAsync(
+        new EppoActionCallback<Configuration>() {
+
+          @Override
+          public void onSuccess(Configuration data) {
+            fail("Unexpected success");
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            latch.countDown();
+          }
+        });
+
+    // Error out the fetch
+    mockHttpClient.fail(new Exception("Intentional exception"));
+
+    // Set initial config and verify that it has been set.
+    requestor.setInitialConfiguration(Configuration.builder(flagConfig.getBytes()).build());
+
+    Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
+    assertFalse(configStore.getConfiguration().isEmpty());
+
+    // `numeric_flag` is only in the cache which should be available
+    assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
+
+    assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
+
+    // Ensure fetch failure callback is called
+    assertTrue(latch.await(1, TimeUnit.SECONDS));
+  }
+
+  static class ListAddingConfigCallback implements Configuration.ConfigurationCallback {
+    public final List<Configuration> results = new ArrayList<>();
+
+    @Override
+    public void accept(Configuration configuration) {
+      results.add(configuration);
+    }
+  }
+
+  @Test
   public void testConfigurationChangeListener() throws IOException {
     // Setup mock response
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     when(mockHttpClient.get(anyString())).thenReturn(flagConfig.getBytes());
-    when(mockConfigStore.saveConfiguration(any()))
-        .thenReturn(CompletableFuture.completedFuture(null));
 
-    List<Configuration> receivedConfigs = new ArrayList<>();
+    ListAddingConfigCallback receivedConfigs = new ListAddingConfigCallback();
 
     // Subscribe to configuration changes
-    Runnable unsubscribe = requestor.onConfigurationChange(receivedConfigs::add);
+    Runnable unsubscribe = requestor.onConfigurationChange(receivedConfigs);
 
     // Initial fetch should trigger the callback
     requestor.fetchAndSaveFromRemote();
-    assertEquals(1, receivedConfigs.size());
+    assertEquals(1, receivedConfigs.results.size());
 
     // Another fetch should trigger the callback again (fetches aren't optimized with eTag yet).
     requestor.fetchAndSaveFromRemote();
-    assertEquals(2, receivedConfigs.size());
+    assertEquals(2, receivedConfigs.results.size());
 
     // Unsubscribe should prevent further callbacks
     unsubscribe.run();
     requestor.fetchAndSaveFromRemote();
-    assertEquals(2, receivedConfigs.size()); // Count should remain the same
+    assertEquals(2, receivedConfigs.results.size()); // Count should remain the same
   }
 
   @Test
   public void testMultipleConfigurationChangeListeners() {
     // Setup mock response
     when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
-    when(mockConfigStore.saveConfiguration(any()))
-        .thenReturn(CompletableFuture.completedFuture(null));
 
     AtomicInteger callCount1 = new AtomicInteger(0);
     AtomicInteger callCount2 = new AtomicInteger(0);
 
     // Subscribe multiple listeners
-    Runnable unsubscribe1 = requestor.onConfigurationChange(v -> callCount1.incrementAndGet());
-    Runnable unsubscribe2 = requestor.onConfigurationChange(v -> callCount2.incrementAndGet());
+    Runnable unsubscribe1 =
+        requestor.onConfigurationChange(
+            new Configuration.ConfigurationCallback() {
+              @Override
+              public void accept(Configuration configuration) {
+                callCount1.incrementAndGet();
+              }
+            });
+    Runnable unsubscribe2 =
+        requestor.onConfigurationChange(
+            new Configuration.ConfigurationCallback() {
+              @Override
+              public void accept(Configuration configuration) {
+                callCount2.incrementAndGet();
+              }
+            });
 
     // Fetch should trigger both callbacks
     requestor.fetchAndSaveFromRemote();
@@ -247,31 +209,8 @@ public class ConfigurationRequestorTest {
 
   @Test
   public void testConfigurationChangeListenerIgnoresFailedFetch() {
-    // Setup mock response to simulate failure
-    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Fetch failed"));
-
-    AtomicInteger callCount = new AtomicInteger(0);
-    requestor.onConfigurationChange(v -> callCount.incrementAndGet());
-
-    // Failed fetch should not trigger the callback
-    try {
-      requestor.fetchAndSaveFromRemote();
-    } catch (Exception e) {
-      // Expected
-    }
-    assertEquals(0, callCount.get());
-  }
-
-  @Test
-  public void testConfigurationChangeListenerIgnoresFailedSave() {
-    // Setup mock responses
-    when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
-    when(mockConfigStore.saveConfiguration(any()))
-        .thenReturn(
-            CompletableFuture.supplyAsync(
-                () -> {
-                  throw new RuntimeException("Save failed");
-                }));
+    // throw on get
+    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("fetch failed"));
 
     AtomicInteger callCount = new AtomicInteger(0);
     requestor.onConfigurationChange(v -> callCount.incrementAndGet());
@@ -286,24 +225,57 @@ public class ConfigurationRequestorTest {
   }
 
   @Test
-  public void testConfigurationChangeListenerAsyncSave() {
-    // Setup mock responses
-    when(mockHttpClient.getAsync(anyString()))
-        .thenReturn(CompletableFuture.completedFuture("{\"flags\":{}}".getBytes()));
-
-    CompletableFuture<Void> saveFuture = new CompletableFuture<>();
-    when(mockConfigStore.saveConfiguration(any())).thenReturn(saveFuture);
+  public void testConfigurationChangeListenerIgnoresFailedSave() {
+    // throw on get
+    when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+    doThrow(new RuntimeException("Save failed"))
+        .when(mockConfigStore)
+        .saveConfiguration(any(Configuration.class));
 
     AtomicInteger callCount = new AtomicInteger(0);
     requestor.onConfigurationChange(v -> callCount.incrementAndGet());
 
+    // Failed save should not trigger the callback
+    try {
+      requestor.fetchAndSaveFromRemote();
+    } catch (RuntimeException e) {
+      // Pass
+    }
+    assertEquals(0, callCount.get());
+  }
+
+  @Test
+  public void testConfigurationChangeListenerAsyncSave() throws InterruptedException {
+    // Setup mock responses
+    TestUtils.DelayedHttpClient mockHttpClient =
+        new TestUtils.DelayedHttpClient("{\"flags\":{}}".getBytes());
+    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, false, true);
+
+    CountDownLatch countDownLatch = new CountDownLatch(1);
+
+    requestor.onConfigurationChange(v -> countDownLatch.countDown());
+
     // Start fetch
-    CompletableFuture<Void> fetch = requestor.fetchAndSaveFromRemoteAsync();
-    assertEquals(0, callCount.get()); // Callback should not be called yet
+    requestor.fetchAndSaveFromRemoteAsync(
+        new EppoActionCallback<Configuration>() {
+          @Override
+          public void onSuccess(Configuration data) {
+            // This callback should be notified after the registered listeners have been notified.
+            assertEquals(0, countDownLatch.getCount());
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            fail("unexpected failure");
+          }
+        });
+
+    assertEquals(1, countDownLatch.getCount()); // Fetch not yet completed
 
     // Complete the save
-    saveFuture.complete(null);
-    fetch.join();
-    assertEquals(1, callCount.get()); // Callback should be called after save completes
+    mockHttpClient.flush();
+
+    assertTrue(countDownLatch.await(1, TimeUnit.SECONDS));
+    assertEquals(0, countDownLatch.getCount()); // Callback should be called after save completes
   }
 }

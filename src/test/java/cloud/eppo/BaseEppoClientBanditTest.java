@@ -15,7 +15,6 @@ import cloud.eppo.logging.BanditLogger;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
@@ -89,11 +88,10 @@ public class BaseEppoClientBanditTest {
   private BaseEppoClient initClientWithData(
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
-    CompletableFuture<Configuration> initialConfig =
-        CompletableFuture.completedFuture(
-            Configuration.builder(initialFlagConfiguration.getBytes(), false)
-                .banditParameters(initialBanditParameters)
-                .build());
+    Configuration initialConfig =
+        Configuration.builder(initialFlagConfiguration.getBytes(), false)
+            .banditParameters(initialBanditParameters)
+            .build();
 
     return new BaseEppoClient(
         DUMMY_BANDIT_API_KEY,

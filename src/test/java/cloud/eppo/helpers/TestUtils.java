@@ -1,49 +1,24 @@
 package cloud.eppo.helpers;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
 import cloud.eppo.BaseEppoClient;
-import cloud.eppo.EppoHttpClient;
+import cloud.eppo.IEppoHttpClient;
 import java.lang.reflect.Field;
-import java.util.concurrent.CompletableFuture;
-import okhttp3.*;
 
 public class TestUtils {
 
   @SuppressWarnings("SameParameterValue")
-  public static EppoHttpClient mockHttpResponse(String responseBody) {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
-
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.complete(responseBody.getBytes());
+  public static MockHttpClient mockHttpResponse(String responseBody) {
+    MockHttpClient mockHttpClient = new MockHttpClient(responseBody.getBytes());
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
     return mockHttpClient;
   }
 
   public static void mockHttpError() {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
-
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
-
-    setBaseClientHttpClientOverrideField(mockHttpClient);
+    setBaseClientHttpClientOverrideField(new ThrowingHttpClient());
   }
 
-  public static void setBaseClientHttpClientOverrideField(EppoHttpClient httpClient) {
+  public static void setBaseClientHttpClientOverrideField(IEppoHttpClient httpClient) {
     setBaseClientOverrideField("httpClientOverride", httpClient);
   }
 
@@ -57,6 +32,76 @@ public class TestUtils {
       httpClientOverrideField.setAccessible(false);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public static class MockHttpClient extends DelayedHttpClient {
+    public MockHttpClient(byte[] responseBody) {
+      super(responseBody);
+      flush();
+    }
+
+    public void changeResponse(byte[] responseBody) {
+      this.responseBody = responseBody;
+    }
+  }
+
+  public static class ThrowingHttpClient implements IEppoHttpClient {
+
+    @Override
+    public byte[] get(String path) {
+      throw new RuntimeException("Intentional Error");
+    }
+
+    @Override
+    public void getAsync(String path, EppoHttpCallback callback) {
+      callback.onFailure(new RuntimeException("Intentional Error"));
+    }
+  }
+
+  public static class DelayedHttpClient implements IEppoHttpClient {
+    protected byte[] responseBody;
+    private EppoHttpCallback callback;
+    private boolean flushed = false;
+    private Throwable error = null;
+
+    public int getCalls = 0;
+    public int getAsyncCalls = 0;
+
+    public DelayedHttpClient(byte[] responseBody) {
+      this.responseBody = responseBody;
+    }
+
+    @Override
+    public byte[] get(String path) {
+      getCalls++;
+      return responseBody;
+    }
+
+    @Override
+    public void getAsync(String path, EppoHttpCallback callback) {
+      getAsyncCalls++;
+      if (flushed) {
+        callback.onSuccess(responseBody);
+      } else if (error != null) {
+        callback.onFailure(error);
+      } else {
+        this.callback = callback;
+      }
+    }
+
+    public void fail(Throwable error) {
+      this.error = error;
+      if (this.callback != null) {
+        this.callback.onFailure(error);
+      }
+    }
+
+    public void flush() {
+      flushed = true;
+      if (callback != null) {
+        callback.onSuccess(responseBody);
+      }
     }
   }
 }
