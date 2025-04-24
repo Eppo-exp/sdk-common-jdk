@@ -41,12 +41,8 @@ public class ConfigurationRequestor {
   }
 
   // Synchronously set the initial configuration.
-  public void setInitialConfiguration(@NotNull Configuration configuration) {
-    if (initialConfigSet) {
-      throw new IllegalStateException("Initial configuration has already been set");
-    }
-
-    initialConfigSet = saveConfigurationAndNotify(configuration);
+  public void activateConfiguration(@NotNull Configuration configuration) {
+    saveConfigurationAndNotify(configuration);
   }
 
   /** Loads configuration synchronously from the API server. */
@@ -108,13 +104,11 @@ public class ConfigurationRequestor {
         });
   }
 
-  private boolean saveConfigurationAndNotify(Configuration configuration) {
+  private void saveConfigurationAndNotify(Configuration configuration) {
     configurationStore.saveConfiguration(configuration);
     synchronized (configChangeManager) {
       configChangeManager.notifyCallbacks(configuration);
     }
-
-    return true;
   }
 
   public Runnable onConfigurationChange(Configuration.ConfigurationCallback callback) {

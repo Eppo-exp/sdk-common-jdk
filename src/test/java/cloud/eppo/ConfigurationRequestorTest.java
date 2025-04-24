@@ -50,7 +50,7 @@ public class ConfigurationRequestorTest {
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
 
     // Set initial config and verify that it has been set.
-    requestor.setInitialConfiguration(Configuration.builder(flagConfig.getBytes()).build());
+    requestor.activateConfiguration(Configuration.builder(flagConfig.getBytes()).build());
     assertFalse(configStore.getConfiguration().isEmpty());
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
@@ -115,7 +115,7 @@ public class ConfigurationRequestorTest {
     mockHttpClient.fail(new Exception("Intentional exception"));
 
     // Set initial config and verify that it has been set.
-    requestor.setInitialConfiguration(Configuration.builder(flagConfig.getBytes()).build());
+    requestor.activateConfiguration(Configuration.builder(flagConfig.getBytes()).build());
 
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
     assertFalse(configStore.getConfiguration().isEmpty());
