@@ -84,7 +84,7 @@ public class BaseEppoClient {
             this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
 
     if (initialConfiguration != null) {
-      requestor.setInitialConfiguration(initialConfiguration);
+      requestor.activateConfiguration(initialConfiguration);
     }
 
     this.assignmentLogger = assignmentLogger;
@@ -102,6 +102,10 @@ public class BaseEppoClient {
     return httpClientOverride != null
         ? httpClientOverride
         : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
+  }
+
+  public void activateConfiguration(Configuration configuration) {
+    requestor.activateConfiguration(configuration);
   }
 
   protected void loadConfiguration() {
