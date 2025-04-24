@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.*;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
+import cloud.eppo.helpers.TestUtils;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.ufc.dto.FlagConfig;
@@ -20,16 +21,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Timer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -58,14 +63,12 @@ public class BaseEppoClientTest {
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
 
-  // TODO: async init client tests
-
   private void initClient() {
     initClient(false, false);
   }
 
   private void initClientWithData(
-      final CompletableFuture<Configuration> initialFlagConfiguration,
+      final Configuration initialFlagConfiguration,
       boolean isConfigObfuscated,
       boolean isGracefulMode) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
@@ -112,8 +115,10 @@ public class BaseEppoClientTest {
     log.info("Test client initialized");
   }
 
-  private CompletableFuture<Void> initClientAsync(
-      boolean isGracefulMode, boolean isConfigObfuscated) {
+  interface InitCallback extends EppoActionCallback<Configuration> {}
+
+  private void initClientAsync(
+      boolean isGracefulMode, boolean isConfigObfuscated, InitCallback initCallback) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
@@ -133,7 +138,7 @@ public class BaseEppoClientTest {
             null,
             null);
 
-    return eppoClient.loadConfigurationAsync();
+    eppoClient.loadConfigurationAsync(initCallback);
   }
 
   private void initClientWithAssignmentCache(IAssignmentCache cache) {
@@ -160,7 +165,7 @@ public class BaseEppoClientTest {
     log.info("Test client initialized");
   }
 
-  @BeforeEach
+  @AfterEach
   public void cleanUp() {
     // TODO: Clear any caches
     setBaseClientHttpClientOverrideField(null);
@@ -344,12 +349,6 @@ public class BaseEppoClientTest {
     assertEquals("not-populated", result);
   }
 
-  private CompletableFuture<Configuration> immediateConfigFuture(
-      String config, boolean isObfuscated) {
-    return CompletableFuture.completedFuture(
-        Configuration.builder(config.getBytes(), isObfuscated).build());
-  }
-
   @Test
   public void testGracefulInitializationFailure() {
     // Set up bad HTTP response
@@ -396,30 +395,67 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testGracefulAsyncInitializationFailure() {
+  public void testGracefulAsyncInitializationFailure() throws InterruptedException {
     // Set up bad HTTP response
     mockHttpError();
 
+    CountDownLatch initLatch = new CountDownLatch(1);
+    AtomicBoolean initialized = new AtomicBoolean(false);
+
     // Initialize
-    CompletableFuture<Void> init = initClientAsync(true, false);
+    initClientAsync(
+        true,
+        false,
+        new InitCallback() {
+          @Override
+          public void onSuccess(Configuration data) {
+            initialized.set(true);
+            initLatch.countDown();
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            initLatch.countDown();
+          }
+        });
 
     // Wait for initialization; future should not complete exceptionally (equivalent of exception
     // being thrown).
-    init.join();
-    assertFalse(init.isCompletedExceptionally());
+    assertTrue(initLatch.await(1, TimeUnit.SECONDS));
+    assertTrue(initialized.get());
   }
 
   @Test
-  public void testNonGracefulAsyncInitializationFailure() {
+  public void testNonGracefulAsyncInitializationFailure() throws InterruptedException {
     // Set up bad HTTP response
     mockHttpError();
 
-    // Initialize
-    CompletableFuture<Void> init = initClientAsync(false, false);
+    CountDownLatch initLatch = new CountDownLatch(1);
+    AtomicBoolean initialized = new AtomicBoolean(false);
+    final Throwable[] failure = {null};
 
-    // Exceptions thrown in CompletableFutures are wrapped in a CompletionException.
-    assertThrows(CompletionException.class, init::join);
-    assertTrue(init.isCompletedExceptionally());
+    // Initialize
+    initClientAsync(
+        false,
+        false,
+        new InitCallback() {
+          @Override
+          public void onSuccess(Configuration data) {
+            initialized.set(true);
+            initLatch.countDown();
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            failure[0] = error;
+            initLatch.countDown();
+          }
+        });
+
+    assertTrue(initLatch.await(1, TimeUnit.SECONDS));
+    assertNotNull(failure[0]);
+    assertInstanceOf(RuntimeException.class, failure[0]);
+    assertFalse(initialized.get());
   }
 
   @Test
@@ -427,7 +463,7 @@ public class BaseEppoClientTest {
     try {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
+      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), false, true);
 
       double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);
@@ -439,23 +475,6 @@ public class BaseEppoClientTest {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @Test
-  public void testWithInitialConfigurationFuture() throws IOException {
-    CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
-    byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
-
-    initClientWithData(futureConfig, false, true);
-
-    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(0, result);
-
-    // Now, complete the initial config future and check the value.
-    futureConfig.complete(Configuration.builder(flagConfig, false).build());
-
-    result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(5, result);
   }
 
   @Test
@@ -601,7 +620,10 @@ public class BaseEppoClientTest {
 
   @Test
   public void testPolling() {
-    EppoHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+    TestUtils.MockHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+
+    TestUtils.MockHttpClient spyClient = spy(httpClient);
+    setBaseClientHttpClientOverrideField(spyClient);
 
     BaseEppoClient client =
         eppoClient =
@@ -625,14 +647,15 @@ public class BaseEppoClientTest {
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(httpClient, times(1)).get(anyString());
+
+    verify(spyClient, times(1)).get(anyString());
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(httpClient, times(2)).get(anyString());
+    verify(spyClient, times(2)).get(anyString());
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -640,10 +663,10 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(httpClient, times(2)).get(anyString());
+    verify(spyClient, times(2)).get(anyString());
 
     // Set up a different config to be served
-    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    spyClient.changeResponse(DISABLED_BOOL_FLAG_CONFIG.getBytes());
     client.startPolling(20);
 
     // True until the next config is fetched.
@@ -682,7 +705,7 @@ public class BaseEppoClientTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
       // Initialize client with initial configuration
-      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
+      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), false, true);
 
       // Get configuration
       Configuration config = eppoClient.getConfiguration();

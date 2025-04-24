@@ -49,6 +49,11 @@ import org.slf4j.LoggerFactory;
  * then check `requiresBanditModels()`.
  */
 public class Configuration {
+  /** Callback for common operations involving the Configuration. */
+  public interface ConfigurationCallback {
+    void accept(Configuration configuration);
+  }
+
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 

@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
-import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -9,7 +8,8 @@ import org.jetbrains.annotations.NotNull;
  * persisting configuration data across sessions.
  */
 public interface IConfigurationStore {
+
   @NotNull Configuration getConfiguration();
 
-  CompletableFuture<Void> saveConfiguration(Configuration configuration);
+  void saveConfiguration(Configuration configuration);
 }
