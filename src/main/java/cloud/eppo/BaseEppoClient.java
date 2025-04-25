@@ -51,7 +51,7 @@ public class BaseEppoClient {
   // The recommended is 10 minutes (per @Sven)
   /** @param host To be removed in v4. use `apiBaseUrl` instead. */
   protected BaseEppoClient(
-      @NotNull String apiKey,
+      @NotNull String sdkKey,
       @NotNull String sdkName,
       @NotNull String sdkVersion,
       @Deprecated @Nullable String host,
@@ -74,7 +74,7 @@ public class BaseEppoClient {
     this.banditAssignmentCache = banditAssignmentCache;
 
     IEppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
+        buildHttpClient(apiBaseUrl, new SDKKey(sdkKey), sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
