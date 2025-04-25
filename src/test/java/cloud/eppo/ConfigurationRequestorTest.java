@@ -35,7 +35,7 @@ public class ConfigurationRequestorTest {
   public void setup() {
     mockConfigStore = mock(ConfigurationStore.class);
     mockHttpClient = mock(EppoHttpClient.class);
-    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, false, true);
+    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, true);
   }
 
   @Test
@@ -44,7 +44,7 @@ public class ConfigurationRequestorTest {
     TestUtils.DelayedHttpClient mockHttpClient = new TestUtils.DelayedHttpClient("".getBytes());
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, true);
 
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
 
@@ -89,7 +89,7 @@ public class ConfigurationRequestorTest {
     TestUtils.DelayedHttpClient mockHttpClient = new TestUtils.DelayedHttpClient("".getBytes());
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, true);
 
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
@@ -248,7 +248,7 @@ public class ConfigurationRequestorTest {
     // Setup mock responses
     TestUtils.DelayedHttpClient mockHttpClient =
         new TestUtils.DelayedHttpClient("{\"flags\":{}}".getBytes());
-    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, false, true);
+    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, true);
 
     CountDownLatch countDownLatch = new CountDownLatch(1);
 

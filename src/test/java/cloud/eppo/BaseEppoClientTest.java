@@ -60,46 +60,42 @@ public class BaseEppoClientTest {
       new File("src/test/resources/static/initial-flag-config.json");
 
   private void initClient() {
-    initClient(false, false);
+    initClient(false, "java");
   }
 
   private void initClientWithData(
-      final Configuration initialFlagConfiguration,
-      boolean isConfigObfuscated,
-      boolean isGracefulMode) {
+      final Configuration initialFlagConfiguration, boolean isGracefulMode) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
-            isConfigObfuscated ? "android" : "java",
+            "java",
             "100.1.0",
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
-            isConfigObfuscated,
             true,
             initialFlagConfiguration,
             null,
             null);
   }
 
-  private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
+  private void initClient(boolean isGracefulMode, String sdkName) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
-            isConfigObfuscated ? "android" : "java",
+            sdkName,
             "100.1.0",
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
-            isConfigObfuscated,
             true,
             null,
             null,
@@ -111,21 +107,19 @@ public class BaseEppoClientTest {
 
   interface InitCallback extends EppoActionCallback<Configuration> {}
 
-  private void initClientAsync(
-      boolean isGracefulMode, boolean isConfigObfuscated, InitCallback initCallback) {
+  private void initClientAsync(boolean isGracefulMode, InitCallback initCallback) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
-            isConfigObfuscated ? "android" : "java",
+            "java",
             "100.1.0",
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
-            isConfigObfuscated,
             true,
             null,
             null,
@@ -147,7 +141,6 @@ public class BaseEppoClientTest {
             null,
             null,
             true,
-            false,
             true,
             null,
             cache,
@@ -166,7 +159,7 @@ public class BaseEppoClientTest {
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
   public void testUnobfuscatedAssignments(File testFile) {
-    initClient(false, false);
+    initClient(false, "java");
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCase(testCase, eppoClient);
   }
@@ -174,7 +167,7 @@ public class BaseEppoClientTest {
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
   public void testObfuscatedAssignments(File testFile) {
-    initClient(false, true);
+    initClient(false, "android");
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCase(testCase, eppoClient);
   }
@@ -185,7 +178,7 @@ public class BaseEppoClientTest {
 
   @Test
   public void testErrorGracefulModeOn() throws JsonProcessingException {
-    initClient(true, false);
+    initClient(true, "java");
 
     BaseEppoClient realClient = eppoClient;
     BaseEppoClient spyClient = spy(realClient);
@@ -234,7 +227,7 @@ public class BaseEppoClientTest {
 
   @Test
   public void testErrorGracefulModeOff() {
-    initClient(false, false);
+    initClient(false, "java");
 
     BaseEppoClient realClient = eppoClient;
     BaseEppoClient spyClient = spy(realClient);
@@ -292,7 +285,7 @@ public class BaseEppoClientTest {
 
     mockHttpResponse("{}");
 
-    initClient(false, false);
+    initClient(false, "java");
 
     String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
     assertEquals("not-populated", result);
@@ -304,7 +297,7 @@ public class BaseEppoClientTest {
     mockHttpError();
 
     // Initialize and no exception should be thrown.
-    assertDoesNotThrow(() -> initClient(true, false));
+    assertDoesNotThrow(() -> initClient(true, "java"));
   }
 
   @Test
@@ -313,7 +306,7 @@ public class BaseEppoClientTest {
     mockHttpError();
 
     // Initialize and no exception should be thrown.
-    assertDoesNotThrow(() -> initClient(true, false));
+    assertDoesNotThrow(() -> initClient(true, "java"));
 
     assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
   }
@@ -325,7 +318,7 @@ public class BaseEppoClientTest {
 
     // Initialize and no exception should be thrown.
     try {
-      initClient(false, false);
+      initClient(false, "java");
     } catch (RuntimeException e) {
       // Expected
       assertEquals("Intentional Error", e.getMessage());
@@ -340,7 +333,7 @@ public class BaseEppoClientTest {
     mockHttpError();
 
     // Initialize and assert exception thrown
-    assertThrows(Exception.class, () -> initClient(false, false));
+    assertThrows(Exception.class, () -> initClient(false, "java"));
   }
 
   @Test
@@ -354,7 +347,6 @@ public class BaseEppoClientTest {
     // Initialize
     initClientAsync(
         true,
-        false,
         new InitCallback() {
           @Override
           public void onSuccess(Configuration data) {
@@ -386,7 +378,6 @@ public class BaseEppoClientTest {
     // Initialize
     initClientAsync(
         false,
-        false,
         new InitCallback() {
           @Override
           public void onSuccess(Configuration data) {
@@ -412,7 +403,7 @@ public class BaseEppoClientTest {
     try {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), false, true);
+      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), true);
 
       double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);
@@ -585,7 +576,6 @@ public class BaseEppoClientTest {
                 null,
                 null,
                 false,
-                false,
                 true,
                 null,
                 null,
@@ -653,7 +643,7 @@ public class BaseEppoClientTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
       // Initialize client with initial configuration
-      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), false, true);
+      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), true);
 
       // Get configuration
       Configuration config = eppoClient.getConfiguration();
@@ -699,7 +689,6 @@ public class BaseEppoClientTest {
             mockAssignmentLogger,
             null,
             null,
-            false,
             false,
             true,
             null,

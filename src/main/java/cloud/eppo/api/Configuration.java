@@ -179,10 +179,6 @@ public class Configuration {
     return new Builder(flagJson);
   }
 
-  @Deprecated // isConfigObfuscated is determined from the byte payload
-  public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
-    return new Builder(flagJson, isConfigObfuscated);
-  }
   /**
    * Builder to create the immutable config object.
    *
@@ -208,16 +204,6 @@ public class Configuration {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    @Deprecated // isConfigObfuscated is determined from the byte payload
-    public Builder(String flagJson, boolean isConfigObfuscated) {
-      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
-    }
-
-    @Deprecated // isConfigObfuscated is determined from the byte payload
-    public Builder(byte[] flagJson, boolean isConfigObfuscated) {
-      this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
