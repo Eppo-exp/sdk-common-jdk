@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+/** Tests for the ConfigurationRequestor class. */
 public class ConfigurationRequestorTest {
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
@@ -55,18 +56,7 @@ public class ConfigurationRequestorTest {
 
     CountDownLatch latch = new CountDownLatch(1);
     requestor.fetchAndSaveFromRemoteAsync(
-        new EppoActionCallback<Configuration>() {
-
-          @Override
-          public void onSuccess(Configuration data) {
-            fail("Unexpected success");
-          }
-
-          @Override
-          public void onFailure(Throwable error) {
-            latch.countDown();
-          }
-        });
+        createCallback(() -> fail("Unexpected success"), () -> latch.countDown()));
 
     // Error out the fetch
     mockHttpClient.fail(new Exception("Intentional exception"));
@@ -97,18 +87,7 @@ public class ConfigurationRequestorTest {
 
     CountDownLatch latch = new CountDownLatch(1);
     requestor.fetchAndSaveFromRemoteAsync(
-        new EppoActionCallback<Configuration>() {
-
-          @Override
-          public void onSuccess(Configuration data) {
-            fail("Unexpected success");
-          }
-
-          @Override
-          public void onFailure(Throwable error) {
-            latch.countDown();
-          }
-        });
+        createCallback(() -> fail("Unexpected success"), () -> latch.countDown()));
 
     // Error out the fetch
     mockHttpClient.fail(new Exception("Intentional exception"));
@@ -128,6 +107,7 @@ public class ConfigurationRequestorTest {
     assertTrue(latch.await(1, TimeUnit.SECONDS));
   }
 
+  /** Helper class for tracking configurations received via callbacks. */
   static class ListAddingConfigCallback implements Configuration.ConfigurationCallback {
     public final List<Configuration> results = new ArrayList<>();
 
@@ -135,6 +115,32 @@ public class ConfigurationRequestorTest {
     public void accept(Configuration configuration) {
       results.add(configuration);
     }
+  }
+
+  /**
+   * Creates a simple success/failure callback with the provided actions.
+   *
+   * @param onSuccessAction Action to perform on success
+   * @param onFailureAction Action to perform on failure
+   * @return A configured callback
+   */
+  private EppoActionCallback<Configuration> createCallback(
+      Runnable onSuccessAction, Runnable onFailureAction) {
+    return new EppoActionCallback<Configuration>() {
+      @Override
+      public void onSuccess(Configuration data) {
+        if (onSuccessAction != null) {
+          onSuccessAction.run();
+        }
+      }
+
+      @Override
+      public void onFailure(Throwable error) {
+        if (onFailureAction != null) {
+          onFailureAction.run();
+        }
+      }
+    };
   }
 
   @Test
@@ -212,7 +218,13 @@ public class ConfigurationRequestorTest {
     when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("fetch failed"));
 
     AtomicInteger callCount = new AtomicInteger(0);
-    requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+    requestor.onConfigurationChange(
+        new Configuration.ConfigurationCallback() {
+          @Override
+          public void accept(Configuration configuration) {
+            callCount.incrementAndGet();
+          }
+        });
 
     // Failed save should not trigger the callback
     try {
@@ -232,7 +244,13 @@ public class ConfigurationRequestorTest {
         .saveConfiguration(any(Configuration.class));
 
     AtomicInteger callCount = new AtomicInteger(0);
-    requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+    requestor.onConfigurationChange(
+        new Configuration.ConfigurationCallback() {
+          @Override
+          public void accept(Configuration configuration) {
+            callCount.incrementAndGet();
+          }
+        });
 
     // Failed save should not trigger the callback
     try {
@@ -252,22 +270,22 @@ public class ConfigurationRequestorTest {
 
     CountDownLatch countDownLatch = new CountDownLatch(1);
 
-    requestor.onConfigurationChange(v -> countDownLatch.countDown());
+    requestor.onConfigurationChange(
+        new Configuration.ConfigurationCallback() {
+          @Override
+          public void accept(Configuration configuration) {
+            countDownLatch.countDown();
+          }
+        });
 
     // Start fetch
     requestor.fetchAndSaveFromRemoteAsync(
-        new EppoActionCallback<Configuration>() {
-          @Override
-          public void onSuccess(Configuration data) {
-            // This callback should be notified after the registered listeners have been notified.
-            assertEquals(0, countDownLatch.getCount());
-          }
-
-          @Override
-          public void onFailure(Throwable error) {
-            fail("unexpected failure");
-          }
-        });
+        createCallback(
+            () -> {
+              // This callback should be notified after the registered listeners have been notified.
+              assertEquals(0, countDownLatch.getCount());
+            },
+            () -> fail("unexpected failure")));
 
     assertEquals(1, countDownLatch.getCount()); // Fetch not yet completed
 

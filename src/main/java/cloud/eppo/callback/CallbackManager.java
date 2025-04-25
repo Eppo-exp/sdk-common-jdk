@@ -13,8 +13,14 @@ import org.slf4j.LoggerFactory;
  * @param <T> The type of data that will be passed to the callbacks
  */
 public class CallbackManager<T, C> {
+  /**
+   * Interface for dispatching data to callbacks.
+   *
+   * @param <T> The type of data to dispatch
+   * @param <C> The type of callback to dispatch to
+   */
   public interface Dispatcher<T, C> {
-    public void dispatch(C callback, T data);
+    void dispatch(C callback, T data);
   }
 
   private final Dispatcher<T, C> dispatcher;
