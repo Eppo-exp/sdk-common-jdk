@@ -102,7 +102,7 @@ public class EppoValue {
       case STRING:
         return this.stringValue;
       case ARRAY_OF_STRING:
-        // Java6 back-compatability
+        // Android21 back-compatability
         return joinStringArray(this.stringArrayValue);
       case NULL:
         return "";
@@ -133,6 +133,9 @@ public class EppoValue {
     return Objects.hash(type, boolValue, doubleValue, stringValue, stringArrayValue);
   }
 
+  /**
+   * This method is to allow for Android 21 support; String.join was introduced in API 26
+   */
   private static String joinStringArray(List<String> stringArray) {
     if (stringArray == null || stringArray.isEmpty()) {
       return "";
