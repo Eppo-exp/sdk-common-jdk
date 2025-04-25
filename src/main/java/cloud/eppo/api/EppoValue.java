@@ -133,9 +133,7 @@ public class EppoValue {
     return Objects.hash(type, boolValue, doubleValue, stringValue, stringArrayValue);
   }
 
-  /**
-   * This method is to allow for Android 21 support; String.join was introduced in API 26
-   */
+  /** This method is to allow for Android 21 support; String.join was introduced in API 26 */
   private static String joinStringArray(List<String> stringArray) {
     if (stringArray == null || stringArray.isEmpty()) {
       return "";
