@@ -72,7 +72,6 @@ public class BaseEppoClientBanditTest {
             mockBanditLogger,
             null,
             false,
-            false,
             true,
             null,
             new AbstractAssignmentCache(assignmentCache) {},
@@ -88,7 +87,7 @@ public class BaseEppoClientBanditTest {
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
     Configuration initialConfig =
-        Configuration.builder(initialFlagConfiguration.getBytes(), false)
+        Configuration.builder(initialFlagConfiguration.getBytes())
             .banditParameters(initialBanditParameters)
             .build();
 
@@ -100,7 +99,6 @@ public class BaseEppoClientBanditTest {
         mockAssignmentLogger,
         mockBanditLogger,
         null,
-        false,
         false,
         true,
         initialConfig,

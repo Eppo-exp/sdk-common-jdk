@@ -12,10 +12,7 @@ public class ConfigurationRequestor {
 
   private final IEppoHttpClient client;
   private final IConfigurationStore configurationStore;
-  private final boolean expectObfuscatedConfig;
   private final boolean supportBandits;
-
-  private boolean initialConfigSet = false;
 
   private final CallbackManager<Configuration, Configuration.ConfigurationCallback>
       configChangeManager =
@@ -32,11 +29,9 @@ public class ConfigurationRequestor {
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
       @NotNull IEppoHttpClient client,
-      boolean expectObfuscatedConfig,
       boolean supportBandits) {
     this.configurationStore = configurationStore;
     this.client = client;
-    this.expectObfuscatedConfig = expectObfuscatedConfig;
     this.supportBandits = supportBandits;
   }
 
@@ -54,8 +49,7 @@ public class ConfigurationRequestor {
 
     byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
     Configuration.Builder configBuilder =
-        Configuration.builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
-            .banditParametersFromConfig(lastConfig);
+        Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = client.get(Constants.BANDIT_ENDPOINT);

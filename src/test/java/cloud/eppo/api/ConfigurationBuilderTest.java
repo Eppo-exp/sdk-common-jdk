@@ -35,7 +35,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testBuildConfigAddsForServer_true() throws IOException {
     byte[] jsonBytes = "{ \"flags\":{} }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes, false).build();
+    Configuration config = Configuration.builder(jsonBytes).build();
     assertFalse(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
@@ -43,19 +43,6 @@ public class ConfigurationBuilderTest {
         mapper.readValue(serializedFlags, FlagConfigResponse.class);
 
     assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.SERVER);
-  }
-
-  @Test
-  public void testBuildConfigAddsForServer_false() throws IOException {
-    byte[] jsonBytes = "{ \"flags\":{} }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes, true).build();
-    assertTrue(config.isConfigObfuscated());
-
-    byte[] serializedFlags = config.serializeFlagConfigToBytes();
-    FlagConfigResponse rehydratedConfig =
-        mapper.readValue(serializedFlags, FlagConfigResponse.class);
-
-    assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.CLIENT);
   }
 
   @Test

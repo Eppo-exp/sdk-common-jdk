@@ -59,7 +59,6 @@ public class BaseEppoClient {
       @Nullable BanditLogger banditLogger,
       @Nullable IConfigurationStore configurationStore,
       boolean isGracefulMode,
-      boolean expectObfuscatedConfig,
       boolean supportBandits,
       @Nullable Configuration initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
@@ -74,9 +73,7 @@ public class BaseEppoClient {
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
-    requestor =
-        new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+    requestor = new ConfigurationRequestor(this.configurationStore, httpClient, supportBandits);
 
     if (initialConfiguration != null) {
       requestor.activateConfiguration(initialConfiguration);
