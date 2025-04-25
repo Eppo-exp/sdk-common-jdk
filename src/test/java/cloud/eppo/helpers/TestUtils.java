@@ -65,22 +65,17 @@ public class TestUtils {
     private boolean flushed = false;
     private Throwable error = null;
 
-    public int getCalls = 0;
-    public int getAsyncCalls = 0;
-
     public DelayedHttpClient(byte[] responseBody) {
       this.responseBody = responseBody;
     }
 
     @Override
     public byte[] get(String path) {
-      getCalls++;
       return responseBody;
     }
 
     @Override
     public void getAsync(String path, EppoHttpCallback callback) {
-      getAsyncCalls++;
       if (flushed) {
         callback.onSuccess(responseBody);
       } else if (error != null) {
