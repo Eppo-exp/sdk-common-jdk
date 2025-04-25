@@ -138,7 +138,7 @@ public class EppoValue {
     if (stringArray == null || stringArray.isEmpty()) {
       return "";
     }
-    String delimiter = " ,";
+    String delimiter = ", ";
     StringBuilder stringBuilder = new StringBuilder();
     Iterator<String> iterator = stringArray.iterator();
     while (iterator.hasNext()) {
