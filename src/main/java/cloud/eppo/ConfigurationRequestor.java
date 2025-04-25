@@ -60,7 +60,7 @@ public class ConfigurationRequestor {
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
-  public void fetchAndSaveFromRemoteAsync(EppoActionCallback<Configuration> callback) {
+  void fetchAndSaveFromRemoteAsync(EppoActionCallback<Configuration> callback) {
     log.debug("Fetching configuration from API server");
     final Configuration lastConfig = configurationStore.getConfiguration();
 
