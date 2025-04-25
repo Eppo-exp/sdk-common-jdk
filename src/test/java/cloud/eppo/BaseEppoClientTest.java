@@ -421,7 +421,6 @@ public class BaseEppoClientTest {
     }
   }
 
-
   @Test
   public void testWithActivatedConfiguration() {
     try {
