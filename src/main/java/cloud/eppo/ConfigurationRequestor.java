@@ -35,7 +35,11 @@ public class ConfigurationRequestor {
     this.supportBandits = supportBandits;
   }
 
-  // Synchronously set the initial configuration.
+  /**
+   * Synchronously sets and activates the initial configuration.
+   *
+   * @param configuration The configuration to activate
+   */
   public void activateConfiguration(@NotNull Configuration configuration) {
     saveConfigurationAndNotify(configuration);
   }
@@ -93,6 +97,8 @@ public class ConfigurationRequestor {
 
           @Override
           public void onFailure(Throwable error) {
+            log.error(
+                "Failed to fetch configuration from API server: {}", error.getMessage(), error);
             callback.onFailure(error);
           }
         });
