@@ -101,14 +101,7 @@ public class BaseEppoClient {
   }
 
   protected void fetchAndActivateConfiguration() {
-    try {
-      requestor.fetchAndSaveFromRemote();
-    } catch (Exception ex) {
-      log.error("Encountered Exception while loading configuration", ex);
-      if (!isGracefulMode) {
-        throw ex;
-      }
-    }
+    requestor.fetchAndSaveFromRemote();
   }
 
   protected void stopPolling() {
@@ -148,7 +141,14 @@ public class BaseEppoClient {
         new FetchConfigurationTask(
             () -> {
               log.debug("[Eppo SDK] Polling callback");
-              this.fetchAndActivateConfiguration();
+              try {
+                this.fetchAndActivateConfiguration();
+              } catch (Exception ex) {
+                log.error("Encountered Exception while loading configuration", ex);
+                if (!isGracefulMode) {
+                  throw ex;
+                }
+              }
             },
             pollTimer,
             pollingIntervalMs,
@@ -172,7 +172,7 @@ public class BaseEppoClient {
           @Override
           public void onFailure(Throwable error) {
             log.error("Encountered Exception while loading configuration", error);
-              callback.onFailure(error);
+            callback.onFailure(error);
           }
         });
   }
