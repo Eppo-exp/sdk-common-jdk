@@ -36,7 +36,7 @@ public class BaseEppoClient {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private boolean isGracefulMode;
+  protected boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
   private Timer pollTimer;
@@ -96,19 +96,12 @@ public class BaseEppoClient {
         : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
-  public void activateConfiguration(Configuration configuration) {
+  public void activateConfiguration(@NotNull Configuration configuration) {
     requestor.activateConfiguration(configuration);
   }
 
-  protected void loadConfiguration() {
-    try {
-      requestor.fetchAndSaveFromRemote();
-    } catch (Exception ex) {
-      log.error("Encountered Exception while loading configuration", ex);
-      if (!isGracefulMode) {
-        throw ex;
-      }
-    }
+  protected void fetchAndActivateConfiguration() {
+    requestor.fetchAndSaveFromRemote();
   }
 
   protected void stopPolling() {
@@ -148,7 +141,14 @@ public class BaseEppoClient {
         new FetchConfigurationTask(
             () -> {
               log.debug("[Eppo SDK] Polling callback");
-              this.loadConfiguration();
+              try {
+                this.fetchAndActivateConfiguration();
+              } catch (Exception ex) {
+                log.error("Encountered Exception while loading configuration", ex);
+                if (!isGracefulMode) {
+                  throw ex;
+                }
+              }
             },
             pollTimer,
             pollingIntervalMs,
@@ -160,7 +160,7 @@ public class BaseEppoClient {
     fetchConfigurationsTask.scheduleNext();
   }
 
-  protected void loadConfigurationAsync(EppoActionCallback<Configuration> callback) {
+  protected void fetchAndActivateConfigurationAsync(EppoActionCallback<Configuration> callback) {
 
     requestor.fetchAndSaveFromRemoteAsync(
         new EppoActionCallback<Configuration>() {
@@ -172,11 +172,7 @@ public class BaseEppoClient {
           @Override
           public void onFailure(Throwable error) {
             log.error("Encountered Exception while loading configuration", error);
-            if (isGracefulMode) {
-              callback.onSuccess(null);
-            } else {
-              callback.onFailure(error);
-            }
+            callback.onFailure(error);
           }
         });
   }
@@ -568,15 +564,6 @@ public class BaseEppoClient {
     this.isGracefulMode = isGracefulFailureMode;
   }
 
-  public abstract static class EppoListener implements Configuration.ConfigurationCallback {
-    @Override
-    public void accept(Configuration configuration) {
-      this.onConfigurationChanged(configuration);
-    }
-
-    public abstract void onConfigurationChanged(Configuration newConfig);
-  }
-
   /**
    * Subscribe to changes to the configuration.
    *
@@ -584,7 +571,7 @@ public class BaseEppoClient {
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.
    */
-  public Runnable onConfigurationChange(EppoListener callback) {
+  public Runnable onConfigurationChange(Configuration.Callback callback) {
     return requestor.onConfigurationChange(callback);
   }
 

@@ -102,7 +102,13 @@ public class BaseEppoClientTest {
             null);
 
     if (loadConfig) {
-      eppoClient.loadConfiguration();
+      try {
+        eppoClient.fetchAndActivateConfiguration();
+      } catch (Exception e) {
+        if (!isGracefulMode) {
+          throw e;
+        }
+      }
     }
     log.info("Test client initialized");
   }
@@ -127,7 +133,34 @@ public class BaseEppoClientTest {
             null,
             null);
 
-    eppoClient.loadConfigurationAsync(initCallback);
+    // The common SDK doesn't actually have an "initialization" method. This method stands in for
+    // "build and instance
+    // and activate some configuration".
+    // Thus, we must provide a fallback if graceful mode is true and activating config fails.
+    InitCallback onInit =
+        new InitCallback() {
+
+          @Override
+          public void onSuccess(Configuration data) {
+            if (data == null) {
+              data = Configuration.emptyConfig();
+              // Fetch and activate did not produce a config, so we set an empty one.
+              eppoClient.activateConfiguration(data);
+            }
+            initCallback.onSuccess(data);
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            if (isGracefulMode) {
+              initCallback.onSuccess(null);
+            } else {
+              initCallback.onFailure(error);
+            }
+          }
+        };
+
+    eppoClient.fetchAndActivateConfigurationAsync(onInit);
   }
 
   private void initClientWithAssignmentCache(IAssignmentCache cache) {
@@ -148,7 +181,7 @@ public class BaseEppoClientTest {
             cache,
             null);
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
     log.info("Test client initialized");
   }
 
@@ -411,7 +444,7 @@ public class BaseEppoClientTest {
       assertEquals(5, result);
 
       // Demonstrate that loaded configuration is different from the initial string passed above.
-      eppoClient.loadConfiguration();
+      eppoClient.fetchAndActivateConfiguration();
       double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(3.1415926, updatedResult);
     } catch (IOException e) {
@@ -436,7 +469,7 @@ public class BaseEppoClientTest {
       assertEquals(5, result);
 
       // Demonstrate that loaded configuration is different from the initial string passed above.
-      eppoClient.loadConfiguration();
+      eppoClient.fetchAndActivateConfiguration();
       double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(3.1415926, updatedResult);
     } catch (IOException e) {
@@ -608,7 +641,7 @@ public class BaseEppoClientTest {
                 null,
                 null);
 
-    client.loadConfiguration();
+    client.fetchAndActivateConfiguration();
     client.startPolling(20);
 
     // Method will be called immediately on init
@@ -687,7 +720,7 @@ public class BaseEppoClientTest {
       assertNull(config.getFlag("no_allocations_flag"));
 
       // Load new configuration
-      eppoClient.loadConfiguration();
+      eppoClient.fetchAndActivateConfiguration();
 
       // Get updated configuration
       Configuration updatedConfig = eppoClient.getConfiguration();
@@ -729,7 +762,7 @@ public class BaseEppoClientTest {
     assertNotNull(config);
     assertTrue(config.isEmpty());
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
 
     // Get configuration again after loading
     Configuration nextConfig = eppoClient.getConfiguration();
