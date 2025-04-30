@@ -36,7 +36,7 @@ public class BaseEppoClient {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private boolean isGracefulMode;
+  protected boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
   private Timer pollTimer;
