@@ -49,7 +49,7 @@ public class ProfileBaseEppoClientTest {
             null,
             null);
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
 
     log.info("Test client initialized");
   }
