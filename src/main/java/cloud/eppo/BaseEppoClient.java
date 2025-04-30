@@ -568,15 +568,6 @@ public class BaseEppoClient {
     this.isGracefulMode = isGracefulFailureMode;
   }
 
-  public abstract static class EppoListener implements Configuration.ConfigurationCallback {
-    @Override
-    public void accept(Configuration configuration) {
-      this.onConfigurationChanged(configuration);
-    }
-
-    public abstract void onConfigurationChanged(Configuration newConfig);
-  }
-
   /**
    * Subscribe to changes to the configuration.
    *
@@ -584,7 +575,7 @@ public class BaseEppoClient {
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.
    */
-  public Runnable onConfigurationChange(EppoListener callback) {
+  public Runnable onConfigurationChange(Configuration.Callback callback) {
     return requestor.onConfigurationChange(callback);
   }
 
