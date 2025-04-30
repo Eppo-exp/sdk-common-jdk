@@ -54,14 +54,14 @@ public class TestUtils {
     }
 
     @Override
-    public void getAsync(String path, EppoHttpCallback callback) {
+    public void getAsync(String path, Callback callback) {
       callback.onFailure(new RuntimeException("Intentional Error"));
     }
   }
 
   public static class DelayedHttpClient implements IEppoHttpClient {
     protected byte[] responseBody;
-    private EppoHttpCallback callback;
+    private Callback callback;
     private boolean flushed = false;
     private Throwable error = null;
 
@@ -75,7 +75,7 @@ public class TestUtils {
     }
 
     @Override
-    public void getAsync(String path, EppoHttpCallback callback) {
+    public void getAsync(String path, Callback callback) {
       if (flushed) {
         callback.onSuccess(responseBody);
       } else if (error != null) {

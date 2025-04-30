@@ -68,7 +68,7 @@ public class ConfigurationRequestor {
 
     client.getAsync(
         Constants.FLAG_CONFIG_ENDPOINT,
-        new IEppoHttpClient.EppoHttpCallback() {
+        new IEppoHttpClient.Callback() {
           @Override
           public void onSuccess(byte[] flagConfigJsonBytes) {
             synchronized (this) {
