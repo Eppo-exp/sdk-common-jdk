@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cloud.eppo.ufc.dto.adapters.GsonAdapter;
+import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -15,13 +15,13 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 public class FlagConfigResponseDeserializerTest {
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());
+  private final Gson gson = GsonAdapter.createGson();
 
   @Test
   public void testDeserializePlainText() throws IOException {
     File testUfc = new File("src/test/resources/flags-v1.json");
     FileReader fileReader = new FileReader(testUfc);
-    FlagConfigResponse configResponse = mapper.readValue(fileReader, FlagConfigResponse.class);
+    FlagConfigResponse configResponse = gson.fromJson(fileReader, FlagConfigResponse.class);
 
     assertTrue(configResponse.getFlags().size() >= 13);
     assertTrue(configResponse.getFlags().containsKey("empty_flag"));

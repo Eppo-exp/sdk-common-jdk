@@ -1,6 +1,6 @@
 package cloud.eppo;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.google.gson.JsonElement;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -71,11 +71,11 @@ public final class Utils {
     return (int) (value % maxShardValue);
   }
 
-  public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
-    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
+  public static Date parseUtcISODateNode(JsonElement isoDateStringElement) {
+    if (isoDateStringElement == null || isoDateStringElement.isJsonNull()) {
       return null;
     }
-    String isoDateString = isoDateStringElement.asText();
+    String isoDateString = isoDateStringElement.getAsString();
     Date result = null;
     try {
       result = UTC_ISO_DATE_FORMAT.parse(isoDateString);

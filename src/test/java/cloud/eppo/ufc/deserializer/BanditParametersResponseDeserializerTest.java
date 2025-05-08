@@ -3,8 +3,8 @@ package cloud.eppo.ufc.deserializer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cloud.eppo.ufc.dto.adapters.GsonAdapter;
+import com.google.gson.Gson;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -12,7 +12,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
 
 class BanditParametersResponseDeserializerTest {
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());
+  private final Gson gson = GsonAdapter.createGson();
 
   @Test
   public void testDeserializingBandits() throws IOException {
@@ -20,7 +20,7 @@ class BanditParametersResponseDeserializerTest {
         FileUtils.readFileToString(
             new File("src/test/resources/bandits-parameters-1.json"), "UTF8");
     BanditParametersResponse responseObject =
-        this.mapper.readValue(jsonString, BanditParametersResponse.class);
+        this.gson.fromJson(jsonString, BanditParametersResponse.class);
 
     assertEquals(2, responseObject.getBandits().size());
     BanditParameters parameters = responseObject.getBandits().get("banner-bandit");

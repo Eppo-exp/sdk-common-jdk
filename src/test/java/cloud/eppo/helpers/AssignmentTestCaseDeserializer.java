@@ -3,48 +3,44 @@ package cloud.eppo.helpers;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.ufc.dto.VariationType;
-import cloud.eppo.ufc.dto.adapters.EppoValueDeserializer;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import java.io.IOException;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTestCase> {
-  private final EppoValueDeserializer eppoValueDeserializer = new EppoValueDeserializer();
-
-  public AssignmentTestCaseDeserializer() {
-    super(AssignmentTestCase.class);
-  }
-
+public class AssignmentTestCaseDeserializer implements JsonDeserializer<AssignmentTestCase> {
   @Override
-  public AssignmentTestCase deserialize(JsonParser parser, DeserializationContext context)
-      throws IOException {
-    JsonNode rootNode = parser.getCodec().readTree(parser);
-    String flag = rootNode.get("flag").asText();
-    VariationType variationType = VariationType.fromString(rootNode.get("variationType").asText());
+  public AssignmentTestCase deserialize(
+      JsonElement json, Type typeOfT, JsonDeserializationContext context)
+      throws JsonParseException {
+    JsonObject rootNode = json.getAsJsonObject();
+    String flag = rootNode.get("flag").getAsString();
+    VariationType variationType =
+        VariationType.fromString(rootNode.get("variationType").getAsString());
     TestCaseValue defaultValue = deserializeTestCaseValue(rootNode.get("defaultValue"));
     List<SubjectAssignment> subjects = deserializeSubjectAssignments(rootNode.get("subjects"));
     return new AssignmentTestCase(flag, variationType, defaultValue, subjects);
   }
 
-  private List<SubjectAssignment> deserializeSubjectAssignments(JsonNode jsonNode) {
+  private List<SubjectAssignment> deserializeSubjectAssignments(JsonElement jsonElement) {
     List<SubjectAssignment> subjectAssignments = new ArrayList<>();
-    if (jsonNode != null && jsonNode.isArray()) {
-      for (JsonNode subjectAssignmentNode : jsonNode) {
-        String subjectKey = subjectAssignmentNode.get("subjectKey").asText();
+    if (jsonElement != null && jsonElement.isJsonArray()) {
+      for (JsonElement subjectAssignmentElement : jsonElement.getAsJsonArray()) {
+        JsonObject subjectAssignmentNode = subjectAssignmentElement.getAsJsonObject();
+        String subjectKey = subjectAssignmentNode.get("subjectKey").getAsString();
 
         Attributes subjectAttributes = new Attributes();
-        JsonNode attributesNode = subjectAssignmentNode.get("subjectAttributes");
-        if (attributesNode != null && attributesNode.isObject()) {
-          for (Iterator<Map.Entry<String, JsonNode>> it = attributesNode.fields(); it.hasNext(); ) {
-            Map.Entry<String, JsonNode> entry = it.next();
+        JsonElement attributesNode = subjectAssignmentNode.get("subjectAttributes");
+        if (attributesNode != null && attributesNode.isJsonObject()) {
+          JsonObject attributesObj = attributesNode.getAsJsonObject();
+          for (Map.Entry<String, JsonElement> entry : attributesObj.entrySet()) {
             String attributeName = entry.getKey();
-            EppoValue attributeValue = eppoValueDeserializer.deserializeNode(entry.getValue());
+            EppoValue attributeValue = TestUtils.deserializeEppoValue(entry.getValue());
             subjectAttributes.put(attributeName, attributeValue);
           }
         }
@@ -59,11 +55,11 @@ public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTe
     return subjectAssignments;
   }
 
-  private TestCaseValue deserializeTestCaseValue(JsonNode jsonNode) {
-    if (jsonNode != null && (jsonNode.isObject() || jsonNode.isArray())) {
-      return TestCaseValue.valueOf(jsonNode);
+  private TestCaseValue deserializeTestCaseValue(JsonElement jsonElement) {
+    if (jsonElement != null && (jsonElement.isJsonObject() || jsonElement.isJsonArray())) {
+      return TestCaseValue.valueOf(jsonElement);
     } else {
-      return TestCaseValue.copyOf(eppoValueDeserializer.deserializeNode(jsonNode));
+      return TestCaseValue.copyOf(TestUtils.deserializeEppoValue(jsonElement));
     }
   }
 }
