@@ -144,8 +144,8 @@ public class GsonAdapter {
       return coefficients;
     }
 
-    private Map<String, BanditCategoricalAttributeCoefficients> buildCategoricalAttributeCoefficients(
-        JsonArray subjectCategoricalCoefficients) {
+    private Map<String, BanditCategoricalAttributeCoefficients>
+        buildCategoricalAttributeCoefficients(JsonArray subjectCategoricalCoefficients) {
       Map<String, BanditCategoricalAttributeCoefficients> categoricalAttributeCoefficients =
           new HashMap<>();
       subjectCategoricalCoefficients
@@ -271,8 +271,7 @@ public class GsonAdapter {
           VariationType.fromString(jsonNode.get("variationType").getAsString());
       Map<String, Variation> variations =
           buildVariations(jsonNode.get("variations").getAsJsonObject());
-      List<Allocation> allocations =
-          buildAllocations(jsonNode.get("allocations").getAsJsonArray());
+      List<Allocation> allocations = buildAllocations(jsonNode.get("allocations").getAsJsonArray());
 
       return new FlagConfig(key, enabled, totalShards, variationType, variations, allocations);
     }
