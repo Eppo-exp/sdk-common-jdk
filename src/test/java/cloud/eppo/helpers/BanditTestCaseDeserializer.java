@@ -80,36 +80,10 @@ public class BanditTestCaseDeserializer implements JsonDeserializer<BanditTestCa
       JsonObject jsonObject = jsonElement.getAsJsonObject();
       for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
         String attributeName = entry.getKey();
-        EppoValue attributeValue = deserializeEppoValue(entry.getValue());
+        EppoValue attributeValue = TestUtils.deserializeEppoValue(entry.getValue());
         attributes.put(attributeName, attributeValue);
       }
     }
     return attributes;
-  }
-
-  private EppoValue deserializeEppoValue(JsonElement json) {
-    if (json == null || json.isJsonNull()) {
-      return EppoValue.nullValue();
-    }
-
-    if (json.isJsonArray()) {
-      List<String> stringArray = new ArrayList<>();
-      for (JsonElement arrayElement : json.getAsJsonArray()) {
-        if (arrayElement.isJsonPrimitive() && arrayElement.getAsJsonPrimitive().isString()) {
-          stringArray.add(arrayElement.getAsString());
-        }
-      }
-      return EppoValue.valueOf(stringArray);
-    } else if (json.isJsonPrimitive()) {
-      if (json.getAsJsonPrimitive().isBoolean()) {
-        return EppoValue.valueOf(json.getAsBoolean());
-      } else if (json.getAsJsonPrimitive().isNumber()) {
-        return EppoValue.valueOf(json.getAsDouble());
-      } else {
-        return EppoValue.valueOf(json.getAsString());
-      }
-    } else {
-      return EppoValue.nullValue();
-    }
   }
 }
