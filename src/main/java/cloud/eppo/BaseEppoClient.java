@@ -426,9 +426,9 @@ public class BaseEppoClient {
   }
 
   /**
-   * Returns the assignment for the provided feature flag key, subject key, and subject attributes
-   * as an instance of the specified class. If the flag is not found, does not match the requested
-   * type, or is disabled, defaultValue is returned.
+   * Returns the "JSON" assignment for the provided feature flag key, subject key, and subject
+   * attributes as an instance of the specified class. If the flag is not found, is not a JSON flag,
+   * or is disabled, defaultValue is returned.
    *
    * @param <T> the type to deserialize the JSON result to
    * @param flagKey the feature flag key
@@ -460,8 +460,8 @@ public class BaseEppoClient {
 
   /**
    * Returns the assignment for the provided feature flag key and subject key as an instance of the
-   * specified class. If the flag is not found, does not match the requested type, or is disabled,
-   * defaultValue is returned.
+   * specified class. If the flag is not found, is not a JSON flag, or is disabled, defaultValue is
+   * returned.
    *
    * @param <T> the type to deserialize the JSON result to
    * @param flagKey the feature flag key
