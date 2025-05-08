@@ -8,12 +8,24 @@ import org.junit.jupiter.api.Test;
 
 public class CallbackManagerTest {
 
+  private CallbackManager<String, List<String>> createCallbackManager() {
+    return new CallbackManager<>(
+        // Can't use a lambda as they were only introduced in java8
+        new CallbackManager.Dispatcher<String, List<String>>() {
+          @Override
+          public void dispatch(List<String> callback, String data) {
+            callback.add(data);
+          }
+        });
+  }
+
   @Test
   public void testSubscribeAndNotify() {
-    CallbackManager<String> CallbackManager = new CallbackManager<>();
+    CallbackManager<String, List<String>> CallbackManager = createCallbackManager();
+
     List<String> received = new ArrayList<>();
 
-    Runnable unsubscribe = CallbackManager.subscribe(received::add);
+    Runnable unsubscribe = CallbackManager.subscribe(received);
 
     CallbackManager.notifyCallbacks("test message");
     assertEquals(1, received.size());
@@ -26,15 +38,20 @@ public class CallbackManagerTest {
 
   @Test
   public void testThrowingCallback() {
-    CallbackManager<String> manager = new CallbackManager<>();
+    // The helper-created manager includes a dispatcher which pushes the data to the `add` method.
+    CallbackManager<String, List<String>> manager = createCallbackManager();
     List<String> received = new ArrayList<>();
 
-    Runnable unsubscribe1 =
-        manager.subscribe(
-            (s) -> {
-              throw new RuntimeException("test message");
-            });
-    Runnable unsubscribe2 = manager.subscribe(received::add);
+    List<String> throwingList =
+        new ArrayList<String>() {
+          @Override
+          public boolean add(String o) {
+            throw new RuntimeException("test message");
+          }
+        };
+
+    Runnable unsubscribe1 = manager.subscribe(throwingList);
+    Runnable unsubscribe2 = manager.subscribe(received);
 
     manager.notifyCallbacks("value");
     assertEquals(1, received.size());
@@ -42,12 +59,20 @@ public class CallbackManagerTest {
 
   @Test
   public void testMultipleSubscribers() {
-    CallbackManager<Integer> manager = new CallbackManager<>();
+    CallbackManager<Integer, List<Integer>> manager =
+        new CallbackManager<>(
+            new CallbackManager.Dispatcher<Integer, List<Integer>>() {
+
+              @Override
+              public void dispatch(List<Integer> callback, Integer data) {
+                callback.add(data);
+              }
+            });
     List<Integer> received1 = new ArrayList<>();
     List<Integer> received2 = new ArrayList<>();
 
-    manager.subscribe(received1::add);
-    manager.subscribe(received2::add);
+    manager.subscribe(received1);
+    manager.subscribe(received2);
 
     manager.notifyCallbacks(42);
 
@@ -59,11 +84,11 @@ public class CallbackManagerTest {
 
   @Test
   public void testUnsubscribe() {
-    CallbackManager<String> manager = new CallbackManager<>();
+    CallbackManager<String, List<String>> manager = createCallbackManager();
     List<String> received = new ArrayList<>();
 
-    Runnable unsubscribe1 = manager.subscribe(received::add);
-    Runnable unsubscribe2 = manager.subscribe(received::add);
+    Runnable unsubscribe1 = manager.subscribe(received);
+    Runnable unsubscribe2 = manager.subscribe(received);
 
     manager.notifyCallbacks("value");
     assertEquals(2, received.size());
@@ -83,12 +108,12 @@ public class CallbackManagerTest {
 
   @Test
   public void testClear() {
-    CallbackManager<String> manager = new CallbackManager<>();
+    CallbackManager<String, List<String>> manager = createCallbackManager();
 
     List<String> received = new ArrayList<>();
 
-    manager.subscribe(received::add);
-    manager.subscribe(received::add);
+    manager.subscribe(received);
+    manager.subscribe(received);
 
     manager.notifyCallbacks("value");
     assertEquals(2, received.size());

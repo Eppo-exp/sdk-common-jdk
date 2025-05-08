@@ -49,6 +49,25 @@ import org.slf4j.LoggerFactory;
  * then check `requiresBanditModels()`.
  */
 public class Configuration {
+  /**
+   * Callback for operations involving Configuration changes.
+   *
+   * <p>This interface is used to notify listeners when a configuration has been updated or changed.
+   * Implementations should handle the new configuration appropriately, such as updating cached
+   * values or triggering dependent operations.
+   *
+   * <p>Thread safety: Callbacks may be invoked on any thread, including the calling thread or a
+   * background thread. Implementations should be thread-safe and avoid blocking operations.
+   */
+  public interface ConfigurationCallback {
+    /**
+     * Called when a new configuration is available.
+     *
+     * @param configuration The updated configuration, may be null in some error scenarios
+     */
+    void accept(Configuration configuration);
+  }
+
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 
@@ -174,10 +193,6 @@ public class Configuration {
     return new Builder(flagJson);
   }
 
-  @Deprecated // isConfigObfuscated is determined from the byte payload
-  public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
-    return new Builder(flagJson, isConfigObfuscated);
-  }
   /**
    * Builder to create the immutable config object.
    *
@@ -203,16 +218,6 @@ public class Configuration {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    @Deprecated // isConfigObfuscated is determined from the byte payload
-    public Builder(String flagJson, boolean isConfigObfuscated) {
-      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
-    }
-
-    @Deprecated // isConfigObfuscated is determined from the byte payload
-    public Builder(byte[] flagJson, boolean isConfigObfuscated) {
-      this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {

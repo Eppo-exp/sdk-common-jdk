@@ -1,10 +1,8 @@
 package cloud.eppo;
 
+import cloud.eppo.exception.InvalidApiKeyException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -16,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EppoHttpClient {
+public class EppoHttpClient implements IEppoHttpClient {
   private static final Logger log = LoggerFactory.getLogger(EppoHttpClient.class);
 
   private final OkHttpClient client;
@@ -44,18 +42,25 @@ public class EppoHttpClient {
     return builder.build();
   }
 
+  @Override
   public byte[] get(String path) {
-    try {
-      // Wait and return the async get.
-      return getAsync(path).get();
-    } catch (InterruptedException | ExecutionException e) {
-      log.error("Config fetch interrupted", e);
-      throw new RuntimeException(e);
+    Request request = buildRequest(path);
+    try (Response response = client.newCall(request).execute()) {
+      if (response.isSuccessful() && response.body() != null) {
+        return response.body().bytes();
+      }
+
+      throw response.code() == HttpURLConnection.HTTP_FORBIDDEN
+          ? new InvalidApiKeyException("Invalid API key")
+          : new HttpException("Fetch failed with status code: " + response.code());
+
+    } catch (IOException e) {
+      throw new HttpException("Http request failure", e);
     }
   }
 
-  public CompletableFuture<byte[]> getAsync(String path) {
-    CompletableFuture<byte[]> future = new CompletableFuture<>();
+  @Override
+  public void getAsync(String path, EppoHttpCallback callback) {
     Request request = buildRequest(path);
     client
         .newCall(request)
@@ -64,38 +69,27 @@ public class EppoHttpClient {
               @Override
               public void onResponse(@NotNull Call call, @NotNull Response response) {
                 if (response.isSuccessful() && response.body() != null) {
-                  log.debug("Fetch successful");
                   try {
-                    future.complete(response.body().bytes());
+                    callback.onSuccess(response.body().bytes());
                   } catch (IOException ex) {
-                    future.completeExceptionally(
-                        new RuntimeException(
+                    callback.onFailure(
+                        new HttpException(
                             "Failed to read response from URL {}" + request.url(), ex));
                   }
                 } else {
-                  if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-                    future.completeExceptionally(new RuntimeException("Invalid API key"));
-                  } else {
-                    log.debug("Fetch failed with status code: {}", response.code());
-                    future.completeExceptionally(
-                        new RuntimeException("Bad response from URL " + request.url()));
-                  }
+                  callback.onFailure(
+                      response.code() == HttpURLConnection.HTTP_FORBIDDEN
+                          ? new InvalidApiKeyException("Invalid API key")
+                          : new HttpException("Bad response from URL " + request.url()));
                 }
                 response.close();
               }
 
               @Override
               public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                log.error(
-                    "Http request failure: {} {}",
-                    e.getMessage(),
-                    Arrays.toString(e.getStackTrace()),
-                    e);
-                future.completeExceptionally(
-                    new RuntimeException("Unable to fetch from URL " + request.url()));
+                callback.onFailure(e);
               }
             });
-    return future;
   }
 
   private Request buildRequest(String path) {

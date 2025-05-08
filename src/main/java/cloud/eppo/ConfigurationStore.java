@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
-import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
 /** Memory-only configuration store. */
@@ -12,9 +11,8 @@ public class ConfigurationStore implements IConfigurationStore {
 
   public ConfigurationStore() {}
 
-  public CompletableFuture<Void> saveConfiguration(@NotNull final Configuration configuration) {
+  public void saveConfiguration(@NotNull final Configuration configuration) {
     this.configuration = configuration;
-    return CompletableFuture.completedFuture(null);
   }
 
   @NotNull public Configuration getConfiguration() {
