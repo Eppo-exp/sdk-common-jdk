@@ -5,18 +5,12 @@ import static cloud.eppo.Utils.parseUtcISODateNode;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.TypeAdapter;
+import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -63,14 +57,19 @@ public class GsonAdapter {
         for (Map.Entry<String, JsonElement> entry : banditsObj.entrySet()) {
           JsonObject banditNode = entry.getValue().getAsJsonObject();
 
+          // Deserialize BanditParameters
           String modelVersion = banditNode.get("modelVersion").getAsString();
           String modelName =
               banditNode.has("modelName") ? banditNode.get("modelName").getAsString() : "";
-          Date updatedAt = new Date(); // Use current time as default
-          String banditKey = entry.getKey(); // Use the map key as the bandit key
-          Map<String, Object> modelData =
-              deserializeModelData(banditNode.get("modelData").getAsJsonObject());
-          BanditModelData banditModelData = new BanditModelData(modelData);
+
+          String updatedAtStr = banditNode.get("updatedAt").getAsString();
+          Instant instant = Instant.parse(updatedAtStr);
+          Date updatedAt = Date.from(instant);
+
+          String banditKey =
+              banditNode.get("banditKey").getAsString(); // Use the node's key, not the map's key
+          BanditModelData banditModelData =
+              buildBanditModelData(banditNode.get("modelData").getAsJsonObject());
 
           bandits.put(
               entry.getKey(),
@@ -81,45 +80,131 @@ public class GsonAdapter {
       return new BanditParametersResponse(bandits);
     }
 
-    private Map<String, Object> deserializeModelData(JsonObject jsonObject) {
-      Map<String, Object> result = new HashMap<>();
+    private double getDoubleOrDefault(
+        JsonObject jsonObject, String memberName, double defaultValue) {
+      try {
+        return jsonObject.get(memberName).getAsDouble();
+      } catch (Exception e) {
+        return defaultValue;
+      }
+    }
 
-      for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
-        String key = entry.getKey();
-        JsonElement value = entry.getValue();
+    private BanditModelData buildBanditModelData(JsonObject jsonObject) {
 
-        if (value.isJsonNull()) {
-          result.put(key, null);
-        } else if (value.isJsonPrimitive()) {
-          if (value.getAsJsonPrimitive().isBoolean()) {
-            result.put(key, value.getAsBoolean());
-          } else if (value.getAsJsonPrimitive().isNumber()) {
-            result.put(key, value.getAsDouble());
-          } else {
-            result.put(key, value.getAsString());
-          }
-        } else if (value.isJsonArray()) {
-          List<Object> list = new ArrayList<>();
-          for (JsonElement element : value.getAsJsonArray()) {
-            if (element.isJsonObject()) {
-              list.add(deserializeModelData(element.getAsJsonObject()));
-            } else if (element.isJsonPrimitive()) {
-              if (element.getAsJsonPrimitive().isBoolean()) {
-                list.add(element.getAsBoolean());
-              } else if (element.getAsJsonPrimitive().isNumber()) {
-                list.add(element.getAsDouble());
-              } else {
-                list.add(element.getAsString());
-              }
-            }
-          }
-          result.put(key, list);
-        } else if (value.isJsonObject()) {
-          result.put(key, deserializeModelData(value.getAsJsonObject()));
+      double gamma = getDoubleOrDefault(jsonObject, "gamma", 1.0);
+      double defaultActionScore = getDoubleOrDefault(jsonObject, "defaultActionScore", 0.0);
+      double actionProbabilityFloor = getDoubleOrDefault(jsonObject, "actionProbabilityFloor", 0.0);
+
+      Map<String, BanditCoefficients> coefficients =
+          (jsonObject.has("coefficients") && jsonObject.get("coefficients").isJsonObject())
+              ? buildBanditActionCoefficients(jsonObject.get("coefficients").getAsJsonObject())
+              : new HashMap<>();
+
+      return new BanditModelData(gamma, defaultActionScore, actionProbabilityFloor, coefficients);
+    }
+
+    private Map<String, BanditCoefficients> buildBanditActionCoefficients(JsonObject element) {
+      Map<String, BanditCoefficients> coefficients = new HashMap<>();
+
+      for (Map.Entry<String, JsonElement> entry : element.entrySet()) {
+        if (entry.getValue() != null && entry.getValue().isJsonObject()) {
+
+          JsonObject actionNode = entry.getValue().getAsJsonObject();
+          String actionKey = actionNode.get("actionKey").getAsString();
+          double intercept = getDoubleOrDefault(actionNode, "intercept", 0.0);
+
+          Map<String, BanditNumericAttributeCoefficients> subjectNumericCoefficients =
+              buildNumericAttributeCoefficients(
+                  actionNode.get("subjectNumericCoefficients").getAsJsonArray());
+
+          Map<String, BanditCategoricalAttributeCoefficients> subjectCategoricalCoefficients =
+              buildCategoricalAttributeCoefficients(
+                  actionNode.get("subjectCategoricalCoefficients").getAsJsonArray());
+
+          Map<String, BanditNumericAttributeCoefficients> actionNumericCoefficients =
+              buildNumericAttributeCoefficients(
+                  actionNode.get("actionNumericCoefficients").getAsJsonArray());
+
+          Map<String, BanditCategoricalAttributeCoefficients> actionCategoricalCoefficients =
+              buildCategoricalAttributeCoefficients(
+                  actionNode.get("actionCategoricalCoefficients").getAsJsonArray());
+
+          coefficients.put(
+              actionKey,
+              new BanditCoefficients(
+                  actionKey,
+                  intercept,
+                  subjectNumericCoefficients,
+                  subjectCategoricalCoefficients,
+                  actionNumericCoefficients,
+                  actionCategoricalCoefficients));
         }
       }
 
-      return result;
+      return coefficients;
+    }
+
+    private Map<String, BanditCategoricalAttributeCoefficients> buildCategoricalAttributeCoefficients(
+        JsonArray subjectCategoricalCoefficients) {
+      Map<String, BanditCategoricalAttributeCoefficients> categoricalAttributeCoefficients =
+          new HashMap<>();
+      subjectCategoricalCoefficients
+          .iterator()
+          .forEachRemaining(
+              categoricalAttributeCoefficientsElement -> {
+                JsonObject categoricalAttributeCoefficientsNode =
+                    categoricalAttributeCoefficientsElement.getAsJsonObject();
+                String attributeKey =
+                    categoricalAttributeCoefficientsNode.get("attributeKey").getAsString();
+                Double missingValueCoefficient =
+                    categoricalAttributeCoefficientsNode
+                        .get("missingValueCoefficient")
+                        .getAsDouble();
+
+                Map<String, Double> valueCoefficients = new HashMap<>();
+                JsonObject valuesNode =
+                    categoricalAttributeCoefficientsNode.get("valueCoefficients").getAsJsonObject();
+                Iterator<Map.Entry<String, JsonElement>> coefficientIterator =
+                    valuesNode.entrySet().iterator();
+                coefficientIterator.forEachRemaining(
+                    field -> {
+                      String value = field.getKey();
+                      Double coefficient = field.getValue().getAsDouble();
+                      valueCoefficients.put(value, coefficient);
+                    });
+
+                BanditCategoricalAttributeCoefficients coefficients =
+                    new BanditCategoricalAttributeCoefficients(
+                        attributeKey, missingValueCoefficient, valueCoefficients);
+                categoricalAttributeCoefficients.put(attributeKey, coefficients);
+              });
+
+      return categoricalAttributeCoefficients;
+    }
+
+    private Map<String, BanditNumericAttributeCoefficients> buildNumericAttributeCoefficients(
+        JsonArray numericCoefficientArray) {
+      Map<String, BanditNumericAttributeCoefficients> numericAttributeCoefficients =
+          new HashMap<>();
+      numericCoefficientArray
+          .iterator()
+          .forEachRemaining(
+              numericAttributeCoefficientsElement -> {
+                JsonObject numericAttributeCoefficientsNode =
+                    numericAttributeCoefficientsElement.getAsJsonObject();
+                String attributeKey =
+                    numericAttributeCoefficientsNode.get("attributeKey").getAsString();
+                Double coefficient =
+                    numericAttributeCoefficientsNode.get("coefficient").getAsDouble();
+                Double missingValueCoefficient =
+                    numericAttributeCoefficientsNode.get("missingValueCoefficient").getAsDouble();
+                BanditNumericAttributeCoefficients coefficients =
+                    new BanditNumericAttributeCoefficients(
+                        attributeKey, coefficient, missingValueCoefficient);
+                numericAttributeCoefficients.put(attributeKey, coefficients);
+              });
+
+      return numericAttributeCoefficients;
     }
   }
 
@@ -156,7 +241,7 @@ public class GsonAdapter {
 
       JsonObject flagsObj = flagsNode.getAsJsonObject();
       for (Map.Entry<String, JsonElement> entry : flagsObj.entrySet()) {
-        FlagConfig flagConfig = deserializeFlag(entry.getValue().getAsJsonObject());
+        FlagConfig flagConfig = buildFlag(entry.getValue().getAsJsonObject());
         flags.put(entry.getKey(), flagConfig);
       }
 
@@ -169,7 +254,7 @@ public class GsonAdapter {
           JsonObject banditReferencesObj = banditReferencesNode.getAsJsonObject();
           for (Map.Entry<String, JsonElement> entry : banditReferencesObj.entrySet()) {
             BanditReference banditReference =
-                deserializeBanditReference(entry.getValue().getAsJsonObject());
+                buildBanditReferences(entry.getValue().getAsJsonObject());
             banditReferences.put(entry.getKey(), banditReference);
           }
         }
@@ -178,21 +263,21 @@ public class GsonAdapter {
       return new FlagConfigResponse(flags, banditReferences, dataFormat);
     }
 
-    private FlagConfig deserializeFlag(JsonObject jsonNode) {
+    private FlagConfig buildFlag(JsonObject jsonNode) {
       String key = jsonNode.get("key").getAsString();
       boolean enabled = jsonNode.get("enabled").getAsBoolean();
       int totalShards = jsonNode.get("totalShards").getAsInt();
       VariationType variationType =
           VariationType.fromString(jsonNode.get("variationType").getAsString());
       Map<String, Variation> variations =
-          deserializeVariations(jsonNode.get("variations").getAsJsonObject());
+          buildVariations(jsonNode.get("variations").getAsJsonObject());
       List<Allocation> allocations =
-          deserializeAllocations(jsonNode.get("allocations").getAsJsonArray());
+          buildAllocations(jsonNode.get("allocations").getAsJsonArray());
 
       return new FlagConfig(key, enabled, totalShards, variationType, variations, allocations);
     }
 
-    private Map<String, Variation> deserializeVariations(JsonObject jsonNode) {
+    private Map<String, Variation> buildVariations(JsonObject jsonNode) {
       Map<String, Variation> variations = new HashMap<>();
       if (jsonNode == null) {
         return variations;
@@ -207,7 +292,7 @@ public class GsonAdapter {
       return variations;
     }
 
-    private List<Allocation> deserializeAllocations(JsonElement jsonNode) {
+    private List<Allocation> buildAllocations(JsonElement jsonNode) {
       List<Allocation> allocations = new ArrayList<>();
       if (jsonNode == null) {
         return allocations;
@@ -216,17 +301,17 @@ public class GsonAdapter {
       for (JsonElement allocation : jsonNode.getAsJsonArray()) {
         JsonObject allocationObj = allocation.getAsJsonObject();
         String key = allocationObj.get("key").getAsString();
-        Set<TargetingRule> rules = deserializeTargetingRules(allocationObj.get("rules"));
+        Set<TargetingRule> rules = buildTargetingRules(allocationObj.get("rules"));
         Date startAt = parseUtcISODateNode(allocationObj.get("startAt"));
         Date endAt = parseUtcISODateNode(allocationObj.get("endAt"));
-        List<Split> splits = deserializeSplits(allocationObj.get("splits"));
+        List<Split> splits = buildSplits(allocationObj.get("splits"));
         boolean doLog = allocationObj.get("doLog").getAsBoolean();
         allocations.add(new Allocation(key, rules, startAt, endAt, splits, doLog));
       }
       return allocations;
     }
 
-    private Set<TargetingRule> deserializeTargetingRules(JsonElement jsonNode) {
+    private Set<TargetingRule> buildTargetingRules(JsonElement jsonNode) {
       Set<TargetingRule> targetingRules = new HashSet<>();
       if (jsonNode == null || !jsonNode.isJsonArray()) {
         return targetingRules;
@@ -254,7 +339,7 @@ public class GsonAdapter {
       return targetingRules;
     }
 
-    private List<Split> deserializeSplits(JsonElement jsonNode) {
+    private List<Split> buildSplits(JsonElement jsonNode) {
       List<Split> splits = new ArrayList<>();
       if (jsonNode == null || !jsonNode.isJsonArray()) {
         return splits;
@@ -263,7 +348,7 @@ public class GsonAdapter {
       for (JsonElement split : jsonNode.getAsJsonArray()) {
         JsonObject splitObj = split.getAsJsonObject();
         String variationKey = splitObj.get("variationKey").getAsString();
-        Set<Shard> shards = deserializeShards(splitObj.get("shards"));
+        Set<Shard> shards = buildShards(splitObj.get("shards"));
 
         Map<String, String> extraLogging = new HashMap<>();
         JsonElement extraLoggingNode = splitObj.get("extraLogging");
@@ -279,7 +364,7 @@ public class GsonAdapter {
       return splits;
     }
 
-    private Set<Shard> deserializeShards(JsonElement jsonNode) {
+    private Set<Shard> buildShards(JsonElement jsonNode) {
       Set<Shard> shards = new HashSet<>();
       if (jsonNode == null || !jsonNode.isJsonArray()) {
         return shards;
@@ -301,7 +386,7 @@ public class GsonAdapter {
       return shards;
     }
 
-    private BanditReference deserializeBanditReference(JsonObject jsonNode) {
+    private BanditReference buildBanditReferences(JsonObject jsonNode) {
       String modelVersion = jsonNode.get("modelVersion").getAsString();
       List<BanditFlagVariation> flagVariations = new ArrayList<>();
       JsonElement flagVariationsNode = jsonNode.get("flagVariations");

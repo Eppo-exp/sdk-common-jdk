@@ -243,7 +243,7 @@ public class BaseEppoClientTest {
         "", spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
 
     assertEquals(
-        gson.toJson(gson.fromJson("{\"a\": 1, \"b\": false}", Map.class)),
+        "{\"a\":1,\"b\":false}",
         spyClient
             .getJSONAssignment(
                 "subject1",
@@ -252,12 +252,11 @@ public class BaseEppoClientTest {
             .toString());
 
     assertEquals(
-        gson.toJson("{\"a\": 1, \"b\": false}"),
-        spyClient.getJSONStringAssignment(
-            "subject1", "experiment1", gson.toJson("{\"a\": 1, \"b\": false}")));
+        "{\"a\": 1, \"b\": false}",
+        spyClient.getJSONStringAssignment("subject1", "experiment1", "{\"a\": 1, \"b\": false}"));
 
     assertEquals(
-        gson.toJson(gson.fromJson("{}", Map.class)),
+        "{}",
         spyClient
             .getJSONAssignment(
                 "subject1", "experiment1", new Attributes(), gson.fromJson("{}", JsonElement.class))

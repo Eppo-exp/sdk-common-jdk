@@ -5,8 +5,6 @@ import static cloud.eppo.Utils.getMD5Hex;
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.GsonAdapter;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -97,22 +95,6 @@ public class Configuration {
     this.banditReferences = banditReferences;
     this.bandits = bandits;
     this.isConfigObfuscated = isConfigObfuscated;
-
-    // Graft the `forServer` boolean into the flagConfigJson'
-    if (flagConfigJson != null && flagConfigJson.length != 0) {
-      try {
-        String jsonStr = new String(flagConfigJson, StandardCharsets.UTF_8);
-        JsonObject jsonObject = JsonParser.parseString(jsonStr).getAsJsonObject();
-        FlagConfigResponse.Format format =
-            isConfigObfuscated
-                ? FlagConfigResponse.Format.CLIENT
-                : FlagConfigResponse.Format.SERVER;
-        jsonObject.addProperty("format", format.toString());
-        flagConfigJson = gson.toJson(jsonObject).getBytes(StandardCharsets.UTF_8);
-      } catch (Exception e) {
-        log.error("Error adding `format` field to FlagConfigResponse JSON", e);
-      }
-    }
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }

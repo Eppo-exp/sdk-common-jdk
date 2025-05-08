@@ -1,6 +1,5 @@
 package cloud.eppo.ufc.dto;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class BanditCoefficients {
@@ -24,21 +23,6 @@ public class BanditCoefficients {
     this.subjectCategoricalCoefficients = subjectCategoricalAttributeCoefficients;
     this.actionNumericCoefficients = actionNumericAttributeCoefficients;
     this.actionCategoricalCoefficients = actionCategoricalAttributeCoefficients;
-  }
-
-  @SuppressWarnings("unchecked")
-  public BanditCoefficients(String actionKey, Map<String, Object> data) {
-    this.actionKey = actionKey;
-    this.intercept = (Double) data.getOrDefault("intercept", 0.0);
-
-    // Initialize empty maps for coefficients
-    this.subjectNumericCoefficients = new HashMap<>();
-    this.subjectCategoricalCoefficients = new HashMap<>();
-    this.actionNumericCoefficients = new HashMap<>();
-    this.actionCategoricalCoefficients = new HashMap<>();
-
-    // In a real implementation, we would need to convert the raw coefficient data
-    // This is a simplified version for compilation purposes
   }
 
   public String getActionKey() {
