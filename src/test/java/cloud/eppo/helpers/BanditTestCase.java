@@ -7,8 +7,8 @@ import cloud.eppo.BaseEppoClient;
 import cloud.eppo.api.Actions;
 import cloud.eppo.api.BanditResult;
 import cloud.eppo.api.ContextAttributes;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,20 +53,19 @@ public class BanditTestCase {
     return arguments.stream();
   }
 
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(banditTestCaseModule());
+  private static final Gson gson = buildGson();
 
-  public static SimpleModule banditTestCaseModule() {
-    SimpleModule module = new SimpleModule();
-    module.addDeserializer(BanditTestCase.class, new BanditTestCaseDeserializer());
-    return module;
+  public static Gson buildGson() {
+    GsonBuilder gsonBuilder = new GsonBuilder();
+    gsonBuilder.registerTypeAdapter(BanditTestCase.class, new BanditTestCaseDeserializer());
+    return gsonBuilder.create();
   }
 
   public static BanditTestCase parseBanditTestCaseFile(File testCaseFile) {
     BanditTestCase testCase;
     try {
       String json = FileUtils.readFileToString(testCaseFile, "UTF8");
-      testCase = mapper.readValue(json, BanditTestCase.class);
+      testCase = gson.fromJson(json, BanditTestCase.class);
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }

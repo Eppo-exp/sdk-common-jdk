@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.FlagConfigResponse;
 import cloud.eppo.ufc.dto.VariationType;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cloud.eppo.ufc.dto.adapters.GsonAdapter;
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -15,8 +15,7 @@ import org.junit.jupiter.api.Test;
 
 public class ConfigurationBuilderTest {
 
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(EppoModule.eppoModule());
+  private static final Gson gson = GsonAdapter.createGson();
 
   @Test
   public void testHydrateConfigFromBytesForServer_true() {
@@ -40,7 +39,7 @@ public class ConfigurationBuilderTest {
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
     FlagConfigResponse rehydratedConfig =
-        mapper.readValue(serializedFlags, FlagConfigResponse.class);
+        gson.fromJson(new String(serializedFlags), FlagConfigResponse.class);
 
     assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.SERVER);
   }

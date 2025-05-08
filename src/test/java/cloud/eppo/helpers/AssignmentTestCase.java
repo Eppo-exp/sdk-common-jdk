@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.ufc.dto.VariationType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,13 +49,12 @@ public class AssignmentTestCase {
     return subjects;
   }
 
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(assignmentTestCaseModule());
+  private static final Gson gson = buildGson();
 
-  public static SimpleModule assignmentTestCaseModule() {
-    SimpleModule module = new SimpleModule();
-    module.addDeserializer(AssignmentTestCase.class, new AssignmentTestCaseDeserializer());
-    return module;
+  public static Gson buildGson() {
+    GsonBuilder gsonBuilder = new GsonBuilder();
+    gsonBuilder.registerTypeAdapter(AssignmentTestCase.class, new AssignmentTestCaseDeserializer());
+    return gsonBuilder.create();
   }
 
   public static Stream<Arguments> getAssignmentTestData() {
@@ -75,7 +74,7 @@ public class AssignmentTestCase {
     try {
       String json = FileUtils.readFileToString(testCaseFile, "UTF8");
 
-      testCase = mapper.readValue(json, AssignmentTestCase.class);
+      testCase = gson.fromJson(json, AssignmentTestCase.class);
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
@@ -122,7 +121,7 @@ public class AssignmentTestCase {
           assertAssignment(flagKey, subjectAssignment, stringAssignment);
           break;
         case JSON:
-          JsonNode jsonAssignment =
+          JsonElement jsonAssignment =
               eppoClient.getJSONAssignment(
                   flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
           assertAssignment(flagKey, subjectAssignment, jsonAssignment);
@@ -173,7 +172,7 @@ public class AssignmentTestCase {
     } else if (assignment instanceof String) {
       assertEquals(
           expectedSubjectAssignment.getAssignment().stringValue(), assignment, failureMessage);
-    } else if (assignment instanceof JsonNode) {
+    } else if (assignment instanceof JsonElement) {
       assertEquals(
           expectedSubjectAssignment.getAssignment().jsonValue().toString(),
           assignment.toString(),

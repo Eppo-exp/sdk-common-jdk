@@ -11,10 +11,11 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cloud.eppo.ufc.dto.adapters.GsonAdapter;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -25,9 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class BaseEppoClient {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
-  private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
+  private final Gson gson = GsonAdapter.createGson();
 
   protected final ConfigurationRequestor requestor;
 
@@ -386,31 +385,32 @@ public class BaseEppoClient {
   }
 
   /**
-   * Returns the assignment for the provided feature flag key and subject key as a {@link JsonNode}.
-   * If the flag is not found, does not match the requested type or is disabled, defaultValue is
-   * returned.
+   * Returns the assignment for the provided feature flag key and subject key as a {@link
+   * JsonElement}. If the flag is not found, does not match the requested type or is disabled,
+   * defaultValue is returned.
    *
    * @param flagKey the feature flag key
    * @param subjectKey the subject key
    * @param defaultValue the default value to return if the flag is not found
-   * @return the JSON string value of the assignment
+   * @return the JSON element value of the assignment
    */
-  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
+  public JsonElement getJSONAssignment(
+      String flagKey, String subjectKey, JsonElement defaultValue) {
     return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   /**
-   * Returns the assignment for the provided feature flag key and subject key as a {@link JsonNode}.
-   * If the flag is not found, does not match the requested type or is disabled, defaultValue is
-   * returned.
+   * Returns the assignment for the provided feature flag key and subject key as a {@link
+   * JsonElement}. If the flag is not found, does not match the requested type or is disabled,
+   * defaultValue is returned.
    *
    * @param flagKey the feature flag key
    * @param subjectKey the subject key
    * @param defaultValue the default value to return if the flag is not found
-   * @return the JSON string value of the assignment
+   * @return the JSON element value of the assignment
    */
-  public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+  public JsonElement getJSONAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonElement defaultValue) {
     try {
       EppoValue value =
           this.getTypedAssignment(
@@ -423,6 +423,56 @@ public class BaseEppoClient {
     } catch (Exception e) {
       return throwIfNotGraceful(e, defaultValue);
     }
+  }
+
+  /**
+   * Returns the assignment for the provided feature flag key, subject key, and subject attributes
+   * as an instance of the specified class. If the flag is not found, does not match the requested
+   * type, or is disabled, defaultValue is returned.
+   *
+   * @param <T> the type to deserialize the JSON result to
+   * @param flagKey the feature flag key
+   * @param subjectKey the subject key
+   * @param subjectAttributes subject attributes for targeting
+   * @param classOfT the class of T
+   * @param defaultValue the default value to return if the flag is not found
+   * @return an instance of T representing the deserialized JSON assignment
+   */
+  public <T> T getJSONAssignment(
+      String flagKey,
+      String subjectKey,
+      Attributes subjectAttributes,
+      Class<T> classOfT,
+      T defaultValue) {
+    try {
+      EppoValue value =
+          this.getTypedAssignment(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(gson.toJson(defaultValue)),
+              VariationType.JSON);
+      return gson.fromJson(value.stringValue(), classOfT);
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  /**
+   * Returns the assignment for the provided feature flag key and subject key as an instance of the
+   * specified class. If the flag is not found, does not match the requested type, or is disabled,
+   * defaultValue is returned.
+   *
+   * @param <T> the type to deserialize the JSON result to
+   * @param flagKey the feature flag key
+   * @param subjectKey the subject key
+   * @param classOfT the class of T
+   * @param defaultValue the default value to return if the flag is not found
+   * @return an instance of T representing the deserialized JSON assignment
+   */
+  public <T> T getJSONAssignment(
+      String flagKey, String subjectKey, Class<T> classOfT, T defaultValue) {
+    return getJSONAssignment(flagKey, subjectKey, new Attributes(), classOfT, defaultValue);
   }
 
   /**
@@ -465,10 +515,10 @@ public class BaseEppoClient {
     return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  private JsonNode parseJsonString(String jsonString) {
+  private JsonElement parseJsonString(String jsonString) {
     try {
-      return mapper.readTree(jsonString);
-    } catch (JsonProcessingException e) {
+      return JsonParser.parseString(jsonString);
+    } catch (JsonSyntaxException e) {
       return null;
     }
   }

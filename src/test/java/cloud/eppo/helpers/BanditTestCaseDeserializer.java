@@ -1,52 +1,53 @@
 package cloud.eppo.helpers;
 
 import cloud.eppo.api.*;
-import cloud.eppo.ufc.dto.adapters.EppoValueDeserializer;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import java.io.IOException;
+import cloud.eppo.ufc.dto.adapters.GsonAdapter;
+import com.google.gson.Gson;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import java.lang.reflect.Type;
 import java.util.*;
 
-public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> {
-  private final EppoValueDeserializer eppoValueDeserializer = new EppoValueDeserializer();
-
-  public BanditTestCaseDeserializer() {
-    super(BanditTestCase.class);
-  }
+public class BanditTestCaseDeserializer implements JsonDeserializer<BanditTestCase> {
+  private final Gson gson = GsonAdapter.createGson();
 
   @Override
-  public BanditTestCase deserialize(JsonParser parser, DeserializationContext context)
-      throws IOException {
-    JsonNode rootNode = parser.getCodec().readTree(parser);
-    String flag = rootNode.get("flag").asText();
-    String defaultValue = rootNode.get("defaultValue").asText();
+  public BanditTestCase deserialize(
+      JsonElement json, Type typeOfT, JsonDeserializationContext context)
+      throws JsonParseException {
+    JsonObject rootNode = json.getAsJsonObject();
+    String flag = rootNode.get("flag").getAsString();
+    String defaultValue = rootNode.get("defaultValue").getAsString();
     List<BanditSubjectAssignment> subjects =
         deserializeSubjectBanditAssignments(rootNode.get("subjects"));
     return new BanditTestCase(flag, defaultValue, subjects);
   }
 
-  private List<BanditSubjectAssignment> deserializeSubjectBanditAssignments(JsonNode jsonNode) {
+  private List<BanditSubjectAssignment> deserializeSubjectBanditAssignments(
+      JsonElement jsonElement) {
     List<BanditSubjectAssignment> subjectAssignments = new ArrayList<>();
-    if (jsonNode != null && jsonNode.isArray()) {
-      for (JsonNode subjectAssignmentNode : jsonNode) {
-        String subjectKey = subjectAssignmentNode.get("subjectKey").asText();
-        JsonNode attributesNode = subjectAssignmentNode.get("subjectAttributes");
+    if (jsonElement != null && jsonElement.isJsonArray()) {
+      for (JsonElement element : jsonElement.getAsJsonArray()) {
+        JsonObject subjectAssignmentNode = element.getAsJsonObject();
+        String subjectKey = subjectAssignmentNode.get("subjectKey").getAsString();
+        JsonElement attributesNode = subjectAssignmentNode.get("subjectAttributes");
         ContextAttributes attributes = new ContextAttributes();
-        if (attributesNode != null && attributesNode.isObject()) {
+        if (attributesNode != null && attributesNode.isJsonObject()) {
           Attributes numericAttributes =
-              deserializeAttributes(attributesNode.get("numericAttributes"));
+              deserializeAttributes(attributesNode.getAsJsonObject().get("numericAttributes"));
           Attributes categoricalAttributes =
-              deserializeAttributes(attributesNode.get("categoricalAttributes"));
+              deserializeAttributes(attributesNode.getAsJsonObject().get("categoricalAttributes"));
           attributes = new ContextAttributes(numericAttributes, categoricalAttributes);
         }
         Actions actions = deserializeActions(subjectAssignmentNode.get("actions"));
-        JsonNode assignmentNode = subjectAssignmentNode.get("assignment");
-        String variationAssignment = assignmentNode.get("variation").asText();
-        JsonNode actionAssignmentNode = assignmentNode.get("action");
+        JsonObject assignmentNode = subjectAssignmentNode.get("assignment").getAsJsonObject();
+        String variationAssignment = assignmentNode.get("variation").getAsString();
+        JsonElement actionAssignmentNode = assignmentNode.get("action");
         String actionAssignment =
-            actionAssignmentNode.isNull() ? null : actionAssignmentNode.asText();
+            actionAssignmentNode.isJsonNull() ? null : actionAssignmentNode.getAsString();
         BanditResult assignment = new BanditResult(variationAssignment, actionAssignment);
         subjectAssignments.add(
             new BanditSubjectAssignment(subjectKey, attributes, actions, assignment));
@@ -56,11 +57,12 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
     return subjectAssignments;
   }
 
-  private Actions deserializeActions(JsonNode jsonNode) {
+  private Actions deserializeActions(JsonElement jsonElement) {
     BanditActions actions = new BanditActions();
-    if (jsonNode != null && jsonNode.isArray()) {
-      for (JsonNode actionNode : jsonNode) {
-        String actionKey = actionNode.get("actionKey").asText();
+    if (jsonElement != null && jsonElement.isJsonArray()) {
+      for (JsonElement element : jsonElement.getAsJsonArray()) {
+        JsonObject actionNode = element.getAsJsonObject();
+        String actionKey = actionNode.get("actionKey").getAsString();
         Attributes numericAttributes = deserializeAttributes(actionNode.get("numericAttributes"));
         Attributes categoricalAttributes =
             deserializeAttributes(actionNode.get("categoricalAttributes"));
@@ -72,16 +74,42 @@ public class BanditTestCaseDeserializer extends StdDeserializer<BanditTestCase> 
     return actions;
   }
 
-  private Attributes deserializeAttributes(JsonNode jsonNode) {
+  private Attributes deserializeAttributes(JsonElement jsonElement) {
     Attributes attributes = new Attributes();
-    if (jsonNode != null && jsonNode.isObject()) {
-      for (Iterator<Map.Entry<String, JsonNode>> it = jsonNode.fields(); it.hasNext(); ) {
-        Map.Entry<String, JsonNode> entry = it.next();
+    if (jsonElement != null && jsonElement.isJsonObject()) {
+      JsonObject jsonObject = jsonElement.getAsJsonObject();
+      for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
         String attributeName = entry.getKey();
-        EppoValue attributeValue = eppoValueDeserializer.deserializeNode(entry.getValue());
+        EppoValue attributeValue = deserializeEppoValue(entry.getValue());
         attributes.put(attributeName, attributeValue);
       }
     }
     return attributes;
+  }
+
+  private EppoValue deserializeEppoValue(JsonElement json) {
+    if (json == null || json.isJsonNull()) {
+      return EppoValue.nullValue();
+    }
+
+    if (json.isJsonArray()) {
+      List<String> stringArray = new ArrayList<>();
+      for (JsonElement arrayElement : json.getAsJsonArray()) {
+        if (arrayElement.isJsonPrimitive() && arrayElement.getAsJsonPrimitive().isString()) {
+          stringArray.add(arrayElement.getAsString());
+        }
+      }
+      return EppoValue.valueOf(stringArray);
+    } else if (json.isJsonPrimitive()) {
+      if (json.getAsJsonPrimitive().isBoolean()) {
+        return EppoValue.valueOf(json.getAsBoolean());
+      } else if (json.getAsJsonPrimitive().isNumber()) {
+        return EppoValue.valueOf(json.getAsDouble());
+      } else {
+        return EppoValue.valueOf(json.getAsString());
+      }
+    } else {
+      return EppoValue.nullValue();
+    }
   }
 }

@@ -16,8 +16,9 @@ import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.VariationType;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
@@ -50,8 +51,7 @@ public class BaseEppoClientTest {
   private static final String TEST_BASE_URL =
       TEST_API_CLOUD_FUNCTION_URL + (TEST_BRANCH != null ? "/b/" + TEST_BRANCH : "") + "/api";
 
-  private final ObjectMapper mapper =
-      new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
+  private final Gson gson = AssignmentTestCase.buildGson();
 
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
@@ -212,7 +212,7 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testErrorGracefulModeOn() throws JsonProcessingException {
+  public void testErrorGracefulModeOn() throws JsonSyntaxException {
     initClient(true, "java", true);
 
     BaseEppoClient realClient = eppoClient;
@@ -243,20 +243,24 @@ public class BaseEppoClientTest {
         "", spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
 
     assertEquals(
-        mapper.readTree("{\"a\": 1, \"b\": false}").toString(),
+        gson.toJson(gson.fromJson("{\"a\": 1, \"b\": false}", Map.class)),
         spyClient
             .getJSONAssignment(
-                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}"))
+                "subject1",
+                "experiment1",
+                gson.fromJson("{\"a\": 1, \"b\": false}", JsonElement.class))
             .toString());
 
     assertEquals(
-        "{\"a\": 1, \"b\": false}",
-        spyClient.getJSONStringAssignment("subject1", "experiment1", "{\"a\": 1, \"b\": false}"));
+        gson.toJson("{\"a\": 1, \"b\": false}"),
+        spyClient.getJSONStringAssignment(
+            "subject1", "experiment1", gson.toJson("{\"a\": 1, \"b\": false}")));
 
     assertEquals(
-        mapper.readTree("{}").toString(),
+        gson.toJson(gson.fromJson("{}", Map.class)),
         spyClient
-            .getJSONAssignment("subject1", "experiment1", new Attributes(), mapper.readTree("{}"))
+            .getJSONAssignment(
+                "subject1", "experiment1", new Attributes(), gson.fromJson("{}", JsonElement.class))
             .toString());
   }
 
@@ -307,12 +311,17 @@ public class BaseEppoClientTest {
         RuntimeException.class,
         () ->
             spyClient.getJSONAssignment(
-                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}")));
+                "subject1",
+                "experiment1",
+                gson.fromJson("{\"a\": 1, \"b\": false}", JsonElement.class)));
     assertThrows(
         RuntimeException.class,
         () ->
             spyClient.getJSONAssignment(
-                "subject1", "experiment1", new Attributes(), mapper.readTree("{}")));
+                "subject1",
+                "experiment1",
+                new Attributes(),
+                gson.fromJson("{}", JsonElement.class)));
   }
 
   @Test
