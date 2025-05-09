@@ -14,6 +14,7 @@ public final class Utils {
   private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final MessageDigest md = buildMd5MessageDigest();
+  public static Base64Codec base64Codec;
 
   private static MessageDigest buildMd5MessageDigest() {
     try {
@@ -99,14 +100,6 @@ public final class Utils {
     return UTC_ISO_DATE_FORMAT.format(date);
   }
 
-  public interface Base64Codec {
-    String base64Encode(String input);
-
-    String base64Decode(String input);
-  }
-
-  public static Base64Codec base64Codec;
-
   /**
    * An implementation of the Base64Codec is required to be set before these methods work. ex:
    * Utils.base64Codec = new JavaBase64Codec();
@@ -140,5 +133,11 @@ public final class Utils {
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
     dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
     return dateFormat;
+  }
+
+  public interface Base64Codec {
+    String base64Encode(String input);
+
+    String base64Decode(String input);
   }
 }

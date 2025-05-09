@@ -7,7 +7,6 @@ import java.util.Base64;
 public class JavaBase64Codec implements Utils.Base64Codec {
   @Override
   public String base64Encode(String input) {
-
     return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
   }
 
