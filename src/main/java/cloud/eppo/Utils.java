@@ -1,12 +1,10 @@
 package cloud.eppo;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
 import java.util.Date;
 import java.util.Locale;
 import org.slf4j.Logger;
@@ -101,23 +99,40 @@ public final class Utils {
     return UTC_ISO_DATE_FORMAT.format(date);
   }
 
-  public static String base64Encode(String input) {
-    if (input == null) {
-      return null;
-    }
-    return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
+  public interface Base64Codec {
+    String base64Encode(String input);
+
+    String base64Decode(String input);
   }
 
-  public static String base64Decode(String input) {
+  public static Base64Codec base64Codec;
+
+  /**
+   * An implementation of the Base64Codec is required to be set before these methods work. ex:
+   * Utils.base64Codec = new JavaBase64Codec();
+   */
+  public static String base64Encode(String input) {
+    if (Utils.base64Codec == null) {
+      throw new RuntimeException("Base64 codec not initialized");
+    }
     if (input == null) {
       return null;
     }
-    byte[] decodedBytes = Base64.getDecoder().decode(input);
-    if (decodedBytes.length == 0 && !input.isEmpty()) {
-      throw new RuntimeException(
-          "zero byte output from Base64; if not running on Android hardware be sure to use RobolectricTestRunner");
+    return Utils.base64Codec.base64Encode(input);
+  }
+
+  /**
+   * An implementation of the Base64Codec is required to be set before these methods work. ex:
+   * Utils.base64Codec = new JavaBase64Codec();
+   */
+  public static String base64Decode(String input) {
+    if (Utils.base64Codec == null) {
+      throw new RuntimeException("Base64 codec not initialized");
     }
-    return new String(decodedBytes);
+    if (input == null) {
+      return null;
+    }
+    return Utils.base64Codec.base64Decode(input);
   }
 
   private static SimpleDateFormat buildUtcIsoDateFormat() {

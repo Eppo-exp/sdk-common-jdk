@@ -2,10 +2,17 @@ package cloud.eppo;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.helpers.JavaBase64Codec;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ApiEndpointsTest {
   final SDKKey plainKey = new SDKKey("flat token");
+
+  @BeforeAll
+  public static void setUp() {
+    Utils.base64Codec = new JavaBase64Codec();
+  }
 
   @Test
   public void testDefaultBaseUrl() {
