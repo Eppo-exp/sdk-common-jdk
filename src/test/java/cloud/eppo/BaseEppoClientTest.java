@@ -189,7 +189,7 @@ public class BaseEppoClientTest {
 
   @BeforeAll
   public static void setUp() {
-    Utils.base64Codec = new JavaBase64Codec();
+    Utils.setBase64Codec(new JavaBase64Codec());
   }
 
   @AfterEach

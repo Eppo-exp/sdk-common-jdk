@@ -7,6 +7,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,11 @@ public final class Utils {
   private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final MessageDigest md = buildMd5MessageDigest();
-  public static Base64Codec base64Codec;
+  private static Base64Codec base64Codec;
+
+  public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
+    Utils.base64Codec = base64Codec;
+  }
 
   private static MessageDigest buildMd5MessageDigest() {
     try {
