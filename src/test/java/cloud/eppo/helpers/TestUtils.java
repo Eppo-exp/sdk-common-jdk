@@ -2,9 +2,14 @@ package cloud.eppo.helpers;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.IEppoHttpClient;
+import cloud.eppo.Utils;
 import java.lang.reflect.Field;
 
 public class TestUtils {
+
+  static {
+    Utils.setJsonDecoder(new JacksonJsonDecoder());
+  }
 
   @SuppressWarnings("SameParameterValue")
   public static MockHttpClient mockHttpResponse(String responseBody) {

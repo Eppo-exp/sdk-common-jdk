@@ -1,20 +1,31 @@
 package cloud.eppo;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import cloud.eppo.api.EppoValue;
+import cloud.eppo.exception.JsonParsingException;
+import cloud.eppo.ufc.dto.BanditParametersResponse;
+import cloud.eppo.ufc.dto.FlagConfigResponse;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 public final class Utils {
-  private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
-  private static final Logger log = LoggerFactory.getLogger(Utils.class);
+  public static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final MessageDigest md = buildMd5MessageDigest();
-  public static Base64Codec base64Codec;
+
+  private static Base64Codec base64Codec;
+  private static JsonDecoder jsonDecoder;
+
+  public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
+    Utils.base64Codec = base64Codec;
+  }
+
+  public static void setJsonDecoder(@NotNull JsonDecoder jsonDecoder) {
+    Utils.jsonDecoder = jsonDecoder;
+  }
 
   private static MessageDigest buildMd5MessageDigest() {
     try {
@@ -70,32 +81,6 @@ public final class Utils {
     return (int) (value % maxShardValue);
   }
 
-  public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
-    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
-      return null;
-    }
-    String isoDateString = isoDateStringElement.asText();
-    Date result = null;
-    try {
-      result = UTC_ISO_DATE_FORMAT.parse(isoDateString);
-    } catch (ParseException e) {
-      // We expect to fail parsing if the date is base 64 encoded
-      // Thus we'll leave the result null for now and try again with the decoded value
-    }
-
-    if (result == null) {
-      // Date may be encoded
-      String decodedIsoDateString = base64Decode(isoDateString);
-      try {
-        result = UTC_ISO_DATE_FORMAT.parse(decodedIsoDateString);
-      } catch (ParseException e) {
-        log.warn("Date \"{}\" not in ISO date format", isoDateString);
-      }
-    }
-
-    return result;
-  }
-
   public static String getISODate(Date date) {
     return UTC_ISO_DATE_FORMAT.format(date);
   }
@@ -139,5 +124,45 @@ public final class Utils {
     String base64Encode(String input);
 
     String base64Decode(String input);
+  }
+
+  private static void verifyJsonParser() {
+    if (Utils.jsonDecoder == null) {
+      throw new RuntimeException("JSON Parser not initialized/set on Utils");
+    }
+  }
+
+  public static FlagConfigResponse parseFlagConfigResponse(byte[] jsonString)
+      throws JsonParsingException {
+    verifyJsonParser();
+    return Utils.jsonDecoder.parseFlagConfigResponse(jsonString);
+  }
+
+  public static BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
+      throws JsonParsingException {
+    verifyJsonParser();
+    return Utils.jsonDecoder.parseBanditParametersResponse(jsonString);
+  }
+
+  public static boolean isValidJson(String json) {
+    verifyJsonParser();
+    return Utils.jsonDecoder.isValidJson(json);
+  }
+
+  public static String serializeAttributesToJSONString(
+      Map<String, EppoValue> map, boolean omitNulls) {
+    verifyJsonParser();
+    return Utils.jsonDecoder.serializeAttributesToJSONString(map, omitNulls);
+  }
+
+  public interface JsonDecoder {
+    FlagConfigResponse parseFlagConfigResponse(byte[] jsonString) throws JsonParsingException;
+
+    BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
+        throws JsonParsingException;
+
+    boolean isValidJson(String json);
+
+    String serializeAttributesToJSONString(Map<String, EppoValue> map, boolean omitNulls);
   }
 }
