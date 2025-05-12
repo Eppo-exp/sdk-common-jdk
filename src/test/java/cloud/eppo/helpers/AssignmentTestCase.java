@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.ufc.dto.VariationType;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -122,10 +123,19 @@ public class AssignmentTestCase {
           assertAssignment(flagKey, subjectAssignment, stringAssignment);
           break;
         case JSON:
-          JsonNode jsonAssignment =
-              eppoClient.getJSONAssignment(
-                  flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
-          assertAssignment(flagKey, subjectAssignment, jsonAssignment);
+          try {
+            JsonNode jsonAssignment =
+                mapper.readTree(
+                    eppoClient.getJSONStringAssignment(
+                        flagKey,
+                        subjectKey,
+                        subjectAttributes,
+                        testCase.getDefaultValue().stringValue()));
+            assertAssignment(flagKey, subjectAssignment, jsonAssignment);
+
+          } catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+          }
           break;
         default:
           throw new UnsupportedOperationException(
