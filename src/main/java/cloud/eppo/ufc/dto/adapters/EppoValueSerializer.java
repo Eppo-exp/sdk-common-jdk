@@ -18,20 +18,23 @@ public class EppoValueSerializer extends StdSerializer<EppoValue> {
   @Override
   public void serialize(EppoValue src, JsonGenerator jgen, SerializerProvider provider)
       throws IOException {
-    if (src.isBoolean()) {
-      jgen.writeBoolean(src.booleanValue());
-    }
-    if (src.isNumeric()) {
-      jgen.writeNumber(src.doubleValue());
-    }
-    if (src.isString()) {
-      jgen.writeString(src.stringValue());
-    }
-    if (src.isStringArray()) {
-      String[] arr = src.stringArrayValue().toArray(new String[0]);
-      jgen.writeArray(arr, 0, arr.length);
-    } else {
-      jgen.writeNull();
+    switch (src.type) {
+      case NULL:
+        jgen.writeNull();
+        break;
+      case BOOLEAN:
+        jgen.writeBoolean(src.booleanValue());
+        break;
+      case NUMBER:
+        jgen.writeNumber(src.doubleValue());
+        break;
+      case STRING:
+        jgen.writeString(src.stringValue());
+        break;
+      case ARRAY_OF_STRING:
+        String[] arr = src.stringArrayValue().toArray(new String[0]);
+        jgen.writeArray(arr, 0, arr.length);
+        break;
     }
   }
 }
