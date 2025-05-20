@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class EppoValue {
-  public final EppoValueType type;
+  protected final EppoValueType type;
   protected Boolean boolValue;
   protected Double doubleValue;
   protected String stringValue;
