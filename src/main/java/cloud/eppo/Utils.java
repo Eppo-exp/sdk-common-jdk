@@ -17,13 +17,13 @@ public final class Utils {
   private static final MessageDigest md = buildMd5MessageDigest();
 
   private static Base64Codec base64Codec;
-  private static JsonDecoder jsonDecoder;
+  private static JsonDeserializer jsonDecoder;
 
   public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
     Utils.base64Codec = base64Codec;
   }
 
-  public static void setJsonDecoder(@NotNull JsonDecoder jsonDecoder) {
+  public static void setJsonDecoder(@NotNull JsonDeserializer jsonDecoder) {
     Utils.jsonDecoder = jsonDecoder;
   }
 
@@ -155,7 +155,7 @@ public final class Utils {
     return Utils.jsonDecoder.serializeAttributesToJSONString(map, omitNulls);
   }
 
-  public interface JsonDecoder {
+  public interface JsonDeserializer {
     FlagConfigResponse parseFlagConfigResponse(byte[] jsonString) throws JsonParsingException;
 
     BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)

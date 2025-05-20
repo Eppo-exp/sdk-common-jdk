@@ -1,6 +1,6 @@
 package cloud.eppo.helpers.dto.adapters;
 
-import static cloud.eppo.helpers.JacksonJsonDecoder.parseUtcISODateNode;
+import static cloud.eppo.helpers.JacksonJsonDeserializer.parseUtcISODateNode;
 
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.model.ShardRange;

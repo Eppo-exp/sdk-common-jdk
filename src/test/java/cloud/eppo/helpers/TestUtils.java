@@ -8,7 +8,7 @@ import java.lang.reflect.Field;
 public class TestUtils {
 
   static {
-    Utils.setJsonDecoder(new JacksonJsonDecoder());
+    Utils.setJsonDecoder(new JacksonJsonDeserializer());
   }
 
   @SuppressWarnings("SameParameterValue")
