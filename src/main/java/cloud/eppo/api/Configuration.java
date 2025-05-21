@@ -6,6 +6,7 @@ import cloud.eppo.Utils;
 import cloud.eppo.exception.JsonParsingException;
 import cloud.eppo.ufc.dto.*;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -255,6 +256,13 @@ public class Configuration {
         banditParamsJson = currentConfig.banditParamsJson;
       }
       return this;
+    }
+
+    public Iterator<String> getFlagKeys() {
+      if (flags == null) {
+        return Collections.emptyIterator();
+      }
+      return flags.keySet().iterator();
     }
 
     public Builder banditParameters(String banditParameterJson) {
