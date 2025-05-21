@@ -39,19 +39,17 @@ public class ProfileBaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "3.0.0",
-            null,
             TEST_HOST,
             noOpAssignmentLogger,
             null,
             null,
-            false,
             false,
             true,
             null,
             null,
             null);
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
 
     log.info("Test client initialized");
   }

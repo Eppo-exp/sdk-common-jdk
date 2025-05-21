@@ -15,7 +15,6 @@ import cloud.eppo.logging.BanditLogger;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
@@ -68,12 +67,10 @@ public class BaseEppoClientBanditTest {
             DUMMY_BANDIT_API_KEY,
             "java",
             "3.0.0",
-            null,
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
             null,
-            false,
             false,
             true,
             null,
@@ -81,7 +78,7 @@ public class BaseEppoClientBanditTest {
             new ExpiringInMemoryAssignmentCache(
                 banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {});
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
 
     log.info("Test client initialized");
   }
@@ -89,22 +86,19 @@ public class BaseEppoClientBanditTest {
   private BaseEppoClient initClientWithData(
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
-    CompletableFuture<Configuration> initialConfig =
-        CompletableFuture.completedFuture(
-            Configuration.builder(initialFlagConfiguration.getBytes(), false)
-                .banditParameters(initialBanditParameters)
-                .build());
+    Configuration initialConfig =
+        Configuration.builder(initialFlagConfiguration.getBytes())
+            .banditParameters(initialBanditParameters)
+            .build();
 
     return new BaseEppoClient(
         DUMMY_BANDIT_API_KEY,
         "java",
         "3.0.0",
-        null,
         TEST_HOST,
         mockAssignmentLogger,
         mockBanditLogger,
         null,
-        false,
         false,
         true,
         initialConfig,
@@ -471,7 +465,7 @@ public class BaseEppoClientBanditTest {
       assertEquals("adidas", result.getAction());
 
       // Demonstrate that loaded configuration is different from the initial string passed above.
-      client.loadConfiguration();
+      client.fetchAndActivateConfiguration();
       BanditResult banditResult =
           client.getBanditAction(
               "banner_bandit_flag", "subject", new Attributes(), actions, "default");

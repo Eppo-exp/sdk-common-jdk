@@ -11,6 +11,8 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.*;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
+import cloud.eppo.helpers.JavaBase64Codec;
+import cloud.eppo.helpers.TestUtils;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.ufc.dto.FlagConfig;
@@ -19,17 +21,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Timer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -58,82 +61,108 @@ public class BaseEppoClientTest {
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
 
-  // TODO: async init client tests
-
   private void initClient() {
-    initClient(false, false);
+    initClient(false, "java", true);
   }
 
   private void initClientWithData(
-      final CompletableFuture<Configuration> initialFlagConfiguration,
-      boolean isConfigObfuscated,
-      boolean isGracefulMode) {
+      final Configuration initialFlagConfiguration, boolean isGracefulMode) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
-            isConfigObfuscated ? "android" : "java",
+            "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
-            isConfigObfuscated,
             true,
             initialFlagConfiguration,
             null,
             null);
   }
 
-  private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
+  private void initClient(boolean isGracefulMode, String sdkName, boolean loadConfig) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
-            isConfigObfuscated ? "android" : "java",
+            sdkName,
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
-            isConfigObfuscated,
             true,
             null,
             null,
             null);
 
-    eppoClient.loadConfiguration();
+    if (loadConfig) {
+      try {
+        eppoClient.fetchAndActivateConfiguration();
+      } catch (Exception e) {
+        if (!isGracefulMode) {
+          throw e;
+        }
+      }
+    }
     log.info("Test client initialized");
   }
 
-  private CompletableFuture<Void> initClientAsync(
-      boolean isGracefulMode, boolean isConfigObfuscated) {
+  interface InitCallback extends EppoActionCallback<Configuration> {}
+
+  private void initClientAsync(boolean isGracefulMode, InitCallback initCallback) {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
         new BaseEppoClient(
             DUMMY_FLAG_API_KEY,
-            isConfigObfuscated ? "android" : "java",
+            "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
-            isConfigObfuscated,
             true,
             null,
             null,
             null);
 
-    return eppoClient.loadConfigurationAsync();
+    // The common SDK doesn't actually have an "initialization" method. This method stands in for
+    // "build and instance
+    // and activate some configuration".
+    // Thus, we must provide a fallback if graceful mode is true and activating config fails.
+    InitCallback onInit =
+        new InitCallback() {
+
+          @Override
+          public void onSuccess(Configuration data) {
+            if (data == null) {
+              data = Configuration.emptyConfig();
+              // Fetch and activate did not produce a config, so we set an empty one.
+              eppoClient.activateConfiguration(data);
+            }
+            initCallback.onSuccess(data);
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            if (isGracefulMode) {
+              initCallback.onSuccess(null);
+            } else {
+              initCallback.onFailure(error);
+            }
+          }
+        };
+
+    eppoClient.fetchAndActivateConfigurationAsync(onInit);
   }
 
   private void initClientWithAssignmentCache(IAssignmentCache cache) {
@@ -144,23 +173,26 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             true,
-            false,
             true,
             null,
             cache,
             null);
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
     log.info("Test client initialized");
   }
 
-  @BeforeEach
+  @BeforeAll
+  public static void setUp() {
+    Utils.setBase64Codec(new JavaBase64Codec());
+  }
+
+  @AfterEach
   public void cleanUp() {
     // TODO: Clear any caches
     setBaseClientHttpClientOverrideField(null);
@@ -169,7 +201,7 @@ public class BaseEppoClientTest {
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
   public void testUnobfuscatedAssignments(File testFile) {
-    initClient(false, false);
+    initClient(false, "java", true);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCase(testCase, eppoClient);
   }
@@ -177,7 +209,7 @@ public class BaseEppoClientTest {
   @ParameterizedTest
   @MethodSource("getAssignmentTestData")
   public void testObfuscatedAssignments(File testFile) {
-    initClient(false, true);
+    initClient(false, "android", true);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCase(testCase, eppoClient);
   }
@@ -187,51 +219,8 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testBaseUrlBackwardsCompatibility() throws IOException, InterruptedException {
-    // Base client must be buildable with a HOST (i.e. no `/api` postfix)
-    mockAssignmentLogger = mock(AssignmentLogger.class);
-
-    MockWebServer mockWebServer = new MockWebServer();
-    URL mockServerBaseUrl = mockWebServer.url("").url(); // get base url of mockwebserver
-
-    // Remove trailing slash to mimic typical "host" parameter of "https://fscdn.eppo.cloud"
-    String testHost = mockServerBaseUrl.toString().replaceAll("/$", "");
-
-    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
-
-    eppoClient =
-        new BaseEppoClient(
-            DUMMY_FLAG_API_KEY,
-            "java",
-            "100.1.0",
-            testHost,
-            null,
-            mockAssignmentLogger,
-            null,
-            null,
-            false,
-            false,
-            true,
-            null,
-            null,
-            null);
-
-    eppoClient.loadConfiguration();
-
-    // Test what path the call was sent to
-    RecordedRequest request = mockWebServer.takeRequest();
-    assertNotNull(request);
-    assertEquals("GET", request.getMethod());
-
-    // The "/api" part comes from appending it on to a "host" parameter but not a base URL param.
-    assertEquals(
-        "/api/flag-config/v1/config?apiKey=dummy-flags-api-key&sdkName=java&sdkVersion=100.1.0",
-        request.getPath());
-  }
-
-  @Test
   public void testErrorGracefulModeOn() throws JsonProcessingException {
-    initClient(true, false);
+    initClient(true, "java", true);
 
     BaseEppoClient realClient = eppoClient;
     BaseEppoClient spyClient = spy(realClient);
@@ -280,7 +269,7 @@ public class BaseEppoClientTest {
 
   @Test
   public void testErrorGracefulModeOff() {
-    initClient(false, false);
+    initClient(false, "java", true);
 
     BaseEppoClient realClient = eppoClient;
     BaseEppoClient spyClient = spy(realClient);
@@ -338,16 +327,10 @@ public class BaseEppoClientTest {
 
     mockHttpResponse("{}");
 
-    initClient(false, false);
+    initClient(false, "java", true);
 
     String result = eppoClient.getStringAssignment("dummy flag", "dummy subject", "not-populated");
     assertEquals("not-populated", result);
-  }
-
-  private CompletableFuture<Configuration> immediateConfigFuture(
-      String config, boolean isObfuscated) {
-    return CompletableFuture.completedFuture(
-        Configuration.builder(config.getBytes(), isObfuscated).build());
   }
 
   @Test
@@ -356,7 +339,7 @@ public class BaseEppoClientTest {
     mockHttpError();
 
     // Initialize and no exception should be thrown.
-    assertDoesNotThrow(() -> initClient(true, false));
+    assertDoesNotThrow(() -> initClient(true, "java", true));
   }
 
   @Test
@@ -365,7 +348,7 @@ public class BaseEppoClientTest {
     mockHttpError();
 
     // Initialize and no exception should be thrown.
-    assertDoesNotThrow(() -> initClient(true, false));
+    assertDoesNotThrow(() -> initClient(true, "java", true));
 
     assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
   }
@@ -377,7 +360,7 @@ public class BaseEppoClientTest {
 
     // Initialize and no exception should be thrown.
     try {
-      initClient(false, false);
+      initClient(false, "java", true);
     } catch (RuntimeException e) {
       // Expected
       assertEquals("Intentional Error", e.getMessage());
@@ -392,34 +375,69 @@ public class BaseEppoClientTest {
     mockHttpError();
 
     // Initialize and assert exception thrown
-    assertThrows(Exception.class, () -> initClient(false, false));
+    assertThrows(Exception.class, () -> initClient(false, "java", true));
   }
 
   @Test
-  public void testGracefulAsyncInitializationFailure() {
+  public void testGracefulAsyncInitializationFailure() throws InterruptedException {
     // Set up bad HTTP response
     mockHttpError();
 
+    CountDownLatch initLatch = new CountDownLatch(1);
+    AtomicBoolean initialized = new AtomicBoolean(false);
+
     // Initialize
-    CompletableFuture<Void> init = initClientAsync(true, false);
+    initClientAsync(
+        true,
+        new InitCallback() {
+          @Override
+          public void onSuccess(Configuration data) {
+            initialized.set(true);
+            initLatch.countDown();
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            initLatch.countDown();
+          }
+        });
 
     // Wait for initialization; future should not complete exceptionally (equivalent of exception
     // being thrown).
-    init.join();
-    assertFalse(init.isCompletedExceptionally());
+    assertTrue(initLatch.await(1, TimeUnit.SECONDS));
+    assertTrue(initialized.get());
   }
 
   @Test
-  public void testNonGracefulAsyncInitializationFailure() {
+  public void testNonGracefulAsyncInitializationFailure() throws InterruptedException {
     // Set up bad HTTP response
     mockHttpError();
 
-    // Initialize
-    CompletableFuture<Void> init = initClientAsync(false, false);
+    CountDownLatch initLatch = new CountDownLatch(1);
+    AtomicBoolean initialized = new AtomicBoolean(false);
+    final Throwable[] failure = {null};
 
-    // Exceptions thrown in CompletableFutures are wrapped in a CompletionException.
-    assertThrows(CompletionException.class, init::join);
-    assertTrue(init.isCompletedExceptionally());
+    // Initialize
+    initClientAsync(
+        false,
+        new InitCallback() {
+          @Override
+          public void onSuccess(Configuration data) {
+            initialized.set(true);
+            initLatch.countDown();
+          }
+
+          @Override
+          public void onFailure(Throwable error) {
+            failure[0] = error;
+            initLatch.countDown();
+          }
+        });
+
+    assertTrue(initLatch.await(1, TimeUnit.SECONDS));
+    assertNotNull(failure[0]);
+    assertInstanceOf(RuntimeException.class, failure[0]);
+    assertFalse(initialized.get());
   }
 
   @Test
@@ -427,13 +445,13 @@ public class BaseEppoClientTest {
     try {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
-      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
+      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), true);
 
       double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(5, result);
 
       // Demonstrate that loaded configuration is different from the initial string passed above.
-      eppoClient.loadConfiguration();
+      eppoClient.fetchAndActivateConfiguration();
       double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
       assertEquals(3.1415926, updatedResult);
     } catch (IOException e) {
@@ -442,20 +460,28 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testWithInitialConfigurationFuture() throws IOException {
-    CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
-    byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
+  public void testWithActivatedConfiguration() {
+    try {
+      String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
+      Configuration configToActivate = Configuration.builder(flagConfig.getBytes()).build();
 
-    initClientWithData(futureConfig, false, true);
+      initClient(false, "java", false);
 
-    double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(0, result);
+      // Result is the default until we activate the config.
+      double firstResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(0, firstResult);
 
-    // Now, complete the initial config future and check the value.
-    futureConfig.complete(Configuration.builder(flagConfig, false).build());
+      eppoClient.activateConfiguration(configToActivate);
+      double result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(5, result);
 
-    result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
-    assertEquals(5, result);
+      // Demonstrate that loaded configuration is different from the initial string passed above.
+      eppoClient.fetchAndActivateConfiguration();
+      double updatedResult = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
+      assertEquals(3.1415926, updatedResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -601,7 +627,10 @@ public class BaseEppoClientTest {
 
   @Test
   public void testPolling() {
-    EppoHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+    TestUtils.MockHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+
+    TestUtils.MockHttpClient spyClient = spy(httpClient);
+    setBaseClientHttpClientOverrideField(spyClient);
 
     BaseEppoClient client =
         eppoClient =
@@ -609,30 +638,29 @@ public class BaseEppoClientTest {
                 DUMMY_FLAG_API_KEY,
                 "java",
                 "100.1.0",
-                null,
                 TEST_BASE_URL,
                 mockAssignmentLogger,
                 null,
                 null,
-                false,
                 false,
                 true,
                 null,
                 null,
                 null);
 
-    client.loadConfiguration();
+    client.fetchAndActivateConfiguration();
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(httpClient, times(1)).get(anyString());
+
+    verify(spyClient, times(1)).get(anyString());
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(httpClient, times(2)).get(anyString());
+    verify(spyClient, times(2)).get(anyString());
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -640,10 +668,10 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(httpClient, times(2)).get(anyString());
+    verify(spyClient, times(2)).get(anyString());
 
     // Set up a different config to be served
-    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    spyClient.changeResponse(DISABLED_BOOL_FLAG_CONFIG.getBytes());
     client.startPolling(20);
 
     // True until the next config is fetched.
@@ -682,7 +710,7 @@ public class BaseEppoClientTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
 
       // Initialize client with initial configuration
-      initClientWithData(immediateConfigFuture(flagConfig, false), false, true);
+      initClientWithData(Configuration.builder(flagConfig.getBytes()).build(), true);
 
       // Get configuration
       Configuration config = eppoClient.getConfiguration();
@@ -699,7 +727,7 @@ public class BaseEppoClientTest {
       assertNull(config.getFlag("no_allocations_flag"));
 
       // Load new configuration
-      eppoClient.loadConfiguration();
+      eppoClient.fetchAndActivateConfiguration();
 
       // Get updated configuration
       Configuration updatedConfig = eppoClient.getConfiguration();
@@ -724,12 +752,10 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
-            false,
             false,
             true,
             null,
@@ -743,7 +769,7 @@ public class BaseEppoClientTest {
     assertNotNull(config);
     assertTrue(config.isEmpty());
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
 
     // Get configuration again after loading
     Configuration nextConfig = eppoClient.getConfiguration();

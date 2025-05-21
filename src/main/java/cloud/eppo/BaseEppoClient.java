@@ -18,8 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -38,62 +36,48 @@ public class BaseEppoClient {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private boolean isGracefulMode;
+  protected boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
   private Timer pollTimer;
 
-  @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
-    return initialConfigFuture;
-  }
-
-  private final CompletableFuture<Boolean> initialConfigFuture;
-
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
   /** @noinspection FieldMayBeFinal */
-  private static EppoHttpClient httpClientOverride = null;
+  private static IEppoHttpClient httpClientOverride = null;
 
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
-  /** @param host To be removed in v4. use `apiBaseUrl` instead. */
+  /** */
   protected BaseEppoClient(
-      @NotNull String apiKey,
+      @NotNull String sdkKey,
       @NotNull String sdkName,
       @NotNull String sdkVersion,
-      @Deprecated @Nullable String host,
       @Nullable String apiBaseUrl,
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
       @Nullable IConfigurationStore configurationStore,
       boolean isGracefulMode,
-      boolean expectObfuscatedConfig,
       boolean supportBandits,
-      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable Configuration initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache) {
-
-    if (apiBaseUrl == null) {
-      apiBaseUrl = host != null ? Constants.appendApiPathToHost(host) : Constants.DEFAULT_BASE_URL;
-    }
 
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
+    IEppoHttpClient httpClient =
+        buildHttpClient(apiBaseUrl, new SDKKey(sdkKey), sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
-    requestor =
-        new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
-    initialConfigFuture =
-        initialConfiguration != null
-            ? requestor.setInitialConfiguration(initialConfiguration)
-            : null;
+    requestor = new ConfigurationRequestor(this.configurationStore, httpClient, supportBandits);
+
+    if (initialConfiguration != null) {
+      requestor.activateConfiguration(initialConfiguration);
+    }
 
     this.assignmentLogger = assignmentLogger;
     this.banditLogger = banditLogger;
@@ -103,7 +87,7 @@ public class BaseEppoClient {
     this.sdkVersion = sdkVersion;
   }
 
-  private EppoHttpClient buildHttpClient(
+  private IEppoHttpClient buildHttpClient(
       String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
     ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
 
@@ -112,15 +96,12 @@ public class BaseEppoClient {
         : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
-  protected void loadConfiguration() {
-    try {
-      requestor.fetchAndSaveFromRemote();
-    } catch (Exception ex) {
-      log.error("Encountered Exception while loading configuration", ex);
-      if (!isGracefulMode) {
-        throw ex;
-      }
-    }
+  public void activateConfiguration(@NotNull Configuration configuration) {
+    requestor.activateConfiguration(configuration);
+  }
+
+  protected void fetchAndActivateConfiguration() {
+    requestor.fetchAndSaveFromRemote();
   }
 
   protected void stopPolling() {
@@ -160,7 +141,14 @@ public class BaseEppoClient {
         new FetchConfigurationTask(
             () -> {
               log.debug("[Eppo SDK] Polling callback");
-              this.loadConfiguration();
+              try {
+                this.fetchAndActivateConfiguration();
+              } catch (Exception ex) {
+                log.error("Encountered Exception while loading configuration", ex);
+                if (!isGracefulMode) {
+                  throw ex;
+                }
+              }
             },
             pollTimer,
             pollingIntervalMs,
@@ -172,22 +160,21 @@ public class BaseEppoClient {
     fetchConfigurationsTask.scheduleNext();
   }
 
-  protected CompletableFuture<Void> loadConfigurationAsync() {
-    CompletableFuture<Void> future = new CompletableFuture<>();
+  protected void fetchAndActivateConfigurationAsync(EppoActionCallback<Configuration> callback) {
 
-    requestor
-        .fetchAndSaveFromRemoteAsync()
-        .exceptionally(
-            ex -> {
-              log.error("Encountered Exception while loading configuration", ex);
-              if (!isGracefulMode) {
-                future.completeExceptionally(ex);
-              }
-              return null;
-            })
-        .thenAccept(future::complete);
+    requestor.fetchAndSaveFromRemoteAsync(
+        new EppoActionCallback<Configuration>() {
+          @Override
+          public void onSuccess(Configuration data) {
+            callback.onSuccess(data);
+          }
 
-    return future;
+          @Override
+          public void onFailure(Throwable error) {
+            log.error("Encountered Exception while loading configuration", error);
+            callback.onFailure(error);
+          }
+        });
   }
 
   protected EppoValue getTypedAssignment(
@@ -580,11 +567,11 @@ public class BaseEppoClient {
   /**
    * Subscribe to changes to the configuration.
    *
-   * @param callback A function to be executed when the configuration changes.
+   * @param callback A listener which is notified of configuration changes.
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.
    */
-  public Runnable onConfigurationChange(Consumer<Configuration> callback) {
+  public Runnable onConfigurationChange(Configuration.Callback callback) {
     return requestor.onConfigurationChange(callback);
   }
 
