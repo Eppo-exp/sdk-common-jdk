@@ -59,7 +59,7 @@ public class Configuration {
    * <p>Thread safety: Callbacks may be invoked on any thread, including the calling thread or a
    * background thread. Implementations should be thread-safe and avoid blocking operations.
    */
-  public interface ConfigurationCallback {
+  public interface Callback {
     /**
      * Called when a new configuration is available.
      *

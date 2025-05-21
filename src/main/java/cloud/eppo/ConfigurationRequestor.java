@@ -14,17 +14,15 @@ public class ConfigurationRequestor {
   private final IConfigurationStore configurationStore;
   private final boolean supportBandits;
 
-  private final CallbackManager<Configuration, Configuration.ConfigurationCallback>
-      configChangeManager =
-          new CallbackManager<>(
-              // no lambdas before java8
-              new CallbackManager.Dispatcher<Configuration, Configuration.ConfigurationCallback>() {
-                @Override
-                public void dispatch(
-                    Configuration.ConfigurationCallback callback, Configuration data) {
-                  callback.accept(data);
-                }
-              });
+  private final CallbackManager<Configuration, Configuration.Callback> configChangeManager =
+      new CallbackManager<>(
+          // no lambdas before java8
+          new CallbackManager.Dispatcher<Configuration, Configuration.Callback>() {
+            @Override
+            public void dispatch(Configuration.Callback callback, Configuration data) {
+              callback.accept(data);
+            }
+          });
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
@@ -70,7 +68,7 @@ public class ConfigurationRequestor {
 
     client.getAsync(
         Constants.FLAG_CONFIG_ENDPOINT,
-        new IEppoHttpClient.EppoHttpCallback() {
+        new IEppoHttpClient.Callback() {
           @Override
           public void onSuccess(byte[] flagConfigJsonBytes) {
             synchronized (this) {
@@ -111,7 +109,7 @@ public class ConfigurationRequestor {
     }
   }
 
-  public Runnable onConfigurationChange(Configuration.ConfigurationCallback callback) {
+  public Runnable onConfigurationChange(Configuration.Callback callback) {
     return configChangeManager.subscribe(callback);
   }
 }

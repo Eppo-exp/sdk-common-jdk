@@ -5,9 +5,9 @@ import cloud.eppo.api.EppoActionCallback;
 public interface IEppoHttpClient {
   byte[] get(String path);
 
-  void getAsync(String path, EppoHttpCallback callback);
+  void getAsync(String path, Callback callback);
 
-  interface EppoHttpCallback extends EppoActionCallback<byte[]> {}
+  interface Callback extends EppoActionCallback<byte[]> {}
 
   class HttpException extends RuntimeException {
     public HttpException(String message) {
