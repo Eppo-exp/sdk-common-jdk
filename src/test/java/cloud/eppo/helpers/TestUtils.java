@@ -2,7 +2,11 @@ package cloud.eppo.helpers;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.IEppoHttpClient;
+import cloud.eppo.api.EppoValue;
+import com.google.gson.JsonElement;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestUtils {
 
@@ -32,6 +36,32 @@ public class TestUtils {
       httpClientOverrideField.setAccessible(false);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  static EppoValue deserializeEppoValue(JsonElement json) {
+    if (json == null || json.isJsonNull()) {
+      return EppoValue.nullValue();
+    }
+
+    if (json.isJsonArray()) {
+      List<String> stringArray = new ArrayList<>();
+      for (JsonElement arrayElement : json.getAsJsonArray()) {
+        if (arrayElement.isJsonPrimitive() && arrayElement.getAsJsonPrimitive().isString()) {
+          stringArray.add(arrayElement.getAsString());
+        }
+      }
+      return EppoValue.valueOf(stringArray);
+    } else if (json.isJsonPrimitive()) {
+      if (json.getAsJsonPrimitive().isBoolean()) {
+        return EppoValue.valueOf(json.getAsBoolean());
+      } else if (json.getAsJsonPrimitive().isNumber()) {
+        return EppoValue.valueOf(json.getAsDouble());
+      } else {
+        return EppoValue.valueOf(json.getAsString());
+      }
+    } else {
+      return EppoValue.nullValue();
     }
   }
 

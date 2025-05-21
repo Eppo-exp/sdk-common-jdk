@@ -1,8 +1,7 @@
 package cloud.eppo.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -72,8 +71,8 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
 
   @SuppressWarnings("SameParameterValue")
   private String serializeAttributesToJSONString(boolean omitNulls) {
-    ObjectMapper mapper = new ObjectMapper();
-    ObjectNode result = mapper.createObjectNode();
+    Gson gson = new Gson();
+    JsonObject result = new JsonObject();
 
     for (Map.Entry<String, EppoValue> entry : entrySet()) {
       String attributeName = entry.getKey();
@@ -81,26 +80,22 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
 
       if (attributeValue == null || attributeValue.isNull()) {
         if (!omitNulls) {
-          result.putNull(attributeName);
+          result.add(attributeName, null);
         }
       } else {
         if (attributeValue.isNumeric()) {
-          result.put(attributeName, attributeValue.doubleValue());
+          result.addProperty(attributeName, attributeValue.doubleValue());
           continue;
         }
         if (attributeValue.isBoolean()) {
-          result.put(attributeName, attributeValue.booleanValue());
+          result.addProperty(attributeName, attributeValue.booleanValue());
           continue;
         }
         // fall back put treating any other eppo values as a string
-        result.put(attributeName, attributeValue.toString());
+        result.addProperty(attributeName, attributeValue.toString());
       }
     }
 
-    try {
-      return mapper.writeValueAsString(result);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    return gson.toJson(result);
   }
 }
