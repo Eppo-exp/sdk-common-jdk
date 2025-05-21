@@ -1,14 +1,13 @@
 package cloud.eppo;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
 import java.util.Date;
 import java.util.Locale;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +15,11 @@ public final class Utils {
   private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
+  private static Base64Codec base64Codec;
+
+  public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
+    Utils.base64Codec = base64Codec;
+  }
 
   @SuppressWarnings("AnonymousHasLambdaAlternative")
   private static ThreadLocal<MessageDigest> buildMd5MessageDigest() {
@@ -122,22 +126,37 @@ public final class Utils {
     return UTC_ISO_DATE_FORMAT.get().format(date);
   }
 
+  /**
+   * An implementation of the Base64Codec is required to be set before these methods work. ex:
+   * Utils.setBase64Codec(new JavaBase64Codec());
+   */
   public static String base64Encode(String input) {
+    if (base64Codec == null) {
+      throw new RuntimeException("Base64 codec not initialized");
+    }
     if (input == null) {
       return null;
     }
-    return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
+    return base64Codec.base64Encode(input);
   }
 
+  /**
+   * An implementation of the Base64Codec is required to be set before these methods work. ex:
+   * Utils.setBase64Codec(new JavaBase64Codec());
+   */
   public static String base64Decode(String input) {
+    if (base64Codec == null) {
+      throw new RuntimeException("Base64 codec not initialized");
+    }
     if (input == null) {
       return null;
     }
-    byte[] decodedBytes = Base64.getDecoder().decode(input);
-    if (decodedBytes.length == 0 && !input.isEmpty()) {
-      throw new RuntimeException(
-          "zero byte output from Base64; if not running on Android hardware be sure to use RobolectricTestRunner");
-    }
-    return new String(decodedBytes);
+    return base64Codec.base64Decode(input);
+  }
+
+  public interface Base64Codec {
+    String base64Encode(String input);
+
+    String base64Decode(String input);
   }
 }

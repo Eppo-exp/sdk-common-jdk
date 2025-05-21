@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.*;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
+import cloud.eppo.helpers.JavaBase64Codec;
 import cloud.eppo.helpers.TestUtils;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -33,6 +34,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -185,6 +187,11 @@ public class BaseEppoClientTest {
 
     eppoClient.fetchAndActivateConfiguration();
     log.info("Test client initialized");
+  }
+
+  @BeforeAll
+  public static void setUp() {
+    Utils.setBase64Codec(new JavaBase64Codec());
   }
 
   @AfterEach
