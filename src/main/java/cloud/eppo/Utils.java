@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,6 @@ public final class Utils {
   public static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final MessageDigest md = buildMd5MessageDigest();
-
   private static Base64Codec base64Codec;
   private static JsonDeserializer jsonDecoder;
 
@@ -90,30 +90,30 @@ public final class Utils {
 
   /**
    * An implementation of the Base64Codec is required to be set before these methods work. ex:
-   * Utils.base64Codec = new JavaBase64Codec();
+   * Utils.setBase64Codec(new JavaBase64Codec());
    */
   public static String base64Encode(String input) {
-    if (Utils.base64Codec == null) {
+    if (base64Codec == null) {
       throw new RuntimeException("Base64 codec not initialized");
     }
     if (input == null) {
       return null;
     }
-    return Utils.base64Codec.base64Encode(input);
+    return base64Codec.base64Encode(input);
   }
 
   /**
    * An implementation of the Base64Codec is required to be set before these methods work. ex:
-   * Utils.base64Codec = new JavaBase64Codec();
+   * Utils.setBase64Codec(new JavaBase64Codec());
    */
   public static String base64Decode(String input) {
-    if (Utils.base64Codec == null) {
+    if (base64Codec == null) {
       throw new RuntimeException("Base64 codec not initialized");
     }
     if (input == null) {
       return null;
     }
-    return Utils.base64Codec.base64Decode(input);
+    return base64Codec.base64Decode(input);
   }
 
   private static SimpleDateFormat buildUtcIsoDateFormat() {
