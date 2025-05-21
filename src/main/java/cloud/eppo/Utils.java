@@ -11,9 +11,12 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Utils {
   public static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
+  private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final MessageDigest md = buildMd5MessageDigest();
 
   private static Base64Codec base64Codec;
