@@ -6,16 +6,18 @@ import cloud.eppo.ufc.dto.BanditParametersResponse;
 import cloud.eppo.ufc.dto.FlagConfigResponse;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Utils {
-  public static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
+  private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final MessageDigest md = buildMd5MessageDigest();
   private static Base64Codec base64Codec;
@@ -120,6 +122,30 @@ public final class Utils {
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
     dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
     return dateFormat;
+  }
+
+  public static Date parseUtcISODateString(@Nullable String isoDateString) {
+    if (isoDateString == null) {
+      return null;
+    }
+    Date result = null;
+    try {
+      result = UTC_ISO_DATE_FORMAT.parse(isoDateString);
+    } catch (ParseException e) {
+      // We expect to fail parsing if the date is base 64 encoded
+      // Thus we'll leave the result null for now and try again with the decoded value
+    }
+
+    if (result == null) {
+      // Date may be encoded
+      String decodedIsoDateString = base64Decode(isoDateString);
+      try {
+        result = UTC_ISO_DATE_FORMAT.parse(decodedIsoDateString);
+      } catch (ParseException e) {
+        log.warn("Date \"{}\" not in ISO date format", isoDateString);
+      }
+    }
+    return result;
   }
 
   private static void verifyJsonParser() {

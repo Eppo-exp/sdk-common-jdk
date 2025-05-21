@@ -1,8 +1,5 @@
 package cloud.eppo.helpers;
 
-import static cloud.eppo.Utils.UTC_ISO_DATE_FORMAT;
-import static cloud.eppo.Utils.base64Decode;
-
 import cloud.eppo.Utils;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.exception.JsonParsingException;
@@ -14,7 +11,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -91,24 +87,6 @@ public class JacksonJsonDeserializer implements Utils.JsonDeserializer {
       return null;
     }
     String isoDateString = isoDateStringElement.asText();
-    Date result = null;
-    try {
-      result = UTC_ISO_DATE_FORMAT.parse(isoDateString);
-    } catch (ParseException e) {
-      // We expect to fail parsing if the date is base 64 encoded
-      // Thus we'll leave the result null for now and try again with the decoded value
-    }
-
-    if (result == null) {
-      // Date may be encoded
-      String decodedIsoDateString = base64Decode(isoDateString);
-      try {
-        result = UTC_ISO_DATE_FORMAT.parse(decodedIsoDateString);
-      } catch (ParseException e) {
-        log.warn("Date \"{}\" not in ISO date format", isoDateString);
-      }
-    }
-
-    return result;
+    return Utils.parseUtcISODateString(isoDateString);
   }
 }
