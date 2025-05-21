@@ -170,7 +170,7 @@ public class Configuration {
     return flags == null || flags.isEmpty();
   }
 
-  public Set<String> getAllFlagKeys() {
+  public Set<String> getFlagKeys() {
     if (flags == null) {
       return Collections.emptySet();
     } else {

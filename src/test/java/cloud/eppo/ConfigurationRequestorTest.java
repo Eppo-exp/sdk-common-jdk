@@ -41,13 +41,13 @@ public class ConfigurationRequestorTest {
 
     // verify config is empty to start
     assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getAllFlagKeys());
+    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
     futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getAllFlagKeys().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
   }
@@ -72,7 +72,7 @@ public class ConfigurationRequestorTest {
     requestor.setInitialConfiguration(initialConfigFuture);
 
     assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getAllFlagKeys());
+    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
     // The initial config contains only one flag keyed `numeric_flag`. The fetch response has only
@@ -86,7 +86,7 @@ public class ConfigurationRequestorTest {
     initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getAllFlagKeys().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
     // `numeric_flag` is only in the cache which should have been ignored.
@@ -114,7 +114,7 @@ public class ConfigurationRequestorTest {
     requestor.setInitialConfiguration(initialConfigFuture);
 
     assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getAllFlagKeys());
+    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
     requestor.fetchAndSaveFromRemoteAsync();
@@ -126,7 +126,7 @@ public class ConfigurationRequestorTest {
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
     assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getAllFlagKeys().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
     // `numeric_flag` is only in the cache which should be available
@@ -155,7 +155,7 @@ public class ConfigurationRequestorTest {
 
     // default configuration is empty config.
     assertTrue(configStore.getConfiguration().isEmpty());
-    assertEquals(Collections.emptySet(), configStore.getConfiguration().getAllFlagKeys());
+    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
 
     // Fetch from remote with an error
     requestor.fetchAndSaveFromRemoteAsync();
@@ -167,7 +167,7 @@ public class ConfigurationRequestorTest {
     // Verify that a configuration was saved by the requestor
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
     assertFalse(configStore.getConfiguration().isEmpty());
-    assertFalse(configStore.getConfiguration().getAllFlagKeys().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
 
     // `numeric_flag` is only in the cache which should be available
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
