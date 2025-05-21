@@ -78,7 +78,7 @@ public class BaseEppoClientBanditTest {
             new ExpiringInMemoryAssignmentCache(
                 banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {});
 
-    eppoClient.loadConfiguration();
+    eppoClient.fetchAndActivateConfiguration();
 
     log.info("Test client initialized");
   }
@@ -465,7 +465,7 @@ public class BaseEppoClientBanditTest {
       assertEquals("adidas", result.getAction());
 
       // Demonstrate that loaded configuration is different from the initial string passed above.
-      client.loadConfiguration();
+      client.fetchAndActivateConfiguration();
       BanditResult banditResult =
           client.getBanditAction(
               "banner_bandit_flag", "subject", new Attributes(), actions, "default");

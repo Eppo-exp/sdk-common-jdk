@@ -4,12 +4,7 @@ import cloud.eppo.exception.InvalidApiKeyException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,12 +55,12 @@ public class EppoHttpClient implements IEppoHttpClient {
   }
 
   @Override
-  public void getAsync(String path, EppoHttpCallback callback) {
+  public void getAsync(String path, Callback callback) {
     Request request = buildRequest(path);
     client
         .newCall(request)
         .enqueue(
-            new Callback() {
+            new okhttp3.Callback() {
               @Override
               public void onResponse(@NotNull Call call, @NotNull Response response) {
                 if (response.isSuccessful() && response.body() != null) {

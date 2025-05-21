@@ -109,7 +109,7 @@ public class ConfigurationRequestorTest {
   }
 
   /** Helper class for tracking configurations received via callbacks. */
-  static class ListAddingConfigCallback implements Configuration.ConfigurationCallback {
+  static class ListAddingConfigCallback implements Configuration.Callback {
     public final List<Configuration> results = new ArrayList<>();
 
     @Override
@@ -180,7 +180,7 @@ public class ConfigurationRequestorTest {
     // Subscribe multiple listeners
     Runnable unsubscribe1 =
         requestor.onConfigurationChange(
-            new Configuration.ConfigurationCallback() {
+            new Configuration.Callback() {
               @Override
               public void accept(Configuration configuration) {
                 callCount1.incrementAndGet();
@@ -188,7 +188,7 @@ public class ConfigurationRequestorTest {
             });
     Runnable unsubscribe2 =
         requestor.onConfigurationChange(
-            new Configuration.ConfigurationCallback() {
+            new Configuration.Callback() {
               @Override
               public void accept(Configuration configuration) {
                 callCount2.incrementAndGet();
@@ -220,7 +220,7 @@ public class ConfigurationRequestorTest {
 
     AtomicInteger callCount = new AtomicInteger(0);
     requestor.onConfigurationChange(
-        new Configuration.ConfigurationCallback() {
+        new Configuration.Callback() {
           @Override
           public void accept(Configuration configuration) {
             callCount.incrementAndGet();
@@ -246,7 +246,7 @@ public class ConfigurationRequestorTest {
 
     AtomicInteger callCount = new AtomicInteger(0);
     requestor.onConfigurationChange(
-        new Configuration.ConfigurationCallback() {
+        new Configuration.Callback() {
           @Override
           public void accept(Configuration configuration) {
             callCount.incrementAndGet();
@@ -272,7 +272,7 @@ public class ConfigurationRequestorTest {
     CountDownLatch countDownLatch = new CountDownLatch(1);
 
     requestor.onConfigurationChange(
-        new Configuration.ConfigurationCallback() {
+        new Configuration.Callback() {
           @Override
           public void accept(Configuration configuration) {
             countDownLatch.countDown();
