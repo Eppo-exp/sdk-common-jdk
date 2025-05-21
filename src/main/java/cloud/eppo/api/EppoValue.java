@@ -92,6 +92,10 @@ public class EppoValue {
     return type == EppoValueType.ARRAY_OF_STRING;
   }
 
+  public EppoValueType getType() {
+    return type;
+  }
+
   @Override
   public String toString() {
     switch (this.type) {
