@@ -56,7 +56,7 @@ public class BaseEppoClientBanditTest {
 
   static {
     Utils.setBase64Codec(new JavaBase64Codec());
-    Utils.setJsonDecoder(new JacksonJsonDeserializer());
+    Utils.setJsonDeserializer(new JacksonJsonDeserializer());
   }
 
   @BeforeEach

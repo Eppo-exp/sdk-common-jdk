@@ -19,14 +19,14 @@ public final class Utils {
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final MessageDigest md = buildMd5MessageDigest();
   private static Base64Codec base64Codec;
-  private static JsonDeserializer jsonDecoder;
+  private static JsonDeserializer jsonDeserializer;
 
   public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
     Utils.base64Codec = base64Codec;
   }
 
-  public static void setJsonDecoder(@NotNull JsonDeserializer jsonDecoder) {
-    Utils.jsonDecoder = jsonDecoder;
+  public static void setJsonDeserializer(@NotNull JsonDeserializer jsonDeserializer) {
+    Utils.jsonDeserializer = jsonDeserializer;
   }
 
   private static MessageDigest buildMd5MessageDigest() {
@@ -122,14 +122,8 @@ public final class Utils {
     return dateFormat;
   }
 
-  public interface Base64Codec {
-    String base64Encode(String input);
-
-    String base64Decode(String input);
-  }
-
   private static void verifyJsonParser() {
-    if (Utils.jsonDecoder == null) {
+    if (jsonDeserializer == null) {
       throw new RuntimeException("JSON Parser not initialized/set on Utils");
     }
   }
@@ -137,24 +131,30 @@ public final class Utils {
   public static FlagConfigResponse parseFlagConfigResponse(byte[] jsonString)
       throws JsonParsingException {
     verifyJsonParser();
-    return Utils.jsonDecoder.parseFlagConfigResponse(jsonString);
+    return jsonDeserializer.parseFlagConfigResponse(jsonString);
   }
 
   public static BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
       throws JsonParsingException {
     verifyJsonParser();
-    return Utils.jsonDecoder.parseBanditParametersResponse(jsonString);
+    return jsonDeserializer.parseBanditParametersResponse(jsonString);
   }
 
   public static boolean isValidJson(String json) {
     verifyJsonParser();
-    return Utils.jsonDecoder.isValidJson(json);
+    return jsonDeserializer.isValidJson(json);
   }
 
   public static String serializeAttributesToJSONString(
       Map<String, EppoValue> map, boolean omitNulls) {
     verifyJsonParser();
-    return Utils.jsonDecoder.serializeAttributesToJSONString(map, omitNulls);
+    return jsonDeserializer.serializeAttributesToJSONString(map, omitNulls);
+  }
+
+  public interface Base64Codec {
+    String base64Encode(String input);
+
+    String base64Decode(String input);
   }
 
   public interface JsonDeserializer {

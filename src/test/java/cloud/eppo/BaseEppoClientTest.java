@@ -53,7 +53,7 @@ public class BaseEppoClientTest {
 
   static {
     Utils.setBase64Codec(new JavaBase64Codec());
-    Utils.setJsonDecoder(new JacksonJsonDeserializer());
+    Utils.setJsonDeserializer(new JacksonJsonDeserializer());
   }
 
   private BaseEppoClient eppoClient;
