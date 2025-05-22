@@ -94,7 +94,15 @@ public class BaseEppoClient {
   }
 
   protected void fetchAndActivateConfiguration() {
-    requestor.fetchAndSaveFromRemote();
+    try {
+      requestor.fetchAndSaveFromRemote();
+    } catch (Throwable e) {
+      if (isGracefulMode) {
+        log.error(e.getMessage(), e);
+      } else {
+        throw e;
+      }
+    }
   }
 
   protected void stopPolling() {
