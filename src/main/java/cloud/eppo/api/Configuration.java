@@ -106,6 +106,10 @@ public class Configuration {
         null);
   }
 
+  public Set<String> getFlagKeys() {
+    return flags.keySet();
+  }
+
   public FlagConfig getFlag(String flagKey) {
     String flagKeyForLookup = flagKey;
     if (isConfigObfuscated()) {
