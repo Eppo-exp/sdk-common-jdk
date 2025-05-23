@@ -106,10 +106,6 @@ public class Configuration {
         null);
   }
 
-  public Set<String> getFlagKeys() {
-    return flags.keySet();
-  }
-
   public FlagConfig getFlag(String flagKey) {
     String flagKeyForLookup = flagKey;
     if (isConfigObfuscated()) {
@@ -171,6 +167,10 @@ public class Configuration {
 
   public boolean isEmpty() {
     return flags == null || flags.isEmpty();
+  }
+
+  public Set<String> getFlagKeys() {
+    return flags == null ? Collections.emptySet() : flags.keySet();
   }
 
   public static Builder builder(byte[] flagJson) {

@@ -21,10 +21,7 @@ import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -746,6 +743,7 @@ public class BaseEppoClientTest {
     // Verify we get an empty configuration
     assertNotNull(config);
     assertTrue(config.isEmpty());
+    assertEquals(Collections.emptySet(), config.getFlagKeys());
 
     eppoClient.fetchAndActivateConfiguration();
 
@@ -755,6 +753,7 @@ public class BaseEppoClientTest {
     // Verify we get an empty configuration
     assertNotNull(nextConfig);
     assertFalse(nextConfig.isEmpty());
+    assertFalse(nextConfig.getFlagKeys().isEmpty());
   }
 
   @SuppressWarnings("SameParameterValue")
