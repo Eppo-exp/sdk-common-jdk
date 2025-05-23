@@ -3,7 +3,6 @@ package cloud.eppo.callback;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,26 +57,11 @@ public class CallbackManager<T, C> {
    * @param data The data to pass to all callbacks
    */
   public void notifyCallbacks(T data) {
-    subscribers
-        .values()
-        .forEach(new NonAnonymousBridgeFromDispatcherToCallback<T, C>(dispatcher, data));
-  }
-
-  private static class NonAnonymousBridgeFromDispatcherToCallback<T, C> implements Consumer<C> {
-    private final Dispatcher<T, C> dispatcher;
-    private final T data;
-
-    public NonAnonymousBridgeFromDispatcherToCallback(Dispatcher<T, C> dispatcher, T data) {
-      this.dispatcher = dispatcher;
-      this.data = data;
-    }
-
-    @Override
-    public void accept(C callback) {
+    Iterable<C> subs = subscribers.values();
+    for (C sub : subs) {
       try {
-        dispatcher.dispatch(callback, data);
-      } catch (Exception e) {
-        log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
+        dispatcher.dispatch(sub, data);
+      } catch (Exception ignored) {
       }
     }
   }
