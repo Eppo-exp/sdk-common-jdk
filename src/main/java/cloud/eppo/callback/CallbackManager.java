@@ -3,6 +3,7 @@ package cloud.eppo.callback;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,12 @@ public class CallbackManager<T, C> {
     String id = UUID.randomUUID().toString();
     subscribers.put(id, callback);
 
-    return () -> subscribers.remove(id);
+    return new Runnable() {
+      @Override
+      public void run() {
+        subscribers.remove(id);
+      }
+    };
   }
 
   /**
@@ -55,11 +61,14 @@ public class CallbackManager<T, C> {
     subscribers
         .values()
         .forEach(
-            callback -> {
-              try {
-                dispatcher.dispatch(callback, data);
-              } catch (Exception e) {
-                log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
+            new Consumer<C>() {
+              @Override
+              public void accept(C callback) {
+                try {
+                  dispatcher.dispatch(callback, data);
+                } catch (Exception e) {
+                  log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
+                }
               }
             });
   }
