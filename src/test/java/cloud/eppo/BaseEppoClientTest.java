@@ -742,6 +742,7 @@ public class BaseEppoClientTest {
     // Verify we get an empty configuration
     assertNotNull(config);
     assertTrue(config.isEmpty());
+    assertEquals(Collections.emptySet(), config.getFlagKeys());
 
     eppoClient.loadConfiguration();
 
@@ -751,6 +752,7 @@ public class BaseEppoClientTest {
     // Verify we get an empty configuration
     assertNotNull(nextConfig);
     assertFalse(nextConfig.isEmpty());
+    assertFalse(nextConfig.getFlagKeys().isEmpty());
   }
 
   @SuppressWarnings("SameParameterValue")

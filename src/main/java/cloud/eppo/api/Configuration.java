@@ -170,6 +170,10 @@ public class Configuration {
     return flags == null || flags.isEmpty();
   }
 
+  public Set<String> getFlagKeys() {
+    return flags == null ? Collections.emptySet() : flags.keySet();
+  }
+
   public static Builder builder(byte[] flagJson) {
     return new Builder(flagJson);
   }
