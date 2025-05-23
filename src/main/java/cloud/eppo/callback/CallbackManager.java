@@ -60,17 +60,26 @@ public class CallbackManager<T, C> {
   public void notifyCallbacks(T data) {
     subscribers
         .values()
-        .forEach(
-            new Consumer<C>() {
-              @Override
-              public void accept(C callback) {
-                try {
-                  dispatcher.dispatch(callback, data);
-                } catch (Exception e) {
-                  log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
-                }
-              }
-            });
+        .forEach(new NonAnonymousBridgeFromDispatcherToCallback<T, C>(dispatcher, data));
+  }
+
+  private static class NonAnonymousBridgeFromDispatcherToCallback<T, C> implements Consumer<C> {
+    private final Dispatcher<T, C> dispatcher;
+    private final T data;
+
+    public NonAnonymousBridgeFromDispatcherToCallback(Dispatcher<T, C> dispatcher, T data) {
+      this.dispatcher = dispatcher;
+      this.data = data;
+    }
+
+    @Override
+    public void accept(C callback) {
+      try {
+        dispatcher.dispatch(callback, data);
+      } catch (Exception e) {
+        log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
+      }
+    }
   }
 
   /** Remove all subscribers. */
