@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.*;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
+import cloud.eppo.helpers.JacksonJsonDeserializer;
 import cloud.eppo.helpers.JavaBase64Codec;
 import cloud.eppo.helpers.TestUtils;
 import cloud.eppo.logging.Assignment;
@@ -18,13 +19,9 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -52,8 +48,10 @@ public class BaseEppoClientTest {
   private static final String TEST_BASE_URL =
       TEST_API_CLOUD_FUNCTION_URL + (TEST_BRANCH != null ? "/b/" + TEST_BRANCH : "") + "/api";
 
-  private final ObjectMapper mapper =
-      new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
+  static {
+    Utils.setBase64Codec(new JavaBase64Codec());
+    Utils.setJsonDeserializer(new JacksonJsonDeserializer());
+  }
 
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
@@ -187,11 +185,6 @@ public class BaseEppoClientTest {
     log.info("Test client initialized");
   }
 
-  @BeforeAll
-  public static void setUp() {
-    Utils.setBase64Codec(new JavaBase64Codec());
-  }
-
   @AfterEach
   public void cleanUp() {
     // TODO: Clear any caches
@@ -250,21 +243,8 @@ public class BaseEppoClientTest {
         "", spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
 
     assertEquals(
-        mapper.readTree("{\"a\": 1, \"b\": false}").toString(),
-        spyClient
-            .getJSONAssignment(
-                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}"))
-            .toString());
-
-    assertEquals(
         "{\"a\": 1, \"b\": false}",
         spyClient.getJSONStringAssignment("subject1", "experiment1", "{\"a\": 1, \"b\": false}"));
-
-    assertEquals(
-        mapper.readTree("{}").toString(),
-        spyClient
-            .getJSONAssignment("subject1", "experiment1", new Attributes(), mapper.readTree("{}"))
-            .toString());
   }
 
   @Test
@@ -313,13 +293,8 @@ public class BaseEppoClientTest {
     assertThrows(
         RuntimeException.class,
         () ->
-            spyClient.getJSONAssignment(
-                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}")));
-    assertThrows(
-        RuntimeException.class,
-        () ->
-            spyClient.getJSONAssignment(
-                "subject1", "experiment1", new Attributes(), mapper.readTree("{}")));
+            spyClient.getJSONStringAssignment(
+                "subject1", "experiment1", "{\"a\": 1, \"b\": false}"));
   }
 
   @Test
@@ -768,6 +743,7 @@ public class BaseEppoClientTest {
     // Verify we get an empty configuration
     assertNotNull(config);
     assertTrue(config.isEmpty());
+    assertEquals(Collections.emptySet(), config.getFlagKeys());
 
     eppoClient.fetchAndActivateConfiguration();
 
@@ -777,6 +753,7 @@ public class BaseEppoClientTest {
     // Verify we get an empty configuration
     assertNotNull(nextConfig);
     assertFalse(nextConfig.isEmpty());
+    assertFalse(nextConfig.getFlagKeys().isEmpty());
   }
 
   @SuppressWarnings("SameParameterValue")
