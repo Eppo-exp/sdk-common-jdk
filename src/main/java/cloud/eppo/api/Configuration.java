@@ -2,12 +2,9 @@ package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
+import cloud.eppo.Utils;
+import cloud.eppo.exception.JsonParsingException;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -68,9 +65,6 @@ public class Configuration {
     void accept(Configuration configuration);
   }
 
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(EppoModule.eppoModule());
-
   private static final byte[] emptyFlagsBytes =
       "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
 
@@ -98,20 +92,6 @@ public class Configuration {
     this.bandits = bandits;
     this.isConfigObfuscated = isConfigObfuscated;
 
-    // Graft the `forServer` boolean into the flagConfigJson'
-    if (flagConfigJson != null && flagConfigJson.length != 0) {
-      try {
-        JsonNode jNode = mapper.readTree(flagConfigJson);
-        FlagConfigResponse.Format format =
-            isConfigObfuscated
-                ? FlagConfigResponse.Format.CLIENT
-                : FlagConfigResponse.Format.SERVER;
-        ((ObjectNode) jNode).put("format", format.toString());
-        flagConfigJson = mapper.writeValueAsBytes(jNode);
-      } catch (IOException e) {
-        log.error("Error adding `format` field to FlagConfigResponse JSON");
-      }
-    }
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }
@@ -189,6 +169,10 @@ public class Configuration {
     return flags == null || flags.isEmpty();
   }
 
+  public Set<String> getFlagKeys() {
+    return flags == null ? Collections.emptySet() : flags.keySet();
+  }
+
   public static Builder builder(byte[] flagJson) {
     return new Builder(flagJson);
   }
@@ -212,10 +196,9 @@ public class Configuration {
         log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
         return null;
       }
-      FlagConfigResponse config;
       try {
-        return mapper.readValue(flagJson, FlagConfigResponse.class);
-      } catch (IOException e) {
+        return Utils.parseFlagConfigResponse(flagJson);
+      } catch (JsonParsingException e) {
         throw new RuntimeException(e);
       }
     }
@@ -289,8 +272,8 @@ public class Configuration {
       }
       BanditParametersResponse config;
       try {
-        config = mapper.readValue(banditParameterJson, BanditParametersResponse.class);
-      } catch (IOException e) {
+        config = Utils.parseBanditParametersResponse(banditParameterJson);
+      } catch (JsonParsingException e) {
         log.error("Unable to parse bandit parameters JSON");
         throw new RuntimeException(e);
       }
