@@ -27,21 +27,15 @@ jobs:
 
       - name: Download test data
         run: make test-data
-
-      - name: Test
-        run: ./gradlew check
-
-      - name: Validate Snapshot artifact
-        run: ./gradlew checkVersion -Psnapshot --no-daemon
-
-      - name: Publish package
-        run: mvn --batch-mode deploy
-        env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
 #
-#      - name: Publish Snapshot artifact
-#        run: ./gradlew check publish -Psnapshot --no-daemon
-#        env:
-#          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-#          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+#      - name: Test
+#        run: ./gradlew check
+#
+#      - name: Validate Snapshot artifact
+#        run: ./gradlew checkVersion -Psnapshot --no-daemon
+
+      - name: Publish Snapshot artifact
+        run: ./gradlew check publish -Psnapshot --no-daemon
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
