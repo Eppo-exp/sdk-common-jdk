@@ -53,6 +53,7 @@ public class ConfigurationRequestorTest {
     // Set initial config and verify that it has been set.
     requestor.activateConfiguration(Configuration.builder(flagConfig.getBytes()).build());
     assertFalse(configStore.getConfiguration().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
     CountDownLatch latch = new CountDownLatch(1);
@@ -63,6 +64,7 @@ public class ConfigurationRequestorTest {
     mockHttpClient.fail(new Exception("Intentional exception"));
 
     assertFalse(configStore.getConfiguration().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
 
     // `numeric_flag` is only in the cache which should be available
@@ -85,6 +87,7 @@ public class ConfigurationRequestorTest {
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
     assertTrue(configStore.getConfiguration().isEmpty());
+    assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
 
     CountDownLatch latch = new CountDownLatch(1);
     requestor.fetchAndSaveFromRemoteAsync(
@@ -98,6 +101,7 @@ public class ConfigurationRequestorTest {
 
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
     assertFalse(configStore.getConfiguration().isEmpty());
+    assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
 
     // `numeric_flag` is only in the cache which should be available
     assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));

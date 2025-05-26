@@ -1,13 +1,18 @@
 package cloud.eppo;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import cloud.eppo.api.EppoValue;
+import cloud.eppo.exception.JsonParsingException;
+import cloud.eppo.ufc.dto.BanditParametersResponse;
+import cloud.eppo.ufc.dto.FlagConfigResponse;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,9 +21,14 @@ public final class Utils {
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
   private static Base64Codec base64Codec;
+  private static JsonDeserializer jsonDeserializer;
 
   public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
     Utils.base64Codec = base64Codec;
+  }
+
+  public static void setJsonDeserializer(@NotNull JsonDeserializer jsonDeserializer) {
+    Utils.jsonDeserializer = jsonDeserializer;
   }
 
   @SuppressWarnings("AnonymousHasLambdaAlternative")
@@ -96,32 +106,6 @@ public final class Utils {
     return (int) (value % maxShardValue);
   }
 
-  public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
-    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
-      return null;
-    }
-    String isoDateString = isoDateStringElement.asText();
-    Date result = null;
-    try {
-      result = UTC_ISO_DATE_FORMAT.get().parse(isoDateString);
-    } catch (ParseException e) {
-      // We expect to fail parsing if the date is base 64 encoded
-      // Thus we'll leave the result null for now and try again with the decoded value
-    }
-
-    if (result == null) {
-      // Date may be encoded
-      String decodedIsoDateString = base64Decode(isoDateString);
-      try {
-        result = UTC_ISO_DATE_FORMAT.get().parse(decodedIsoDateString);
-      } catch (ParseException e) {
-        log.warn("Date \"{}\" not in ISO date format", isoDateString);
-      }
-    }
-
-    return result;
-  }
-
   public static String getISODate(Date date) {
     return UTC_ISO_DATE_FORMAT.get().format(date);
   }
@@ -154,9 +138,73 @@ public final class Utils {
     return base64Codec.base64Decode(input);
   }
 
+  public static Date parseUtcISODateString(@Nullable String isoDateString) {
+    if (isoDateString == null) {
+      return null;
+    }
+    Date result = null;
+    try {
+      result = UTC_ISO_DATE_FORMAT.get().parse(isoDateString);
+    } catch (ParseException e) {
+      // We expect to fail parsing if the date is base 64 encoded
+      // Thus we'll leave the result null for now and try again with the decoded value
+    }
+
+    if (result == null) {
+      // Date may be encoded
+      String decodedIsoDateString = base64Decode(isoDateString);
+      try {
+        result = UTC_ISO_DATE_FORMAT.get().parse(decodedIsoDateString);
+      } catch (ParseException e) {
+        log.warn("Date \"{}\" not in ISO date format", isoDateString);
+      }
+    }
+    return result;
+  }
+
+  private static void verifyJsonParser() {
+    if (jsonDeserializer == null) {
+      throw new RuntimeException("JSON Parser not initialized/set on Utils");
+    }
+  }
+
+  public static FlagConfigResponse parseFlagConfigResponse(byte[] jsonString)
+      throws JsonParsingException {
+    verifyJsonParser();
+    return jsonDeserializer.parseFlagConfigResponse(jsonString);
+  }
+
+  public static BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
+      throws JsonParsingException {
+    verifyJsonParser();
+    return jsonDeserializer.parseBanditParametersResponse(jsonString);
+  }
+
+  public static boolean isValidJson(String json) {
+    verifyJsonParser();
+    return jsonDeserializer.isValidJson(json);
+  }
+
+  public static String serializeAttributesToJSONString(
+      Map<String, EppoValue> map, boolean omitNulls) {
+    verifyJsonParser();
+    return jsonDeserializer.serializeAttributesToJSONString(map, omitNulls);
+  }
+
   public interface Base64Codec {
     String base64Encode(String input);
 
     String base64Decode(String input);
+  }
+
+  public interface JsonDeserializer {
+    FlagConfigResponse parseFlagConfigResponse(byte[] jsonString) throws JsonParsingException;
+
+    BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
+        throws JsonParsingException;
+
+    boolean isValidJson(String json);
+
+    String serializeAttributesToJSONString(Map<String, EppoValue> map, boolean omitNulls);
   }
 }

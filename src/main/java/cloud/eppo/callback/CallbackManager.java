@@ -43,7 +43,12 @@ public class CallbackManager<T, C> {
     String id = UUID.randomUUID().toString();
     subscribers.put(id, callback);
 
-    return () -> subscribers.remove(id);
+    return new Runnable() {
+      @Override
+      public void run() {
+        subscribers.remove(id);
+      }
+    };
   }
 
   /**
@@ -52,16 +57,13 @@ public class CallbackManager<T, C> {
    * @param data The data to pass to all callbacks
    */
   public void notifyCallbacks(T data) {
-    subscribers
-        .values()
-        .forEach(
-            callback -> {
-              try {
-                dispatcher.dispatch(callback, data);
-              } catch (Exception e) {
-                log.error("Eppo SDK: Error thrown by callback: {}", e.getMessage());
-              }
-            });
+    Iterable<C> subs = subscribers.values();
+    for (C sub : subs) {
+      try {
+        dispatcher.dispatch(sub, data);
+      } catch (Exception ignored) {
+      }
+    }
   }
 
   /** Remove all subscribers. */

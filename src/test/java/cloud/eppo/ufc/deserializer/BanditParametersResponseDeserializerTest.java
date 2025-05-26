@@ -2,8 +2,8 @@ package cloud.eppo.ufc.deserializer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import cloud.eppo.helpers.dto.adapters.EppoModule;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;

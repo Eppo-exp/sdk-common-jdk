@@ -54,6 +54,11 @@ public class BaseEppoClientBanditTest {
   private static final Map<String, String> assignmentCache = new HashMap<>();
   private static final Map<String, String> banditAssignmentCache = new HashMap<>();
 
+  static {
+    Utils.setBase64Codec(new JavaBase64Codec());
+    Utils.setJsonDeserializer(new JacksonJsonDeserializer());
+  }
+
   @BeforeEach
   public void resetCaches() {
     assignmentCache.clear();

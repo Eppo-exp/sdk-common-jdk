@@ -1,4 +1,4 @@
-package cloud.eppo.ufc.dto.adapters;
+package cloud.eppo.helpers.dto.adapters;
 
 import cloud.eppo.ufc.dto.*;
 import com.fasterxml.jackson.core.JsonParser;
