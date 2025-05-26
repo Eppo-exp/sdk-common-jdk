@@ -2,11 +2,11 @@ name: Publish SDK Snapshot artifact
 
 on:
   push:
-    branches: [main, tp/*]
+    branches: [main]
 
 env:
-  ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
-  ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
+  ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
+  ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
   CI: true
 
 jobs:
@@ -27,12 +27,6 @@ jobs:
 
       - name: Download test data
         run: make test-data
-#
-#      - name: Test
-#        run: ./gradlew check
-#
-#      - name: Validate Snapshot artifact
-#        run: ./gradlew checkVersion -Psnapshot --no-daemon
 
       - name: Publish Snapshot artifact
         run: ./gradlew check publish -Psnapshot --no-daemon
