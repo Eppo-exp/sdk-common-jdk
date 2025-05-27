@@ -25,7 +25,7 @@ jobs:
         run: make test-data
 
       - name: Stage artifacts
-        run: ./gradlew clean publish
+        run: ./gradlew clean publish -Psnapshot
 
       - name: Deploy to Maven Central
         run: ./gradlew jreleaserDeploy
