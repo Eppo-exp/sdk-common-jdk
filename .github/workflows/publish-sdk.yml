@@ -28,7 +28,7 @@ jobs:
         run: ./gradlew check
 
       - name: Stage artifacts
-        run: ./gradlew clean publish
+        run: ./gradlew clean publish -Prelease
 
       - name: Deploy to Maven Central
         run: ./gradlew jreleaserDeploy
