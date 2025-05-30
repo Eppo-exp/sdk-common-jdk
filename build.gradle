@@ -71,8 +71,10 @@ tasks.register('testJar', Jar) {
 
 publishing {
   publications {
-    mavenJava(MavenPublication) {
+    maven(MavenPublication) {
+      groupId = 'cloud.eppo'
       artifactId = 'sdk-common-jvm'
+
       from components.java
       artifact testJar // Include the test-jar in the published artifacts
       versionMapping {
