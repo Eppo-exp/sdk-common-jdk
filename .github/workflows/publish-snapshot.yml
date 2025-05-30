@@ -32,7 +32,7 @@ jobs:
         run: make test-data
 
       - name: Verify JReleaser
-        run: ./gradlew jreleaserConfig --stacktrace --debug
+        run: ./gradlew jreleaserConfig --stacktrace
 
       - name: Stage artifacts
         run: ./gradlew clean publish -Psnapshot
