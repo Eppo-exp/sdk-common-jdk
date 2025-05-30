@@ -32,10 +32,10 @@ jobs:
         run: make test-data
 
       - name: Verify JReleaser
-        run: ./gradlew jreleaserConfig
+        run: ./gradlew jreleaserConfig --stacktrace --debug
 
       - name: Stage artifacts
         run: ./gradlew clean publish -Psnapshot
 
       - name: Deploy to Maven Central
-        run: ./gradlew jreleaserDeploy
+        run: ./gradlew jreleaserDeploy --stacktrace
