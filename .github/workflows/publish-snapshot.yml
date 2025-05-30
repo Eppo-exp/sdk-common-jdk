@@ -24,6 +24,9 @@ jobs:
       - name: Download test data
         run: make test-data
 
+      - name: Verify JReleaser
+        run: ./gradlew jreleaserConfig
+
       - name: Stage artifacts
         run: ./gradlew clean publish -Psnapshot
 
