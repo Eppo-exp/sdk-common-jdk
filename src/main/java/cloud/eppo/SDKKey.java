@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +24,27 @@ public class SDKKey {
   public SDKKey(String sdkToken) {
     this.sdkTokenString = sdkToken;
     this.decodedParams = decodeToken(sdkToken);
+  }
+
+  @Override
+  public String toString() {
+    return "SDKKey{" +
+      "sdkTokenString='" + sdkTokenString + '\'' +
+      ", decodedParams=" + decodedParams +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    SDKKey sdkKey = (SDKKey) o;
+    return Objects.equals(sdkTokenString, sdkKey.sdkTokenString) &&
+            Objects.equals(decodedParams, sdkKey.decodedParams);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(sdkTokenString, decodedParams);
   }
 
   private Map<String, String> decodeToken(String token) {

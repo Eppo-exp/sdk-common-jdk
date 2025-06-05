@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
@@ -105,6 +107,35 @@ public class Configuration {
         false,
         emptyFlagsBytes,
         null);
+  }
+
+  @Override
+  public String toString() {
+    return "Configuration{" +
+      "banditReferences=" + banditReferences +
+      ", flags=" + flags +
+      ", bandits=" + bandits +
+      ", isConfigObfuscated=" + isConfigObfuscated +
+      ", flagConfigJson=" + Arrays.toString(flagConfigJson) +
+      ", banditParamsJson=" + Arrays.toString(banditParamsJson) +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    Configuration that = (Configuration) o;
+    return isConfigObfuscated == that.isConfigObfuscated
+            && Objects.equals(banditReferences, that.banditReferences)
+            && Objects.equals(flags, that.flags)
+            && Objects.equals(bandits, that.bandits)
+            && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
+            && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(banditReferences, flags, bandits, isConfigObfuscated, Arrays.hashCode(flagConfigJson), Arrays.hashCode(banditParamsJson));
   }
 
   public FlagConfig getFlag(String flagKey) {
