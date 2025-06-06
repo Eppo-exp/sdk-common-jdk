@@ -32,7 +32,8 @@ public class UtilsTest {
   public void testGetMd5HashThreadSafe() {
     final AtomicBoolean interferenceEncountered = new AtomicBoolean(false);
     int numThreads = 2;
-    try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
       for (int i = 0; i < numThreads; i += 1) {
         pool.execute(
             () -> {
@@ -42,10 +43,13 @@ public class UtilsTest {
             });
       }
       pool.shutdown();
-      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    } finally {
+      try {
+        assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+      } catch (InterruptedException ex) {
+        fail();
+      }
       assertFalse(interferenceEncountered.get());
-    } catch (InterruptedException ex) {
-      throw new RuntimeException(ex);
     }
   }
 
