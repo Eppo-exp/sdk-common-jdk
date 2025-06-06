@@ -32,7 +32,7 @@ public class UtilsTest {
   public void testGetMd5HashThreadSafe() {
     final AtomicBoolean interferenceEncountered = new AtomicBoolean(false);
     int numThreads = 2;
-    ExecutorService pool = Executors.newFixedThreadPool(2);
+    ExecutorService pool = Executors.newFixedThreadPool(numThreads);
     try {
       for (int i = 0; i < numThreads; i += 1) {
         pool.execute(
