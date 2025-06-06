@@ -20,7 +20,8 @@ public final class Utils {
   @SuppressWarnings("AnonymousHasLambdaAlternative")
   private static ThreadLocal<MessageDigest> buildMd5MessageDigest() {
     return new ThreadLocal<MessageDigest>() {
-      @Override protected MessageDigest initialValue() {
+      @Override
+      protected MessageDigest initialValue() {
         try {
           return MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {

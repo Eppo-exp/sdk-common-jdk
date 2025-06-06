@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
@@ -35,11 +34,12 @@ public class UtilsTest {
     int numThreads = 2;
     try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
       for (int i = 0; i < numThreads; i += 1) {
-        pool.execute(() -> {
-          if (testForMd5Interference()) {
-            interferenceEncountered.set(true);
-          }
-        });
+        pool.execute(
+            () -> {
+              if (testForMd5Interference()) {
+                interferenceEncountered.set(true);
+              }
+            });
       }
       pool.shutdown();
       assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));

@@ -1,9 +1,9 @@
 package cloud.eppo.ufc.dto;
 
+import static cloud.eppo.Utils.getMD5Hex;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import static cloud.eppo.Utils.getMD5Hex;
 
 public enum OperatorType {
   NOT_MATCHES("NOT_MATCHES"),
@@ -17,8 +17,10 @@ public enum OperatorType {
   IS_NULL("IS_NULL");
 
   public final String value;
-  private static final Map<String, OperatorType> valuesToOperatorType = buildValueToOperatorTypeMap();
-  private static final Map<String, OperatorType> hashesToOperatorType = buildHashToOperatorTypeMap();
+  private static final Map<String, OperatorType> valuesToOperatorType =
+      buildValueToOperatorTypeMap();
+  private static final Map<String, OperatorType> hashesToOperatorType =
+      buildHashToOperatorTypeMap();
 
   private static Map<String, OperatorType> buildValueToOperatorTypeMap() {
     Map<String, OperatorType> result = new HashMap<>();
@@ -41,7 +43,8 @@ public enum OperatorType {
   }
 
   public static OperatorType fromString(String value) {
-    // First we try obfuscated lookup as in client situations we'll care more about ingestion performance
+    // First we try obfuscated lookup as in client situations we'll care more about ingestion
+    // performance
     OperatorType type = hashesToOperatorType.get(value);
     // Then we'll try non-obfuscated lookup
     if (type == null) {
