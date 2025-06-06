@@ -1,13 +1,17 @@
 package cloud.eppo;
 
 import static cloud.eppo.Utils.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
@@ -23,6 +27,37 @@ public class UtilsTest {
     assertEquals("448614887a99f16179b400cfccceb72d", getMD5Hex("input-62"));
     // zero last byte
     assertEquals("429fb7196ccb2978443a0de8da180e00", getMD5Hex("input-34"));
+  }
+
+  @Test
+  public void testGetMd5HashThreadSafe() {
+    final AtomicBoolean interferenceEncountered = new AtomicBoolean(false);
+    int numThreads = 2;
+    try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
+      for (int i = 0; i < numThreads; i += 1) {
+        pool.execute(() -> {
+          if (loopCheckMd5()) {
+            interferenceEncountered.set(true);
+          }
+        });
+      }
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+      assertFalse(interferenceEncountered.get());
+    } catch (InterruptedException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+
+  private boolean loopCheckMd5() {
+    boolean interferenceEncountered = false;
+    for (int i = 0; i < 100; i += 1) {
+      if (!getMD5Hex("input-62").equals("448614887a99f16179b400cfccceb72d")) {
+        interferenceEncountered = true;
+        break;
+      }
+    }
+    return interferenceEncountered;
   }
 
   @Test
