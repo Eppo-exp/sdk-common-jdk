@@ -1,5 +1,7 @@
 package cloud.eppo.ufc.dto;
 
+import java.util.Objects;
+
 public class BanditFlagVariation {
   private final String banditKey;
   private final String flagKey;
@@ -18,6 +20,33 @@ public class BanditFlagVariation {
     this.allocationKey = allocationKey;
     this.variationKey = variationKey;
     this.variationValue = variationValue;
+  }
+
+  @Override
+  public String toString() {
+    return "BanditFlagVariation{" +
+      "banditKey='" + banditKey + '\'' +
+      ", flagKey='" + flagKey + '\'' +
+      ", allocationKey='" + allocationKey + '\'' +
+      ", variationKey='" + variationKey + '\'' +
+      ", variationValue='" + variationValue + '\'' +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    BanditFlagVariation that = (BanditFlagVariation) o;
+    return Objects.equals(banditKey, that.banditKey)
+            && Objects.equals(flagKey, that.flagKey)
+            && Objects.equals(allocationKey, that.allocationKey)
+            && Objects.equals(variationKey, that.variationKey)
+            && Objects.equals(variationValue, that.variationValue);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(banditKey, flagKey, allocationKey, variationKey, variationValue);
   }
 
   public String getBanditKey() {

@@ -3,6 +3,7 @@ package cloud.eppo;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Map;
+import java.util.Objects;
 
 public class FlagEvaluationResult {
 
@@ -29,6 +30,37 @@ public class FlagEvaluationResult {
     this.variation = variation;
     this.extraLogging = extraLogging;
     this.doLog = doLog;
+  }
+
+  @Override
+  public String toString() {
+    return "FlagEvaluationResult{" +
+      "flagKey='" + flagKey + '\'' +
+      ", subjectKey='" + subjectKey + '\'' +
+      ", subjectAttributes=" + subjectAttributes +
+      ", allocationKey='" + allocationKey + '\'' +
+      ", variation=" + variation +
+      ", extraLogging=" + extraLogging +
+      ", doLog=" + doLog +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    FlagEvaluationResult that = (FlagEvaluationResult) o;
+    return doLog == that.doLog
+            && Objects.equals(flagKey, that.flagKey)
+            && Objects.equals(subjectKey, that.subjectKey)
+            && Objects.equals(subjectAttributes, that.subjectAttributes)
+            && Objects.equals(allocationKey, that.allocationKey)
+            && Objects.equals(variation, that.variation)
+            && Objects.equals(extraLogging, that.extraLogging);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(flagKey, subjectKey, subjectAttributes, allocationKey, variation, extraLogging, doLog);
   }
 
   public String getFlagKey() {

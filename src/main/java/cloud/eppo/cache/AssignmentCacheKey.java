@@ -17,6 +17,24 @@ public class AssignmentCacheKey {
     this.flagKey = flagKey;
   }
 
+  @Override
+  public String toString() {
+    return subjectKey + ";" + flagKey;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    AssignmentCacheKey that = (AssignmentCacheKey) o;
+    return Objects.equals(subjectKey, that.subjectKey)
+            && Objects.equals(flagKey, that.flagKey);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(subjectKey, flagKey);
+  }
+
   public String getSubjectKey() {
     return subjectKey;
   }
@@ -25,21 +43,4 @@ public class AssignmentCacheKey {
     return flagKey;
   }
 
-  @Override
-  public String toString() {
-    return subjectKey + ";" + flagKey;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    AssignmentCacheKey that = (AssignmentCacheKey) o;
-    return Objects.equals(toString(), that.toString());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(subjectKey, flagKey);
-  }
 }

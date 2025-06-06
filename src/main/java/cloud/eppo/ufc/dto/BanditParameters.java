@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import java.util.Date;
+import java.util.Objects;
 
 public class BanditParameters {
   private final String banditKey;
@@ -20,6 +21,33 @@ public class BanditParameters {
     this.modelName = modelName;
     this.modelVersion = modelVersion;
     this.modelData = modelData;
+  }
+
+  @Override
+  public String toString() {
+    return "BanditParameters{" +
+      "banditKey='" + banditKey + '\'' +
+      ", updatedAt=" + updatedAt +
+      ", modelName='" + modelName + '\'' +
+      ", modelVersion='" + modelVersion + '\'' +
+      ", modelData=" + modelData +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    BanditParameters that = (BanditParameters) o;
+    return Objects.equals(banditKey, that.banditKey)
+            && Objects.equals(updatedAt, that.updatedAt)
+            && Objects.equals(modelName, that.modelName)
+            && Objects.equals(modelVersion, that.modelVersion)
+            && Objects.equals(modelData, that.modelData);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(banditKey, updatedAt, modelName, modelVersion, modelData);
   }
 
   public String getBanditKey() {

@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FlagConfigResponse {
@@ -24,6 +25,29 @@ public class FlagConfigResponse {
 
   public FlagConfigResponse() {
     this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER);
+  }
+
+  @Override
+  public String toString() {
+    return "FlagConfigResponse{" +
+      "flags=" + flags +
+      ", banditReferences=" + banditReferences +
+      ", format=" + format +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    FlagConfigResponse that = (FlagConfigResponse) o;
+    return Objects.equals(flags, that.flags)
+            && Objects.equals(banditReferences, that.banditReferences)
+            && format == that.format;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(flags, banditReferences, format);
   }
 
   public Map<String, FlagConfig> getFlags() {

@@ -1,5 +1,7 @@
 package cloud.eppo.ufc.dto;
 
+import java.util.Objects;
+
 import cloud.eppo.api.EppoValue;
 
 public class TargetingCondition {
@@ -11,6 +13,29 @@ public class TargetingCondition {
     this.operator = operator;
     this.attribute = attribute;
     this.value = value;
+  }
+
+  @Override
+  public String toString() {
+    return "TargetingCondition{" +
+      "operator=" + operator +
+      ", attribute='" + attribute + '\'' +
+      ", value=" + value +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    TargetingCondition that = (TargetingCondition) o;
+    return operator == that.operator
+            && Objects.equals(attribute, that.attribute)
+            && Objects.equals(value, that.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(operator, attribute, value);
   }
 
   public OperatorType getOperator() {

@@ -1,5 +1,7 @@
 package cloud.eppo;
 
+import java.util.Objects;
+
 import cloud.eppo.api.DiscriminableAttributes;
 
 public class BanditEvaluationResult {
@@ -33,6 +35,40 @@ public class BanditEvaluationResult {
     this.actionWeight = actionWeight;
     this.gamma = gamma;
     this.optimalityGap = optimalityGap;
+  }
+
+  @Override
+  public String toString() {
+    return "BanditEvaluationResult{" +
+      "flagKey='" + flagKey + '\'' +
+      ", subjectKey='" + subjectKey + '\'' +
+      ", subjectAttributes=" + subjectAttributes +
+      ", actionKey='" + actionKey + '\'' +
+      ", actionAttributes=" + actionAttributes +
+      ", actionScore=" + actionScore +
+      ", actionWeight=" + actionWeight +
+      ", gamma=" + gamma +
+      ", optimalityGap=" + optimalityGap +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    BanditEvaluationResult that = (BanditEvaluationResult) o;
+    return Double.compare(actionScore, that.actionScore) == 0
+            && Double.compare(actionWeight, that.actionWeight) == 0
+            && Double.compare(gamma, that.gamma) == 0
+            && Double.compare(optimalityGap, that.optimalityGap) == 0
+            && Objects.equals(flagKey, that.flagKey)
+            && Objects.equals(subjectKey, that.subjectKey)
+            && Objects.equals(subjectAttributes, that.subjectAttributes)
+            && Objects.equals(actionKey, that.actionKey) && Objects.equals(actionAttributes, that.actionAttributes);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(flagKey, subjectKey, subjectAttributes, actionKey, actionAttributes, actionScore, actionWeight, gamma, optimalityGap);
   }
 
   public String getFlagKey() {

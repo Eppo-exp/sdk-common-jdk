@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class BanditCoefficients {
   private final String actionKey;
@@ -23,6 +24,35 @@ public class BanditCoefficients {
     this.subjectCategoricalCoefficients = subjectCategoricalAttributeCoefficients;
     this.actionNumericCoefficients = actionNumericAttributeCoefficients;
     this.actionCategoricalCoefficients = actionCategoricalAttributeCoefficients;
+  }
+
+  @Override
+  public String toString() {
+    return "BanditCoefficients{" +
+      "actionKey='" + actionKey + '\'' +
+      ", intercept=" + intercept +
+      ", subjectNumericCoefficients=" + subjectNumericCoefficients +
+      ", subjectCategoricalCoefficients=" + subjectCategoricalCoefficients +
+      ", actionNumericCoefficients=" + actionNumericCoefficients +
+      ", actionCategoricalCoefficients=" + actionCategoricalCoefficients +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    BanditCoefficients that = (BanditCoefficients) o;
+    return Objects.equals(actionKey, that.actionKey)
+            && Objects.equals(intercept, that.intercept)
+            && Objects.equals(subjectNumericCoefficients, that.subjectNumericCoefficients)
+            && Objects.equals(subjectCategoricalCoefficients, that.subjectCategoricalCoefficients)
+            && Objects.equals(actionNumericCoefficients, that.actionNumericCoefficients)
+            && Objects.equals(actionCategoricalCoefficients, that.actionCategoricalCoefficients);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(actionKey, intercept, subjectNumericCoefficients, subjectCategoricalCoefficients, actionNumericCoefficients, actionCategoricalCoefficients);
   }
 
   public String getActionKey() {

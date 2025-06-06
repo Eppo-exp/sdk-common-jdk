@@ -27,6 +27,27 @@ public class AssignmentCacheEntry {
         new BanditCacheValue(assignment.getBandit(), assignment.getAction()));
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    AssignmentCacheEntry that = (AssignmentCacheEntry) o;
+    return Objects.equals(key, that.key)
+      && Objects.equals(value, that.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(key, value);
+  }
+
+  @Override
+  public String toString() {
+    return "AssignmentCacheEntry{" +
+      "key=" + key +
+      ", value=" + value +
+      '}';
+  }
+
   @NotNull public AssignmentCacheKey getKey() {
     return key;
   }
@@ -43,17 +64,4 @@ public class AssignmentCacheEntry {
     return value;
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    AssignmentCacheEntry that = (AssignmentCacheEntry) o;
-    return Objects.equals(key, that.key)
-        && Objects.equals(value.getValueIdentifier(), that.value.getValueIdentifier());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(key, value);
-  }
 }

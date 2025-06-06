@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import java.util.List;
+import java.util.Objects;
 
 public class BanditReference {
   private final String modelVersion;
@@ -9,6 +10,27 @@ public class BanditReference {
   public BanditReference(String modelVersion, List<BanditFlagVariation> flagVariations) {
     this.modelVersion = modelVersion;
     this.flagVariations = flagVariations;
+  }
+
+  @Override
+  public String toString() {
+    return "BanditReference{" +
+      "modelVersion='" + modelVersion + '\'' +
+      ", flagVariations=" + flagVariations +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    BanditReference that = (BanditReference) o;
+    return Objects.equals(modelVersion, that.modelVersion)
+            && Objects.equals(flagVariations, that.flagVariations);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(modelVersion, flagVariations);
   }
 
   public String getModelVersion() {
