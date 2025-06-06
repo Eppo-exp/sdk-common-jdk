@@ -1,5 +1,8 @@
 package cloud.eppo.ufc.dto;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static cloud.eppo.Utils.getMD5Hex;
 
 public enum OperatorType {
@@ -14,20 +17,37 @@ public enum OperatorType {
   IS_NULL("IS_NULL");
 
   public final String value;
+  private static final Map<String, OperatorType> valuesToOperatorType = buildValueToOperatorTypeMap();
+  private static final Map<String, OperatorType> hashesToOperatorType = buildHashToOperatorTypeMap();
+
+  private static Map<String, OperatorType> buildValueToOperatorTypeMap() {
+    Map<String, OperatorType> result = new HashMap<>();
+    for (OperatorType type : OperatorType.values()) {
+      result.put(type.value, type);
+    }
+    return result;
+  }
+
+  private static Map<String, OperatorType> buildHashToOperatorTypeMap() {
+    Map<String, OperatorType> result = new HashMap<>();
+    for (OperatorType type : OperatorType.values()) {
+      result.put(getMD5Hex(type.value), type);
+    }
+    return result;
+  }
 
   OperatorType(String value) {
     this.value = value;
   }
 
   public static OperatorType fromString(String value) {
-    for (OperatorType type : OperatorType.values()) {
-      if (type.value.equals(value)
-          || getMD5Hex(type.value).equals(value)
-          || getMD5Hex(type.value).equals(value)) {
-        return type;
-      }
+    // First we try obfuscated lookup as in client situations we'll care more about ingestion performance
+    OperatorType type = hashesToOperatorType.get(value);
+    // Then we'll try non-obfuscated lookup
+    if (type == null) {
+      type = valuesToOperatorType.get(value);
     }
-    return null;
+    return type;
   }
 
   public boolean isInequalityComparison() {
