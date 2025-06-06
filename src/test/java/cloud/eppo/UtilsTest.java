@@ -36,7 +36,7 @@ public class UtilsTest {
     try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
       for (int i = 0; i < numThreads; i += 1) {
         pool.execute(() -> {
-          if (loopCheckMd5()) {
+          if (testForMd5Interference()) {
             interferenceEncountered.set(true);
           }
         });
@@ -49,7 +49,7 @@ public class UtilsTest {
     }
   }
 
-  private boolean loopCheckMd5() {
+  private boolean testForMd5Interference() {
     boolean interferenceEncountered = false;
     for (int i = 0; i < 100; i += 1) {
       if (!getMD5Hex("input-62").equals("448614887a99f16179b400cfccceb72d")) {
