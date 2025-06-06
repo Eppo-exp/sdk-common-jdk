@@ -15,14 +15,19 @@ import org.slf4j.LoggerFactory;
 public final class Utils {
   private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
-  private static final MessageDigest md = buildMd5MessageDigest();
+  private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
 
-  private static MessageDigest buildMd5MessageDigest() {
-    try {
-      return MessageDigest.getInstance("MD5");
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Error computing md5 hash", e);
-    }
+  @SuppressWarnings("AnonymousHasLambdaAlternative")
+  private static ThreadLocal<MessageDigest> buildMd5MessageDigest() {
+    return new ThreadLocal<MessageDigest>() {
+      @Override protected MessageDigest initialValue() {
+        try {
+          return MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+          throw new RuntimeException("Error initializing MD5 hash", e);
+        }
+      }
+    };
   }
 
   public static void throwIfEmptyOrNull(String input, String errorMessage) {
@@ -37,8 +42,8 @@ public final class Utils {
    */
   public static String getMD5Hex(String input) {
     // md5 the input
-    md.reset();
-    byte[] md5Bytes = md.digest(input.getBytes());
+    md.get().reset();
+    byte[] md5Bytes = md.get().digest(input.getBytes());
     // Pre-allocate a StringBuilder with a capacity of 32 characters
     StringBuilder hexString = new StringBuilder(32);
 
@@ -58,8 +63,8 @@ public final class Utils {
    */
   public static int getShard(String input, int maxShardValue) {
     // md5 the input
-    md.reset();
-    byte[] md5Bytes = md.digest(input.getBytes());
+    md.get().reset();
+    byte[] md5Bytes = md.get().digest(input.getBytes());
 
     // Extract the first 4 bytes (8 digits) and convert to a long
     long value = 0;
