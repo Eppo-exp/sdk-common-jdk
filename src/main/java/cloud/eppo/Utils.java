@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Utils {
-  private static final SimpleDateFormat UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
+  private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
 
@@ -27,6 +27,21 @@ public final class Utils {
         } catch (NoSuchAlgorithmException e) {
           throw new RuntimeException("Error initializing MD5 hash", e);
         }
+      }
+    };
+  }
+
+  @SuppressWarnings("AnonymousHasLambdaAlternative")
+  private static ThreadLocal<SimpleDateFormat> buildUtcIsoDateFormat() {
+    return new ThreadLocal<SimpleDateFormat>() {
+      @Override
+      protected SimpleDateFormat initialValue() {
+        // Note: we don't use DateTimeFormatter.ISO_DATE so that this supports older Android
+        // versions
+        SimpleDateFormat dateFormat =
+            new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        return dateFormat;
       }
     };
   }
@@ -84,7 +99,7 @@ public final class Utils {
     String isoDateString = isoDateStringElement.asText();
     Date result = null;
     try {
-      result = UTC_ISO_DATE_FORMAT.parse(isoDateString);
+      result = UTC_ISO_DATE_FORMAT.get().parse(isoDateString);
     } catch (ParseException e) {
       // We expect to fail parsing if the date is base 64 encoded
       // Thus we'll leave the result null for now and try again with the decoded value
@@ -94,7 +109,7 @@ public final class Utils {
       // Date may be encoded
       String decodedIsoDateString = base64Decode(isoDateString);
       try {
-        result = UTC_ISO_DATE_FORMAT.parse(decodedIsoDateString);
+        result = UTC_ISO_DATE_FORMAT.get().parse(decodedIsoDateString);
       } catch (ParseException e) {
         log.warn("Date \"{}\" not in ISO date format", isoDateString);
       }
@@ -104,7 +119,7 @@ public final class Utils {
   }
 
   public static String getISODate(Date date) {
-    return UTC_ISO_DATE_FORMAT.format(date);
+    return UTC_ISO_DATE_FORMAT.get().format(date);
   }
 
   public static String base64Encode(String input) {
@@ -124,12 +139,5 @@ public final class Utils {
           "zero byte output from Base64; if not running on Android hardware be sure to use RobolectricTestRunner");
     }
     return new String(decodedBytes);
-  }
-
-  private static SimpleDateFormat buildUtcIsoDateFormat() {
-    // Note: we don't use DateTimeFormatter.ISO_DATE so that this supports older Android versions
-    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-    dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-    return dateFormat;
   }
 }
