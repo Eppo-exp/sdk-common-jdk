@@ -48,7 +48,9 @@ Snapshots are published automatically after each push to `main` branch.
 
 ```groovy
 repositories {
-  maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots" }
+  maven {
+    url "https://central.sonatype.com/repository/maven-snapshots/"
+  }
 }
 
 dependencies {
