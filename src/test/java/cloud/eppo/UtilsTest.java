@@ -7,10 +7,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Date;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
@@ -89,5 +91,91 @@ public class UtilsTest {
     parsedDate = parseUtcISODateNode(jsonNode);
     assertNull(parsedDate);
     assertNull(parseUtcISODateNode(null));
+  }
+
+  @Test
+  public void testDateParsingThreadSafety() throws InterruptedException {
+    final AtomicBoolean collisionDetected = new AtomicBoolean(false);
+    final AtomicInteger unexpectedExceptions = new AtomicInteger(0);
+    final AtomicInteger incorrectParseResults = new AtomicInteger(0);
+
+    int numThreads = 20; // Spawn 20 threads
+    int iterationsPerThread = 100; // Each thread will parse 100 dates
+    ExecutorService pool = Executors.newFixedThreadPool(numThreads);
+
+    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch finishLatch = new CountDownLatch(numThreads);
+
+    // Expected date: 2024-05-01T16:13:26.651Z -> 1714580006651L
+    final String testDateString = "\"2024-05-01T16:13:26.651Z\"";
+    final long expectedTimestamp = 1714580006651L;
+
+    try {
+      for (int i = 0; i < numThreads; i++) {
+        pool.execute(
+            () -> {
+              try {
+                // Wait for all threads to start simultaneously
+                startLatch.await();
+
+                ObjectMapper mapper = new ObjectMapper();
+
+                for (int j = 0; j < iterationsPerThread; j++) {
+                  try {
+                    JsonNode jsonNode = mapper.readTree(testDateString);
+                    Date parsedDate = parseUtcISODateNode(jsonNode);
+
+                    if (parsedDate == null || parsedDate.getTime() != expectedTimestamp) {
+                      incorrectParseResults.incrementAndGet();
+                      collisionDetected.set(true);
+                    }
+
+                    // Also test the reverse operation
+                    Date originalDate = new Date(expectedTimestamp);
+                    String formattedDate = getISODate(originalDate);
+                    if (!formattedDate.equals("2024-05-01T16:13:26.651Z")) {
+                      incorrectParseResults.incrementAndGet();
+                      collisionDetected.set(true);
+                    }
+
+                  } catch (Exception e) {
+                    unexpectedExceptions.incrementAndGet();
+                  }
+                }
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              } finally {
+                finishLatch.countDown();
+              }
+            });
+      }
+
+      // Start all threads simultaneously to maximize contention
+      startLatch.countDown();
+
+      // Wait for all threads to complete
+      assertTrue(
+          finishLatch.await(30, TimeUnit.SECONDS), "Test threads did not complete within timeout");
+
+    } finally {
+      pool.shutdown();
+      assertTrue(
+          pool.awaitTermination(5, TimeUnit.SECONDS),
+          "Thread pool did not shutdown within timeout");
+    }
+
+    // Print diagnostic information
+    System.out.println("Unexpected exceptions: " + unexpectedExceptions.get());
+    System.out.println("Incorrect parse results: " + incorrectParseResults.get());
+    System.out.println("Total operations: " + (numThreads * iterationsPerThread * 2));
+
+    String failureMessage =
+        "SimpleDateFormat thread-safety issue detected! "
+            + "Exceptions: "
+            + unexpectedExceptions.get()
+            + ", Incorrect results: "
+            + incorrectParseResults.get();
+    assertFalse(collisionDetected.get(), failureMessage);
+    assertEquals(0, unexpectedExceptions.get(), failureMessage);
   }
 }
