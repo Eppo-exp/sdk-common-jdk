@@ -2,6 +2,7 @@ package cloud.eppo.ufc.dto;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class Allocation {
@@ -25,6 +26,35 @@ public class Allocation {
     this.endAt = endAt;
     this.splits = splits;
     this.doLog = doLog;
+  }
+
+  @Override
+  public String toString() {
+    return "Allocation{" +
+      "key='" + key + '\'' +
+      ", rules=" + rules +
+      ", startAt=" + startAt +
+      ", endAt=" + endAt +
+      ", splits=" + splits +
+      ", doLog=" + doLog +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    Allocation that = (Allocation) o;
+    return doLog == that.doLog
+            && Objects.equals(key, that.key)
+            && Objects.equals(rules, that.rules)
+            && Objects.equals(startAt, that.startAt)
+            && Objects.equals(endAt, that.endAt)
+            && Objects.equals(splits, that.splits);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(key, rules, startAt, endAt, splits, doLog);
   }
 
   public String getKey() {

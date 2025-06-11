@@ -2,6 +2,7 @@ package cloud.eppo.ufc.dto;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class FlagConfig {
   private final String key;
@@ -24,6 +25,35 @@ public class FlagConfig {
     this.variationType = variationType;
     this.variations = variations;
     this.allocations = allocations;
+  }
+
+  @Override
+  public String toString() {
+    return "FlagConfig{" +
+      "key='" + key + '\'' +
+      ", enabled=" + enabled +
+      ", totalShards=" + totalShards +
+      ", variationType=" + variationType +
+      ", variations=" + variations +
+      ", allocations=" + allocations +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    FlagConfig that = (FlagConfig) o;
+    return enabled == that.enabled
+            && totalShards == that.totalShards
+            && Objects.equals(key, that.key)
+            && variationType == that.variationType
+            && Objects.equals(variations, that.variations)
+            && Objects.equals(allocations, that.allocations);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(key, enabled, totalShards, variationType, variations, allocations);
   }
 
   public String getKey() {

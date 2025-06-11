@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class BanditModelData {
   private final Double gamma;
@@ -17,6 +18,31 @@ public class BanditModelData {
     this.defaultActionScore = defaultActionScore;
     this.actionProbabilityFloor = actionProbabilityFloor;
     this.coefficients = coefficients;
+  }
+
+  @Override
+  public String toString() {
+    return "BanditModelData{" +
+      "gamma=" + gamma +
+      ", defaultActionScore=" + defaultActionScore +
+      ", actionProbabilityFloor=" + actionProbabilityFloor +
+      ", coefficients=" + coefficients +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    BanditModelData that = (BanditModelData) o;
+    return Objects.equals(gamma, that.gamma)
+            && Objects.equals(defaultActionScore, that.defaultActionScore)
+            && Objects.equals(actionProbabilityFloor, that.actionProbabilityFloor)
+            && Objects.equals(coefficients, that.coefficients);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(gamma, defaultActionScore, actionProbabilityFloor, coefficients);
   }
 
   public Double getGamma() {
