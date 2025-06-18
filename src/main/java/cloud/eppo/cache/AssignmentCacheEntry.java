@@ -32,7 +32,7 @@ public class AssignmentCacheEntry {
     if (o == null || getClass() != o.getClass()) return false;
     AssignmentCacheEntry that = (AssignmentCacheEntry) o;
     return Objects.equals(key, that.key)
-      && Objects.equals(value, that.value);
+      && Objects.equals(value.getValueIdentifier(), that.value.getValueIdentifier());
   }
 
   @Override
