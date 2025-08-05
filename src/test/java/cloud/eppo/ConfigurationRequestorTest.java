@@ -32,7 +32,7 @@ public class ConfigurationRequestorTest {
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
 
     CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
     byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
@@ -44,7 +44,7 @@ public class ConfigurationRequestorTest {
     assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
-    futureConfig.complete(Configuration.builder(flagConfig).build());
+    futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
     assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
@@ -58,7 +58,7 @@ public class ConfigurationRequestorTest {
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
 
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
@@ -83,7 +83,7 @@ public class ConfigurationRequestorTest {
 
     // Resolve the fetch and then the initialConfig
     configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
-    initialConfigFuture.complete(Configuration.builder(flagConfig).build());
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
     assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
@@ -102,7 +102,7 @@ public class ConfigurationRequestorTest {
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
 
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
@@ -120,7 +120,7 @@ public class ConfigurationRequestorTest {
     requestor.fetchAndSaveFromRemoteAsync();
 
     // Resolve the initial config
-    initialConfigFuture.complete(Configuration.builder(flagConfig).build());
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
     // Error out the fetch
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
@@ -141,7 +141,7 @@ public class ConfigurationRequestorTest {
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
 
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
@@ -162,7 +162,7 @@ public class ConfigurationRequestorTest {
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
     // Resolve the initial config after the fetch throws an error.
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig).build());
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
 
     // Verify that a configuration was saved by the requestor
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());
@@ -183,7 +183,7 @@ public class ConfigurationRequestorTest {
   public void setup() {
     mockConfigStore = mock(ConfigurationStore.class);
     mockHttpClient = mock(EppoHttpClient.class);
-    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, true);
+    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, false, true);
   }
 
   @Test

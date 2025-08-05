@@ -19,11 +19,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,11 +75,13 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
+            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
+            isConfigObfuscated,
             true,
             initialFlagConfiguration,
             null,
@@ -90,11 +96,13 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
+            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
+            isConfigObfuscated,
             true,
             null,
             null,
@@ -113,11 +121,13 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
+            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             isGracefulMode,
+            isConfigObfuscated,
             true,
             null,
             null,
@@ -134,11 +144,13 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
+            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
             true,
+            false,
             true,
             null,
             cache,
@@ -172,6 +184,49 @@ public class BaseEppoClientTest {
 
   private static Stream<Arguments> getAssignmentTestData() {
     return AssignmentTestCase.getAssignmentTestData();
+  }
+
+  @Test
+  public void testBaseUrlBackwardsCompatibility() throws IOException, InterruptedException {
+    // Base client must be buildable with a HOST (i.e. no `/api` postfix)
+    mockAssignmentLogger = mock(AssignmentLogger.class);
+
+    MockWebServer mockWebServer = new MockWebServer();
+    URL mockServerBaseUrl = mockWebServer.url("").url(); // get base url of mockwebserver
+
+    // Remove trailing slash to mimic typical "host" parameter of "https://fscdn.eppo.cloud"
+    String testHost = mockServerBaseUrl.toString().replaceAll("/$", "");
+
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    eppoClient =
+        new BaseEppoClient(
+            DUMMY_FLAG_API_KEY,
+            "java",
+            "100.1.0",
+            testHost,
+            null,
+            mockAssignmentLogger,
+            null,
+            null,
+            false,
+            false,
+            true,
+            null,
+            null,
+            null);
+
+    eppoClient.loadConfiguration();
+
+    // Test what path the call was sent to
+    RecordedRequest request = mockWebServer.takeRequest();
+    assertNotNull(request);
+    assertEquals("GET", request.getMethod());
+
+    // The "/api" part comes from appending it on to a "host" parameter but not a base URL param.
+    assertEquals(
+        "/api/flag-config/v1/config?apiKey=dummy-flags-api-key&sdkName=java&sdkVersion=100.1.0",
+        request.getPath());
   }
 
   @Test
@@ -291,7 +346,8 @@ public class BaseEppoClientTest {
 
   private CompletableFuture<Configuration> immediateConfigFuture(
       String config, boolean isObfuscated) {
-    return CompletableFuture.completedFuture(Configuration.builder(config.getBytes()).build());
+    return CompletableFuture.completedFuture(
+        Configuration.builder(config.getBytes(), isObfuscated).build());
   }
 
   @Test
@@ -396,7 +452,7 @@ public class BaseEppoClientTest {
     assertEquals(0, result);
 
     // Now, complete the initial config future and check the value.
-    futureConfig.complete(Configuration.builder(flagConfig).build());
+    futureConfig.complete(Configuration.builder(flagConfig, false).build());
 
     result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
     assertEquals(5, result);
@@ -553,10 +609,12 @@ public class BaseEppoClientTest {
                 DUMMY_FLAG_API_KEY,
                 "java",
                 "100.1.0",
+                null,
                 TEST_BASE_URL,
                 mockAssignmentLogger,
                 null,
                 null,
+                false,
                 false,
                 true,
                 null,
@@ -666,10 +724,12 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
+            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
             null,
+            false,
             false,
             true,
             null,

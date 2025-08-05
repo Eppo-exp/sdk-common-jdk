@@ -4,7 +4,9 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,6 +80,21 @@ public class Configuration {
     this.banditReferences = banditReferences;
     this.bandits = bandits;
     this.isConfigObfuscated = isConfigObfuscated;
+
+    // Graft the `forServer` boolean into the flagConfigJson'
+    if (flagConfigJson != null && flagConfigJson.length != 0) {
+      try {
+        JsonNode jNode = mapper.readTree(flagConfigJson);
+        FlagConfigResponse.Format format =
+            isConfigObfuscated
+                ? FlagConfigResponse.Format.CLIENT
+                : FlagConfigResponse.Format.SERVER;
+        ((ObjectNode) jNode).put("format", format.toString());
+        flagConfigJson = mapper.writeValueAsBytes(jNode);
+      } catch (IOException e) {
+        log.error("Error adding `format` field to FlagConfigResponse JSON");
+      }
+    }
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }
@@ -94,20 +111,14 @@ public class Configuration {
 
   @Override
   public String toString() {
-    return "Configuration{"
-        + "banditReferences="
-        + banditReferences
-        + ", flags="
-        + flags
-        + ", bandits="
-        + bandits
-        + ", isConfigObfuscated="
-        + isConfigObfuscated
-        + ", flagConfigJson="
-        + Arrays.toString(flagConfigJson)
-        + ", banditParamsJson="
-        + Arrays.toString(banditParamsJson)
-        + '}';
+    return "Configuration{" +
+      "banditReferences=" + banditReferences +
+      ", flags=" + flags +
+      ", bandits=" + bandits +
+      ", isConfigObfuscated=" + isConfigObfuscated +
+      ", flagConfigJson=" + Arrays.toString(flagConfigJson) +
+      ", banditParamsJson=" + Arrays.toString(banditParamsJson) +
+      '}';
   }
 
   @Override
@@ -115,22 +126,16 @@ public class Configuration {
     if (o == null || getClass() != o.getClass()) return false;
     Configuration that = (Configuration) o;
     return isConfigObfuscated == that.isConfigObfuscated
-        && Objects.equals(banditReferences, that.banditReferences)
-        && Objects.equals(flags, that.flags)
-        && Objects.equals(bandits, that.bandits)
-        && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
-        && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+            && Objects.equals(banditReferences, that.banditReferences)
+            && Objects.equals(flags, that.flags)
+            && Objects.equals(bandits, that.bandits)
+            && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
+            && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        banditReferences,
-        flags,
-        bandits,
-        isConfigObfuscated,
-        Arrays.hashCode(flagConfigJson),
-        Arrays.hashCode(banditParamsJson));
+    return Objects.hash(banditReferences, flags, bandits, isConfigObfuscated, Arrays.hashCode(flagConfigJson), Arrays.hashCode(banditParamsJson));
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -204,10 +209,10 @@ public class Configuration {
     return new Builder(flagJson);
   }
 
-  public static Builder builder(String flagJson) {
-    return new Builder(flagJson.getBytes());
+  @Deprecated // isConfigObfuscated is determined from the byte payload
+  public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
+    return new Builder(flagJson, isConfigObfuscated);
   }
-
   /**
    * Builder to create the immutable config object.
    *
@@ -235,8 +240,14 @@ public class Configuration {
       }
     }
 
-    public Builder(String flagJson) {
-      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()));
+    @Deprecated // isConfigObfuscated is determined from the byte payload
+    public Builder(String flagJson, boolean isConfigObfuscated) {
+      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
+    }
+
+    @Deprecated // isConfigObfuscated is determined from the byte payload
+    public Builder(byte[] flagJson, boolean isConfigObfuscated) {
+      this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
