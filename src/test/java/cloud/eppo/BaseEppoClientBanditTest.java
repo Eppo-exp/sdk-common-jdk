@@ -68,12 +68,10 @@ public class BaseEppoClientBanditTest {
             DUMMY_BANDIT_API_KEY,
             "java",
             "3.0.0",
-            null,
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
             null,
-            false,
             false,
             true,
             null,
@@ -91,7 +89,7 @@ public class BaseEppoClientBanditTest {
 
     CompletableFuture<Configuration> initialConfig =
         CompletableFuture.completedFuture(
-            Configuration.builder(initialFlagConfiguration.getBytes(), false)
+            Configuration.builder(initialFlagConfiguration)
                 .banditParameters(initialBanditParameters)
                 .build());
 
@@ -99,12 +97,10 @@ public class BaseEppoClientBanditTest {
         DUMMY_BANDIT_API_KEY,
         "java",
         "3.0.0",
-        null,
         TEST_HOST,
         mockAssignmentLogger,
         mockBanditLogger,
         null,
-        false,
         false,
         true,
         initialConfig,
