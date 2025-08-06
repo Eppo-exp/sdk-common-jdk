@@ -89,7 +89,9 @@ public class FlagEvaluator {
 
     if (isConfigObfuscated) {
       // Need to unobfuscate for the returned evaluation result
-      allocationKey = base64Decode(allocationKey);
+      if (allocationKey != null) {
+        allocationKey = base64Decode(allocationKey);
+      }
       if (variation != null) {
         String key = base64Decode(variation.getKey());
         EppoValue decodedValue = EppoValue.nullValue();
@@ -114,6 +116,22 @@ public class FlagEvaluator {
           }
         }
         variation = new Variation(key, decodedValue);
+      }
+
+      // Deobfuscate extraLogging if present
+      if (extraLogging != null && !extraLogging.isEmpty()) {
+        Map<String, String> deobfuscatedExtraLogging = new HashMap<>();
+        for (Map.Entry<String, String> entry : extraLogging.entrySet()) {
+          try {
+            String deobfuscatedKey = base64Decode(entry.getKey());
+            String deobfuscatedValue = base64Decode(entry.getValue());
+            deobfuscatedExtraLogging.put(deobfuscatedKey, deobfuscatedValue);
+          } catch (Exception e) {
+            // If deobfuscation fails, keep the original key-value pair
+            deobfuscatedExtraLogging.put(entry.getKey(), entry.getValue());
+          }
+        }
+        extraLogging = deobfuscatedExtraLogging;
       }
     }
 

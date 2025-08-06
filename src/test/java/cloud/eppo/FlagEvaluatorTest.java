@@ -356,6 +356,94 @@ public class FlagEvaluatorTest {
     assertEquals("A", result.getVariation().getValue().stringValue());
   }
 
+  @Test
+  public void testObfuscatedExtraLogging() {
+    // Test that extraLogging is properly deobfuscated when isConfigObfuscated is true
+
+    Map<String, Variation> variations = createVariations("a");
+
+    // Create extraLogging with obfuscated keys and values
+    Map<String, String> obfuscatedExtraLogging = new HashMap<>();
+    obfuscatedExtraLogging.put(base64Encode("testKey"), base64Encode("testValue"));
+    obfuscatedExtraLogging.put(base64Encode("anotherKey"), base64Encode("anotherValue"));
+
+    List<Split> splits = new ArrayList<>();
+    splits.add(new Split("a", null, obfuscatedExtraLogging));
+
+    List<Allocation> allocations = createAllocations("test", splits);
+
+    // Create the base flag
+    FlagConfig flag = createFlag(getMD5Hex("flag"), true, variations, allocations);
+
+    // Encode the variations (following the same pattern as the main obfuscated test)
+    Map<String, Variation> encodedVariations = new HashMap<>();
+    for (Map.Entry<String, Variation> variationEntry : variations.entrySet()) {
+      String encodedVariationKey = base64Encode(variationEntry.getKey());
+      Variation variationToEncode = variationEntry.getValue();
+      Variation newVariation =
+          new Variation(
+              encodedVariationKey,
+              EppoValue.valueOf(base64Encode(variationToEncode.getValue().stringValue())));
+      encodedVariations.put(encodedVariationKey, newVariation);
+    }
+
+    // Encode the allocations
+    List<Allocation> encodedAllocations =
+        allocations.stream()
+            .map(
+                allocationToEncode -> {
+                  allocationToEncode.setKey(base64Encode(allocationToEncode.getKey()));
+                  List<Split> encodedSplits =
+                      allocationToEncode.getSplits().stream()
+                          .map(
+                              splitToEncode ->
+                                  new Split(
+                                      base64Encode(splitToEncode.getVariationKey()),
+                                      splitToEncode.getShards(),
+                                      splitToEncode.getExtraLogging()))
+                          .collect(Collectors.toList());
+                  return new Allocation(
+                      allocationToEncode.getKey(),
+                      allocationToEncode.getRules(),
+                      allocationToEncode.getStartAt(),
+                      allocationToEncode.getEndAt(),
+                      encodedSplits,
+                      allocationToEncode.doLog());
+                })
+            .collect(Collectors.toList());
+
+    // Create the obfuscated flag
+    FlagConfig obfuscatedFlag =
+        new FlagConfig(
+            flag.getKey(),
+            flag.isEnabled(),
+            flag.getTotalShards(),
+            flag.getVariationType(),
+            encodedVariations,
+            encodedAllocations);
+
+    // Test with obfuscated config
+    FlagEvaluationResult result =
+        FlagEvaluator.evaluateFlag(obfuscatedFlag, "flag", "subject", new Attributes(), true);
+
+    // Verify that extraLogging is deobfuscated
+    Map<String, String> extraLogging = result.getExtraLogging();
+    assertNotNull(extraLogging);
+    assertEquals("testValue", extraLogging.get("testKey"));
+    assertEquals("anotherValue", extraLogging.get("anotherKey"));
+    assertEquals(2, extraLogging.size());
+
+    // Test with non-obfuscated config to ensure no deobfuscation happens
+    result = FlagEvaluator.evaluateFlag(obfuscatedFlag, "flag", "subject", new Attributes(), false);
+
+    // Verify that extraLogging remains obfuscated
+    extraLogging = result.getExtraLogging();
+    assertNotNull(extraLogging);
+    assertEquals(base64Encode("testValue"), extraLogging.get(base64Encode("testKey")));
+    assertEquals(base64Encode("anotherValue"), extraLogging.get(base64Encode("anotherKey")));
+    assertEquals(2, extraLogging.size());
+  }
+
   private Map<String, Variation> createVariations(String key) {
     return createVariations(key, null, null);
   }
