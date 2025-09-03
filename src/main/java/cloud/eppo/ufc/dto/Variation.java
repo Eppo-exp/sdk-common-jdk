@@ -1,19 +1,27 @@
 package cloud.eppo.ufc.dto;
 
+import static cloud.eppo.Utils.throwIfNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Objects;
 
 import cloud.eppo.api.EppoValue;
 
 public class Variation {
-  private final String key;
-  private final EppoValue value;
+  @NotNull private final String key;
+  @NotNull private final EppoValue value;
 
-  public Variation(String key, EppoValue value) {
+  public Variation(@NotNull String key, @NotNull EppoValue value) {
+    throwIfNull(key, "key must not be null");
+    throwIfNull(value, "value must not be null");
+
     this.key = key;
     this.value = value;
   }
 
-  @Override
+  @Override @NotNull
   public String toString() {
     return "Variation{" +
       "key='" + key + '\'' +
@@ -22,7 +30,7 @@ public class Variation {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     Variation variation = (Variation) o;
     return Objects.equals(key, variation.key)
@@ -34,10 +42,12 @@ public class Variation {
     return Objects.hash(key, value);
   }
 
+  @NotNull
   public String getKey() {
     return this.key;
   }
 
+  @NotNull
   public EppoValue getValue() {
     return value;
   }

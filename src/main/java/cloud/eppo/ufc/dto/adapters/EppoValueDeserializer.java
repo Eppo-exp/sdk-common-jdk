@@ -8,13 +8,16 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EppoValueDeserializer extends StdDeserializer<EppoValue> {
-  private static final Logger log = LoggerFactory.getLogger(EppoValueDeserializer.class);
+  @NotNull private static final Logger log = LoggerFactory.getLogger(EppoValueDeserializer.class);
 
-  protected EppoValueDeserializer(Class<?> vc) {
+  protected EppoValueDeserializer(@Nullable Class<?> vc) {
     super(vc);
   }
 
@@ -27,13 +30,14 @@ public class EppoValueDeserializer extends StdDeserializer<EppoValue> {
     return deserializeNode(jp.getCodec().readTree(jp));
   }
 
-  public EppoValue deserializeNode(JsonNode node) {
-    EppoValue result;
+  @NotNull
+  public EppoValue deserializeNode(@Nullable JsonNode node) {
+    @NotNull final EppoValue result;
     if (node == null || node.isNull()) {
       result = EppoValue.nullValue();
     } else if (node.isArray()) {
-      List<String> stringArray = new ArrayList<>();
-      for (JsonNode arrayElement : node) {
+      @NotNull final List<String> stringArray = new ArrayList<>();
+      for (@NotNull final JsonNode arrayElement : node) {
         if (arrayElement.isValueNode() && arrayElement.isTextual()) {
           stringArray.add(arrayElement.asText());
         } else {

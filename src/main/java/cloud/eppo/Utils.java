@@ -9,18 +9,21 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Locale;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Utils {
-  private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
-  private static final Logger log = LoggerFactory.getLogger(Utils.class);
-  private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
+  @NotNull private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
+  @NotNull private static final Logger log = LoggerFactory.getLogger(Utils.class);
+  @NotNull private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
 
-  @SuppressWarnings("AnonymousHasLambdaAlternative")
+  @NotNull @SuppressWarnings("AnonymousHasLambdaAlternative")
   private static ThreadLocal<MessageDigest> buildMd5MessageDigest() {
     return new ThreadLocal<MessageDigest>() {
-      @Override
+      @Override @NotNull
       protected MessageDigest initialValue() {
         try {
           return MessageDigest.getInstance("MD5");
@@ -31,14 +34,14 @@ public final class Utils {
     };
   }
 
-  @SuppressWarnings("AnonymousHasLambdaAlternative")
+  @NotNull @SuppressWarnings("AnonymousHasLambdaAlternative")
   private static ThreadLocal<SimpleDateFormat> buildUtcIsoDateFormat() {
     return new ThreadLocal<SimpleDateFormat>() {
-      @Override
+      @Override @NotNull
       protected SimpleDateFormat initialValue() {
         // Note: we don't use DateTimeFormatter.ISO_DATE so that this supports older Android
         // versions
-        SimpleDateFormat dateFormat =
+        @NotNull final SimpleDateFormat dateFormat =
             new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
         dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
         return dateFormat;
@@ -46,10 +49,22 @@ public final class Utils {
     };
   }
 
-  public static void throwIfEmptyOrNull(String input, String errorMessage) {
+  @NotNull
+  public static String throwIfEmptyOrNull(@Nullable String input, @NotNull String errorMessage) {
     if (input == null || input.isEmpty()) {
       throw new IllegalArgumentException(errorMessage);
     }
+
+    return input;
+  }
+
+  @NotNull
+  public static <R> R throwIfNull(@Nullable R input, @NotNull String errorMessage) {
+    if (input == null) {
+      throw new IllegalArgumentException(errorMessage);
+    }
+
+    return input;
   }
 
   /**
@@ -77,10 +92,10 @@ public final class Utils {
    * (inclusive) and a max value (exclusive) This is useful for randomly bucketing subjects or
    * shuffling bandit actions
    */
-  public static int getShard(String input, int maxShardValue) {
+  public static int getShard(@NotNull String input, int maxShardValue) {
     // md5 the input
     md.get().reset();
-    byte[] md5Bytes = md.get().digest(input.getBytes());
+    @NotNull final byte[] md5Bytes = md.get().digest(input.getBytes());
 
     // Extract the first 4 bytes (8 digits) and convert to a long
     long value = 0;
@@ -92,12 +107,13 @@ public final class Utils {
     return (int) (value % maxShardValue);
   }
 
-  public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
+  @Nullable
+  public static Date parseUtcISODateNode(@Nullable JsonNode isoDateStringElement) {
     if (isoDateStringElement == null || isoDateStringElement.isNull()) {
       return null;
     }
-    String isoDateString = isoDateStringElement.asText();
-    Date result = null;
+    @NotNull final String isoDateString = isoDateStringElement.asText();
+    @Nullable Date result = null;
     try {
       result = UTC_ISO_DATE_FORMAT.get().parse(isoDateString);
     } catch (ParseException e) {
@@ -107,7 +123,7 @@ public final class Utils {
 
     if (result == null) {
       // Date may be encoded
-      String decodedIsoDateString = base64Decode(isoDateString);
+      @NotNull final String decodedIsoDateString = notNullBase64Decode(isoDateString);
       try {
         result = UTC_ISO_DATE_FORMAT.get().parse(decodedIsoDateString);
       } catch (ParseException e) {
@@ -118,21 +134,34 @@ public final class Utils {
     return result;
   }
 
-  public static String getISODate(Date date) {
+  @NotNull
+  public static String getISODate(@NotNull Date date) {
     return UTC_ISO_DATE_FORMAT.get().format(date);
   }
 
-  public static String base64Encode(String input) {
+  @Nullable
+  public static String base64Encode(@Nullable String input) {
     if (input == null) {
       return null;
     }
+    return notNullBase64Encode(input);
+  }
+
+  @NotNull
+  public static String notNullBase64Encode(@NotNull String input) {
     return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
   }
 
-  public static String base64Decode(String input) {
+  @Nullable
+  public static String base64Decode(@Nullable String input) {
     if (input == null) {
       return null;
     }
+    return notNullBase64Decode(input);
+  }
+
+  @NotNull
+  public static String notNullBase64Decode(@NotNull String input) {
     byte[] decodedBytes = Base64.getDecoder().decode(input);
     if (decodedBytes.length == 0 && !input.isEmpty()) {
       throw new RuntimeException(
