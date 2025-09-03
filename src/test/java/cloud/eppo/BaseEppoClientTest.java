@@ -23,12 +23,18 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -555,6 +561,72 @@ public class BaseEppoClientTest {
 
     // Verify a new log call
     verify(mockAssignmentLogger, times(3)).logAssignment(any(Assignment.class));
+  }
+
+  @Test
+  public void testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads() {
+    initClientWithAssignmentCache(new LRUInMemoryAssignmentCache(1024));
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
+
+    int numThreads = 10;
+    final CountDownLatch threadStartCountDownLatch = new CountDownLatch(numThreads);
+    final CountDownLatch getAssignmentStartCountDownLatch = new CountDownLatch(1);
+    final List<Integer> assignments = Collections.synchronizedList(Arrays.asList(new Integer[numThreads]));
+    try (ExecutorService pool = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
+      private final AtomicInteger threadIndexAtomicInteger = new AtomicInteger(0);
+      @Override
+      public Thread newThread(@NotNull Runnable runnable) {
+        final int threadIndex = threadIndexAtomicInteger.getAndIncrement();
+        return new Thread(runnable, "testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads-" + threadIndex);
+      }
+    })) {
+      for (int i = 0; i < numThreads; i += 1) {
+        final int threadIndex = i;
+        pool.execute(
+          () -> {
+            threadStartCountDownLatch.countDown();
+            boolean shouldStart;
+            try {
+              shouldStart = getAssignmentStartCountDownLatch.await(1000, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+              shouldStart = false;
+            }
+            final Integer assignment;
+            if (shouldStart) {
+              assignment = eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+            } else {
+              assignment = null;
+            }
+
+            assignments.set(threadIndex, assignment);
+          }
+        );
+      }
+
+      boolean shouldStart;
+      try {
+        shouldStart = threadStartCountDownLatch.await(2, TimeUnit.SECONDS);
+      } catch (InterruptedException ignored) {
+        shouldStart = false;
+      }
+
+      assertTrue(shouldStart, "All worker threads did not start");
+      getAssignmentStartCountDownLatch.countDown();
+    }
+
+    final List<Integer> expectedAssignments;
+    {
+      final Integer[] expectedAssignmentsArray = new Integer[numThreads];
+      // `2` matches the attribute `number` value of "123456789"
+      Arrays.fill(expectedAssignmentsArray, 2);
+      expectedAssignments = Arrays.asList(expectedAssignmentsArray);
+    }
+    assertEquals(expectedAssignments, assignments);
+
+    // `logAssignment` should be called only once.
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
   }
 
   @Test

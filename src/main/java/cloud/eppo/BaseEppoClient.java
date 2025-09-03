@@ -267,17 +267,11 @@ public class BaseEppoClient {
         boolean logAssignment = true;
         AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
         if (assignmentCache != null) {
-          if (assignmentCache.hasEntry(cacheEntry)) {
-            logAssignment = false;
-          }
+          logAssignment = assignmentCache.putIfAbsent(cacheEntry);
         }
 
         if (logAssignment) {
           assignmentLogger.logAssignment(assignment);
-
-          if (assignmentCache != null) {
-            assignmentCache.put(cacheEntry);
-          }
         }
 
       } catch (Exception e) {
