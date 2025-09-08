@@ -574,14 +574,15 @@ public class BaseEppoClientTest {
     final CountDownLatch threadStartCountDownLatch = new CountDownLatch(numThreads);
     final CountDownLatch getAssignmentStartCountDownLatch = new CountDownLatch(1);
     final List<Integer> assignments = Collections.synchronizedList(Arrays.asList(new Integer[numThreads]));
-    try (ExecutorService pool = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
+    ExecutorService pool = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
       private final AtomicInteger threadIndexAtomicInteger = new AtomicInteger(0);
       @Override
       public Thread newThread(@NotNull Runnable runnable) {
         final int threadIndex = threadIndexAtomicInteger.getAndIncrement();
         return new Thread(runnable, "testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads-" + threadIndex);
       }
-    })) {
+    });
+    try {
       for (int i = 0; i < numThreads; i += 1) {
         final int threadIndex = i;
         pool.execute(
@@ -614,6 +615,16 @@ public class BaseEppoClientTest {
 
       assertTrue(shouldStart, "All worker threads did not start");
       getAssignmentStartCountDownLatch.countDown();
+    } finally {
+      pool.shutdown();
+      try {
+        if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
+          pool.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        pool.shutdownNow();
+        Thread.currentThread().interrupt();
+      }
     }
 
     final List<Integer> expectedAssignments;
