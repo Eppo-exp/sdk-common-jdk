@@ -573,37 +573,45 @@ public class BaseEppoClientTest {
     int numThreads = 10;
     final CountDownLatch threadStartCountDownLatch = new CountDownLatch(numThreads);
     final CountDownLatch getAssignmentStartCountDownLatch = new CountDownLatch(1);
-    final List<Integer> assignments = Collections.synchronizedList(Arrays.asList(new Integer[numThreads]));
-    ExecutorService pool = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
-      private final AtomicInteger threadIndexAtomicInteger = new AtomicInteger(0);
-      @Override
-      public Thread newThread(@NotNull Runnable runnable) {
-        final int threadIndex = threadIndexAtomicInteger.getAndIncrement();
-        return new Thread(runnable, "testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads-" + threadIndex);
-      }
-    });
+    final List<Integer> assignments =
+        Collections.synchronizedList(Arrays.asList(new Integer[numThreads]));
+    ExecutorService pool =
+        Executors.newFixedThreadPool(
+            numThreads,
+            new ThreadFactory() {
+              private final AtomicInteger threadIndexAtomicInteger = new AtomicInteger(0);
+
+              @Override
+              public Thread newThread(@NotNull Runnable runnable) {
+                final int threadIndex = threadIndexAtomicInteger.getAndIncrement();
+                return new Thread(
+                    runnable,
+                    "testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads-" + threadIndex);
+              }
+            });
     try {
       for (int i = 0; i < numThreads; i += 1) {
         final int threadIndex = i;
         pool.execute(
-          () -> {
-            threadStartCountDownLatch.countDown();
-            boolean shouldStart;
-            try {
-              shouldStart = getAssignmentStartCountDownLatch.await(1000, TimeUnit.SECONDS);
-            } catch (InterruptedException ignored) {
-              shouldStart = false;
-            }
-            final Integer assignment;
-            if (shouldStart) {
-              assignment = eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
-            } else {
-              assignment = null;
-            }
+            () -> {
+              threadStartCountDownLatch.countDown();
+              boolean shouldStart;
+              try {
+                shouldStart = getAssignmentStartCountDownLatch.await(1000, TimeUnit.SECONDS);
+              } catch (InterruptedException ignored) {
+                shouldStart = false;
+              }
+              final Integer assignment;
+              if (shouldStart) {
+                assignment =
+                    eppoClient.getIntegerAssignment(
+                        "numeric-one-of", "alice", subjectAttributes, 0);
+              } else {
+                assignment = null;
+              }
 
-            assignments.set(threadIndex, assignment);
-          }
-        );
+              assignments.set(threadIndex, assignment);
+            });
       }
 
       boolean shouldStart;
