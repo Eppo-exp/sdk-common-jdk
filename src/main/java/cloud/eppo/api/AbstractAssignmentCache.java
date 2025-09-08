@@ -46,7 +46,7 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
             boolean hadNoPreviousEntry;
             synchronized (delegate) {
               String entry = delegate.get(cacheKey);
-              hadNoPreviousEntry = entry == null;
+              hadNoPreviousEntry = entry == null || !entry.equals(serializedEntry);
               if (hadNoPreviousEntry) {
                 delegate.put(cacheKey, serializedEntry);
               }
