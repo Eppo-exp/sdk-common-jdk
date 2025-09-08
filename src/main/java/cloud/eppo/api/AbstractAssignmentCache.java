@@ -17,6 +17,8 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
     void put(String cacheKey, @NotNull String serializedEntry);
 
     @Nullable String get(String cacheKey);
+
+    boolean putIfAbsent(String cacheKey, @NotNull String serializedEntry);
   }
 
   protected final CacheDelegate delegate;
@@ -38,6 +40,19 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
           public String get(String cacheKey) {
             return delegate.get(cacheKey);
           }
+
+          @Override
+          public boolean putIfAbsent(String cacheKey, @NotNull String serializedEntry) {
+            boolean hadNoPreviousEntry;
+            synchronized (delegate) {
+              String entry = delegate.get(cacheKey);
+              hadNoPreviousEntry = entry == null;
+              if (hadNoPreviousEntry) {
+                delegate.put(cacheKey, serializedEntry);
+              }
+            }
+            return hadNoPreviousEntry;
+          }
         });
   }
 
@@ -54,5 +69,10 @@ public abstract class AbstractAssignmentCache implements IAssignmentCache {
   @Override
   public void put(AssignmentCacheEntry entry) {
     delegate.put(entry.getKeyString(), entry.getValueKeyString());
+  }
+
+  @Override
+  public boolean putIfAbsent(AssignmentCacheEntry entry) {
+    return delegate.putIfAbsent(entry.getKeyString(), entry.getValueKeyString());
   }
 }

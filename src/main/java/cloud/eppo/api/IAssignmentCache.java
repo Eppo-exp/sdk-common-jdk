@@ -7,6 +7,9 @@ import cloud.eppo.cache.AssignmentCacheEntry;
  * determine both presence and uniqueness of the cached value.
  */
 public interface IAssignmentCache {
+  /**
+   * Puts the entry into the cache, overwriting an existing entry.
+   */
   void put(AssignmentCacheEntry entry);
 
   /**
@@ -15,4 +18,10 @@ public interface IAssignmentCache {
    * comparing the `getValueKeyString()` method results.
    */
   boolean hasEntry(AssignmentCacheEntry entry);
+
+  /**
+   * Puts the entry into the cache if none exists.
+   * @return true if no previous cache entry exists, false otherwise
+   */
+  boolean putIfAbsent(AssignmentCacheEntry entry);
 }
