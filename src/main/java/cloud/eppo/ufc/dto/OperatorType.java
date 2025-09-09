@@ -1,6 +1,10 @@
 package cloud.eppo.ufc.dto;
 
 import static cloud.eppo.Utils.getMD5Hex;
+import static cloud.eppo.Utils.throwIfEmptyOrNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,36 +20,41 @@ public enum OperatorType {
   NOT_ONE_OF("NOT_ONE_OF"),
   IS_NULL("IS_NULL");
 
-  public final String value;
-  private static final Map<String, OperatorType> valuesToOperatorType =
+  @NotNull public final String value;
+  @NotNull private static final Map<String, OperatorType> valuesToOperatorType =
       buildValueToOperatorTypeMap();
-  private static final Map<String, OperatorType> hashesToOperatorType =
+  @NotNull private static final Map<String, OperatorType> hashesToOperatorType =
       buildHashToOperatorTypeMap();
 
+  @NotNull
   private static Map<String, OperatorType> buildValueToOperatorTypeMap() {
-    Map<String, OperatorType> result = new HashMap<>();
-    for (OperatorType type : OperatorType.values()) {
+    @NotNull final Map<String, OperatorType> result = new HashMap<>();
+    for (@NotNull final OperatorType type : OperatorType.values()) {
       result.put(type.value, type);
     }
     return result;
   }
 
+  @NotNull
   private static Map<String, OperatorType> buildHashToOperatorTypeMap() {
-    Map<String, OperatorType> result = new HashMap<>();
-    for (OperatorType type : OperatorType.values()) {
+    @NotNull final Map<String, OperatorType> result = new HashMap<>();
+    for (@NotNull final OperatorType type : OperatorType.values()) {
       result.put(getMD5Hex(type.value), type);
     }
     return result;
   }
 
-  OperatorType(String value) {
+  OperatorType(@NotNull String value) {
+    throwIfEmptyOrNull(value, "value must not be null");
+
     this.value = value;
   }
 
+  @Nullable
   public static OperatorType fromString(String value) {
     // First we try obfuscated lookup as in client situations we'll care more about ingestion
     // performance
-    OperatorType type = hashesToOperatorType.get(value);
+    @Nullable OperatorType type = hashesToOperatorType.get(value);
     // Then we'll try non-obfuscated lookup
     if (type == null) {
       type = valuesToOperatorType.get(value);
