@@ -1,6 +1,9 @@
 src/test/resources/shared
+
+### Gradle ###
 .gradle
 build/
+local.properties
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
