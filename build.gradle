@@ -121,6 +121,7 @@ jreleaser {
     active = 'ALWAYS'
     armored = true
     verify = false
+    mode = 'MEMORY'
   }
   deploy {
     maven {
