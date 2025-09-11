@@ -48,4 +48,4 @@ jobs:
         run: ./gradlew clean publish -Prelease --stacktrace
 
       - name: Deploy to Maven Central
-        run: ./gradlew jreleaserDeploy
+        run: ./gradlew jreleaserDeploy --debug --info --stacktrace
