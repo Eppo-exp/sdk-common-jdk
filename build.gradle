@@ -1,12 +1,12 @@
 plugins {
   id 'java-library'
   id 'maven-publish'
-  id 'org.jreleaser' version '1.20.0'
+  id 'org.jreleaser' version '1.18.0' // Stay at 1.18. Version 1.20.0 fails to publish.
   id "com.diffplug.spotless" version "6.13.0"
 }
 
 group = 'cloud.eppo'
-version = '3.13.0'
+version = '3.13.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 java {
@@ -121,6 +121,7 @@ jreleaser {
     active = 'ALWAYS'
     armored = true
     verify = false
+    mode = 'MEMORY'
   }
   deploy {
     maven {
