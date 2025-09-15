@@ -1,7 +1,7 @@
 plugins {
   id 'java-library'
   id 'maven-publish'
-  id 'org.jreleaser' version '1.18.0' // Stay at 1.18. Version 1.20.0 fails to publish.
+  id 'org.jreleaser' version '1.20.0' // Stay at 1.18. Version 1.20.0 fails to publish.
   id "com.diffplug.spotless" version "6.13.0"
 }
 
