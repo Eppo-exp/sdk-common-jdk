@@ -13,7 +13,7 @@ or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 
 ```groovy
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:3.13.0'
+  implementation 'cloud.eppo:sdk-common-jvm:3.13.1'
 }
 ```
 
@@ -54,6 +54,6 @@ repositories {
 }
 
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:3.13.0-SNAPSHOT'
+  implementation 'cloud.eppo:sdk-common-jvm:3.13.1-SNAPSHOT'
 }
 ```
