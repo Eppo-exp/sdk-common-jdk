@@ -1,123 +1,184 @@
 package cloud.eppo.api;
 
+import static cloud.eppo.Utils.throwIfNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import cloud.eppo.ufc.dto.EppoValueType;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
 public class EppoValue {
-  protected final EppoValueType type;
-  protected Boolean boolValue;
-  protected Double doubleValue;
-  protected String stringValue;
-  protected List<String> stringArrayValue;
+  @NotNull protected final EppoValueType type;
+  @Nullable protected final Boolean boolValue;
+  @Nullable protected final Double doubleValue;
+  @Nullable protected final String stringValue;
+  @Nullable protected final List<String> stringArrayValue;
 
   protected EppoValue() {
-    this.type = EppoValueType.NULL;
+    this(
+      EppoValueType.NULL,
+      null,
+      null,
+      null,
+      null
+    );
   }
 
   protected EppoValue(boolean boolValue) {
-    this.boolValue = boolValue;
-    this.type = EppoValueType.BOOLEAN;
+    this(
+      EppoValueType.BOOLEAN,
+      boolValue,
+      null,
+      null,
+      null
+    );
   }
 
   protected EppoValue(double doubleValue) {
+    this(
+      EppoValueType.NUMBER,
+      null,
+      doubleValue,
+      null,
+      null
+    );
+  }
+
+  protected EppoValue(@NotNull String stringValue) {
+    this(
+      EppoValueType.STRING,
+      null,
+      null,
+      throwIfNull(stringValue, "stringValue must not be null"),
+      null
+    );
+  }
+
+  protected EppoValue(@NotNull List<String> stringArrayValue) {
+    this(
+      EppoValueType.ARRAY_OF_STRING,
+      null,
+      null,
+      null,
+      throwIfNull(stringArrayValue, "stringArrayValue must not be null")
+    );
+  }
+
+  private EppoValue(
+      @NotNull EppoValueType type,
+      @Nullable Boolean boolValue,
+      @Nullable Double doubleValue,
+      @Nullable String stringValue,
+      @Nullable List<String> stringArrayValue) {
+    throwIfNull(type, "type must not be null");
+
+    this.type = type;
+    this.boolValue = boolValue;
     this.doubleValue = doubleValue;
-    this.type = EppoValueType.NUMBER;
-  }
-
-  protected EppoValue(String stringValue) {
     this.stringValue = stringValue;
-    this.type = EppoValueType.STRING;
-  }
-
-  protected EppoValue(List<String> stringArrayValue) {
     this.stringArrayValue = stringArrayValue;
-    this.type = EppoValueType.ARRAY_OF_STRING;
   }
 
+  @NotNull
   public static EppoValue nullValue() {
     return new EppoValue();
   }
 
+  @NotNull
   public static EppoValue valueOf(boolean boolValue) {
     return new EppoValue(boolValue);
   }
 
+  @NotNull
   public static EppoValue valueOf(double doubleValue) {
     return new EppoValue(doubleValue);
   }
 
-  public static EppoValue valueOf(String stringValue) {
+  @NotNull
+  public static EppoValue valueOf(@NotNull String stringValue) {
     return new EppoValue(stringValue);
   }
 
-  public static EppoValue valueOf(List<String> value) {
+  @NotNull
+  public static EppoValue valueOf(@NotNull List<String> value) {
     return new EppoValue(value);
   }
 
   public boolean booleanValue() {
-    return this.boolValue;
+    @Nullable final Boolean boolValue = this.boolValue;
+    if (boolValue == null) {
+      throw new NullPointerException("boolValue is null for type: " + type);
+    }
+    return boolValue;
+  }
+
+  public int intValue() {
+    @Nullable final Double doubleValue = this.doubleValue;
+    if (doubleValue == null) {
+      throw new NullPointerException("doubleValue is null for type: " + type);
+    }
+    return doubleValue.intValue();
   }
 
   public double doubleValue() {
-    return this.doubleValue;
+    @Nullable final Double doubleValue = this.doubleValue;
+    if (doubleValue == null) {
+      throw new NullPointerException("doubleValue is null for type: " + type);
+    }
+    return doubleValue;
   }
 
+  @NotNull
   public String stringValue() {
-    return this.stringValue;
+    @Nullable final String stringValue = this.stringValue;
+    if (stringValue == null) {
+      throw new NullPointerException("stringValue is null for type: " + type);
+    }
+    return stringValue;
   }
 
   public List<String> stringArrayValue() {
-    return this.stringArrayValue;
+    @Nullable final List<String> stringArrayValue = this.stringArrayValue;
+    if (stringArrayValue == null) {
+      throw new NullPointerException("stringArrayValue is null for type: " + type);
+    }
+    return stringArrayValue;
   }
 
   public boolean isNull() {
-    return type == EppoValueType.NULL;
+    return type.isNull();
   }
 
   public boolean isBoolean() {
-    return this.type == EppoValueType.BOOLEAN;
+    return this.type.isBoolean();
   }
 
   public boolean isNumeric() {
-    return this.type == EppoValueType.NUMBER;
+    return this.type.isNumeric();
   }
 
   public boolean isString() {
-    return this.type == EppoValueType.STRING;
+    return this.type.isString();
   }
 
   public boolean isStringArray() {
-    return type == EppoValueType.ARRAY_OF_STRING;
+    return type.isStringArray();
   }
 
+  @NotNull
   public EppoValueType getType() {
     return type;
   }
 
-  @Override
+  @Override @NotNull
   public String toString() {
-    switch (this.type) {
-      case BOOLEAN:
-        return this.boolValue.toString();
-      case NUMBER:
-        return this.doubleValue.toString();
-      case STRING:
-        return this.stringValue;
-      case ARRAY_OF_STRING:
-        // Android21 back-compatability
-        return joinStringArray(this.stringArrayValue);
-      case NULL:
-        return "";
-      default:
-        throw new UnsupportedOperationException(
-            "Cannot stringify Eppo Value type " + this.type.name());
-    }
+    return type.toString(boolValue, doubleValue, stringValue, stringArrayValue);
   }
 
   @Override
-  public boolean equals(Object otherObject) {
+  public boolean equals(@Nullable Object otherObject) {
     if (this == otherObject) {
       return true;
     }
@@ -135,22 +196,5 @@ public class EppoValue {
   @Override
   public int hashCode() {
     return Objects.hash(type, boolValue, doubleValue, stringValue, stringArrayValue);
-  }
-
-  /** This method is to allow for Android 21 support; String.join was introduced in API 26 */
-  private static String joinStringArray(List<String> stringArray) {
-    if (stringArray == null || stringArray.isEmpty()) {
-      return "";
-    }
-    String delimiter = ", ";
-    StringBuilder stringBuilder = new StringBuilder();
-    Iterator<String> iterator = stringArray.iterator();
-    while (iterator.hasNext()) {
-      stringBuilder.append(iterator.next());
-      if (iterator.hasNext()) {
-        stringBuilder.append(delimiter);
-      }
-    }
-    return stringBuilder.toString();
   }
 }

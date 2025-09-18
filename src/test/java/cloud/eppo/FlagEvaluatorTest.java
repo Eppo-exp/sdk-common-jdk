@@ -51,7 +51,7 @@ public class FlagEvaluatorTest {
   @Test
   public void testNoAllocations() {
     Map<String, Variation> variations = createVariations("a");
-    FlagConfig flag = createFlag("flag", true, variations, null);
+    FlagConfig flag = createFlag("flag", true, variations, Collections.emptyList());
     FlagEvaluationResult result =
         FlagEvaluator.evaluateFlag(flag, "flag", "subjectKey", new Attributes(), false);
 
@@ -272,6 +272,9 @@ public class FlagEvaluatorTest {
               EppoValue.valueOf(base64Encode(variationToEncode.getValue().stringValue())));
       encodedVariations.put(encodedVariationKey, newVariation);
     }
+    List<String> sortedEncodedVariationKeys = encodedVariations.keySet().stream()
+            .sorted()
+            .collect(Collectors.toList());
     // Encode the allocations
     List<Allocation> encodedAllocations =
         allocations.stream()
@@ -280,7 +283,7 @@ public class FlagEvaluatorTest {
                   allocationToEncode.setKey(base64Encode(allocationToEncode.getKey()));
                   TargetingCondition encodedCondition;
                   Set<TargetingRule> encodedRules = new HashSet<>();
-                  if (allocationToEncode.getRules() != null) {
+                  if (!allocationToEncode.getRules().isEmpty()) {
                     // assume just a single rule with a single string-valued condition
                     TargetingCondition conditionToEncode =
                         allocationToEncode
@@ -331,6 +334,7 @@ public class FlagEvaluatorTest {
             flag.getTotalShards(),
             flag.getVariationType(),
             encodedVariations,
+            sortedEncodedVariationKeys,
             encodedAllocations);
     FlagEvaluationResult result =
         FlagEvaluator.evaluateFlag(
@@ -368,7 +372,7 @@ public class FlagEvaluatorTest {
     obfuscatedExtraLogging.put(base64Encode("anotherKey"), base64Encode("anotherValue"));
 
     List<Split> splits = new ArrayList<>();
-    splits.add(new Split("a", null, obfuscatedExtraLogging));
+    splits.add(new Split("a", Collections.emptySet(), obfuscatedExtraLogging));
 
     List<Allocation> allocations = createAllocations("test", splits);
 
@@ -411,6 +415,9 @@ public class FlagEvaluatorTest {
                       allocationToEncode.doLog());
                 })
             .collect(Collectors.toList());
+    List<String> sortedEncodedVariationKeys = encodedVariations.keySet().stream()
+            .sorted()
+            .collect(Collectors.toList());
 
     // Create the obfuscated flag
     FlagConfig obfuscatedFlag =
@@ -420,6 +427,7 @@ public class FlagEvaluatorTest {
             flag.getTotalShards(),
             flag.getVariationType(),
             encodedVariations,
+            sortedEncodedVariationKeys,
             encodedAllocations);
 
     // Test with obfuscated config
@@ -479,7 +487,7 @@ public class FlagEvaluatorTest {
   }
 
   private List<Split> createSplits(String variationKey) {
-    return createSplits(variationKey, null);
+    return createSplits(variationKey, Collections.emptySet());
   }
 
   private List<Split> createSplits(String variationKey, Set<Shard> shards) {
@@ -494,7 +502,7 @@ public class FlagEvaluatorTest {
   }
 
   private List<Allocation> createAllocations(String allocationKey, List<Split> splits) {
-    return createAllocations(allocationKey, splits, null);
+    return createAllocations(allocationKey, splits, Collections.emptySet());
   }
 
   private List<Allocation> createAllocations(
@@ -508,6 +516,10 @@ public class FlagEvaluatorTest {
       boolean enabled,
       Map<String, Variation> variations,
       List<Allocation> allocations) {
-    return new FlagConfig(key, enabled, 10, VariationType.STRING, variations, allocations);
+
+    List<String> sortedVariationKeys = variations.keySet().stream()
+            .sorted()
+            .collect(Collectors.toList());
+    return new FlagConfig(key, enabled, 10, VariationType.STRING, variations, sortedVariationKeys, allocations);
   }
 }
