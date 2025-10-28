@@ -110,14 +110,20 @@ public class Configuration {
 
   @Override
   public String toString() {
-    return "Configuration{" +
-      "banditReferences=" + banditReferences +
-      ", flags=" + flags +
-      ", bandits=" + bandits +
-      ", isConfigObfuscated=" + isConfigObfuscated +
-      ", flagConfigJson=" + Arrays.toString(flagConfigJson) +
-      ", banditParamsJson=" + Arrays.toString(banditParamsJson) +
-      '}';
+    return "Configuration{"
+        + "banditReferences="
+        + banditReferences
+        + ", flags="
+        + flags
+        + ", bandits="
+        + bandits
+        + ", isConfigObfuscated="
+        + isConfigObfuscated
+        + ", flagConfigJson="
+        + Arrays.toString(flagConfigJson)
+        + ", banditParamsJson="
+        + Arrays.toString(banditParamsJson)
+        + '}';
   }
 
   @Override
@@ -125,16 +131,22 @@ public class Configuration {
     if (o == null || getClass() != o.getClass()) return false;
     Configuration that = (Configuration) o;
     return isConfigObfuscated == that.isConfigObfuscated
-            && Objects.equals(banditReferences, that.banditReferences)
-            && Objects.equals(flags, that.flags)
-            && Objects.equals(bandits, that.bandits)
-            && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
-            && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+        && Objects.equals(banditReferences, that.banditReferences)
+        && Objects.equals(flags, that.flags)
+        && Objects.equals(bandits, that.bandits)
+        && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
+        && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(banditReferences, flags, bandits, isConfigObfuscated, Arrays.hashCode(flagConfigJson), Arrays.hashCode(banditParamsJson));
+    return Objects.hash(
+        banditReferences,
+        flags,
+        bandits,
+        isConfigObfuscated,
+        Arrays.hashCode(flagConfigJson),
+        Arrays.hashCode(banditParamsJson));
   }
 
   public FlagConfig getFlag(String flagKey) {
