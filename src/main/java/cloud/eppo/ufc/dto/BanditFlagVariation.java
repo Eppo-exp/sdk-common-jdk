@@ -1,20 +1,31 @@
 package cloud.eppo.ufc.dto;
 
+import static cloud.eppo.Utils.throwIfNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Objects;
 
 public class BanditFlagVariation {
-  private final String banditKey;
-  private final String flagKey;
-  private final String allocationKey;
-  private final String variationKey;
-  private final String variationValue;
+  @NotNull private final String banditKey;
+  @NotNull private final String flagKey;
+  @NotNull private final String allocationKey;
+  @NotNull private final String variationKey;
+  @NotNull private final String variationValue;
 
   public BanditFlagVariation(
-      String banditKey,
-      String flagKey,
-      String allocationKey,
-      String variationKey,
-      String variationValue) {
+      @NotNull String banditKey,
+      @NotNull String flagKey,
+      @NotNull String allocationKey,
+      @NotNull String variationKey,
+      @NotNull String variationValue) {
+    throwIfNull(banditKey, "banditKey must not be null");
+    throwIfNull(flagKey, "flagKey must not be null");
+    throwIfNull(allocationKey, "allocationKey must not be null");
+    throwIfNull(variationKey, "variationKey must not be null");
+    throwIfNull(variationValue, "variationValue must not be null");
+
     this.banditKey = banditKey;
     this.flagKey = flagKey;
     this.allocationKey = allocationKey;
@@ -22,7 +33,7 @@ public class BanditFlagVariation {
     this.variationValue = variationValue;
   }
 
-  @Override
+  @Override @NotNull
   public String toString() {
     return "BanditFlagVariation{" +
       "banditKey='" + banditKey + '\'' +
@@ -34,7 +45,7 @@ public class BanditFlagVariation {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     BanditFlagVariation that = (BanditFlagVariation) o;
     return Objects.equals(banditKey, that.banditKey)
@@ -49,22 +60,27 @@ public class BanditFlagVariation {
     return Objects.hash(banditKey, flagKey, allocationKey, variationKey, variationValue);
   }
 
+  @NotNull
   public String getBanditKey() {
     return banditKey;
   }
 
+  @NotNull
   public String getFlagKey() {
     return flagKey;
   }
 
+  @NotNull
   public String getAllocationKey() {
     return allocationKey;
   }
 
+  @NotNull
   public String getVariationKey() {
     return variationKey;
   }
 
+  @NotNull
   public String getVariationValue() {
     return variationValue;
   }

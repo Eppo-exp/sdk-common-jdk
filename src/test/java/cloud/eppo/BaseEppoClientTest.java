@@ -1,5 +1,8 @@
 package cloud.eppo;
 
+import static cloud.eppo.ValuedFlagEvaluationResultType.BAD_VARIATION_TYPE;
+import static cloud.eppo.ValuedFlagEvaluationResultType.NO_FLAG_CONFIG;
+import static cloud.eppo.ValuedFlagEvaluationResultType.OK;
 import static cloud.eppo.helpers.AssignmentTestCase.parseTestCaseFile;
 import static cloud.eppo.helpers.AssignmentTestCase.runTestCase;
 import static cloud.eppo.helpers.TestUtils.mockHttpError;
@@ -340,6 +343,110 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testResultErrorGracefulModeOn() throws JsonProcessingException {
+    initClient(true, false);
+
+    BaseEppoClient realClient = eppoClient;
+    BaseEppoClient spyClient = spy(realClient);
+    doThrow(new RuntimeException("Exception thrown by mock"))
+        .when(spyClient)
+        .getTypedAssignmentResult(
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(EppoValue.class),
+            any(VariationType.class));
+
+    assertTrue(spyClient.getBooleanAssignment("experiment1", "subject1", true));
+    assertFalse(spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
+
+    assertEquals(10, spyClient.getIntegerAssignment("experiment1", "subject1", 10));
+    assertEquals(0, spyClient.getIntegerAssignment("experiment1", "subject1", new Attributes(), 0));
+
+    assertEquals(1.2345, spyClient.getDoubleAssignment("experiment1", "subject1", 1.2345), 0.0001);
+    assertEquals(
+        0.0,
+        spyClient.getDoubleAssignment("experiment1", "subject1", new Attributes(), 0.0),
+        0.0001);
+
+    assertEquals("default", spyClient.getStringAssignment("experiment1", "subject1", "default"));
+    assertEquals(
+        "", spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
+
+    assertEquals(
+        mapper.readTree("{\"a\": 1, \"b\": false}").toString(),
+        spyClient
+            .getJSONAssignment(
+                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}"))
+            .toString());
+
+    assertEquals(
+        "{\"a\": 1, \"b\": false}",
+        spyClient.getJSONStringAssignment("subject1", "experiment1", "{\"a\": 1, \"b\": false}"));
+
+    assertEquals(
+        mapper.readTree("{}").toString(),
+        spyClient
+            .getJSONAssignment("subject1", "experiment1", new Attributes(), mapper.readTree("{}"))
+            .toString());
+  }
+
+  @Test
+  public void testResultErrorGracefulModeOff() {
+    initClient(false, false);
+
+    BaseEppoClient realClient = eppoClient;
+    BaseEppoClient spyClient = spy(realClient);
+    doThrow(new RuntimeException("Exception thrown by mock"))
+        .when(spyClient)
+        .getTypedAssignmentResult(
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(EppoValue.class),
+            any(VariationType.class));
+
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getBooleanAssignment("experiment1", "subject1", true));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
+
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getIntegerAssignment("experiment1", "subject1", 10));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getIntegerAssignment("experiment1", "subject1", new Attributes(), 0));
+
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getDoubleAssignment("experiment1", "subject1", 1.2345));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getDoubleAssignment("experiment1", "subject1", new Attributes(), 0.0));
+
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getStringAssignment("experiment1", "subject1", "default"));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
+
+    assertThrows(
+        RuntimeException.class,
+        () ->
+            spyClient.getJSONAssignment(
+                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}")));
+    assertThrows(
+        RuntimeException.class,
+        () ->
+            spyClient.getJSONAssignment(
+                "subject1", "experiment1", new Attributes(), mapper.readTree("{}")));
+  }
+
+  @Test
   public void testInvalidConfigJSON() {
 
     mockHttpResponse("{}");
@@ -503,6 +610,46 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testAssignmentEventCorrectlyCreatedResult() {
+    Date testStart = new Date();
+    initClient();
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", EppoValue.valueOf(30));
+    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
+    ValuedFlagEvaluationResult valuedEvaluationResult =
+        eppoClient.getTypedAssignmentResult("numeric_flag", "alice", subjectAttributes, EppoValue.valueOf(0.0), VariationType.NUMERIC);
+
+    assertEquals(3.1415926, valuedEvaluationResult.getValue().doubleValue(), 0.0000001);
+    assertNotNull(valuedEvaluationResult.getEvaluationResult());
+    assertEquals(OK, valuedEvaluationResult.getType());
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+    Assignment capturedAssignment = assignmentLogCaptor.getValue();
+    assertEquals("numeric_flag-rollout", capturedAssignment.getExperiment());
+    assertEquals("numeric_flag", capturedAssignment.getFeatureFlag());
+    assertEquals("rollout", capturedAssignment.getAllocation());
+    assertEquals(
+        "pi",
+        capturedAssignment
+            .getVariation()); // Note: unlike this test, typically variation keys will just be the
+    // value for everything not JSON
+    assertEquals("alice", capturedAssignment.getSubject());
+    assertEquals(subjectAttributes, capturedAssignment.getSubjectAttributes());
+    assertEquals(new HashMap<>(), capturedAssignment.getExtraLogging());
+    assertTrue(capturedAssignment.getTimestamp().after(testStart));
+    Date inTheNearFuture = new Date(System.currentTimeMillis() + 1);
+    assertTrue(capturedAssignment.getTimestamp().before(inTheNearFuture));
+
+    Map<String, String> expectedMeta = new HashMap<>();
+    expectedMeta.put("obfuscated", "false");
+    expectedMeta.put("sdkLanguage", "java");
+    expectedMeta.put("sdkLibVersion", "100.1.0");
+
+    assertEquals(expectedMeta, capturedAssignment.getMetaData());
+  }
+
+  @Test
   public void testAssignmentNotDeduplicatedWithoutCache() {
     initClient();
 
@@ -513,6 +660,24 @@ public class BaseEppoClientTest {
     // Get the assignment twice
     eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
     eppoClient.getDoubleAssignment("numeric_flag", "alice", subjectAttributes, 0.0);
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+
+    // `logAssignment` should be called twice;
+    verify(mockAssignmentLogger, times(2)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testAssignmentNotDeduplicatedWithoutCacheResult() {
+    initClient();
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", EppoValue.valueOf(30));
+    subjectAttributes.put("employer", EppoValue.valueOf("Eppo"));
+
+    // Get the assignment twice
+    eppoClient.getTypedAssignmentResult("numeric_flag", "alice", subjectAttributes, EppoValue.valueOf(0.0), VariationType.NUMERIC);
+    eppoClient.getTypedAssignmentResult("numeric_flag", "alice", subjectAttributes, EppoValue.valueOf(0.0), VariationType.NUMERIC);
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
 
@@ -573,45 +738,36 @@ public class BaseEppoClientTest {
     int numThreads = 10;
     final CountDownLatch threadStartCountDownLatch = new CountDownLatch(numThreads);
     final CountDownLatch getAssignmentStartCountDownLatch = new CountDownLatch(1);
-    final List<Integer> assignments =
-        Collections.synchronizedList(Arrays.asList(new Integer[numThreads]));
-    ExecutorService pool =
-        Executors.newFixedThreadPool(
-            numThreads,
-            new ThreadFactory() {
-              private final AtomicInteger threadIndexAtomicInteger = new AtomicInteger(0);
-
-              @Override
-              public Thread newThread(@NotNull Runnable runnable) {
-                final int threadIndex = threadIndexAtomicInteger.getAndIncrement();
-                return new Thread(
-                    runnable,
-                    "testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads-" + threadIndex);
-              }
-            });
-    try {
+    final List<Integer> assignments = Collections.synchronizedList(Arrays.asList(new Integer[numThreads]));
+    try (ExecutorService pool = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
+      private final AtomicInteger threadIndexAtomicInteger = new AtomicInteger(0);
+      @Override
+      public Thread newThread(@NotNull Runnable runnable) {
+        final int threadIndex = threadIndexAtomicInteger.getAndIncrement();
+        return new Thread(runnable, "testAssignmentEventCorrectlyDeduplicatedFromBackgroundThreads-" + threadIndex);
+      }
+    })) {
       for (int i = 0; i < numThreads; i += 1) {
         final int threadIndex = i;
         pool.execute(
-            () -> {
-              threadStartCountDownLatch.countDown();
-              boolean shouldStart;
-              try {
-                shouldStart = getAssignmentStartCountDownLatch.await(1000, TimeUnit.SECONDS);
-              } catch (InterruptedException ignored) {
-                shouldStart = false;
-              }
-              final Integer assignment;
-              if (shouldStart) {
-                assignment =
-                    eppoClient.getIntegerAssignment(
-                        "numeric-one-of", "alice", subjectAttributes, 0);
-              } else {
-                assignment = null;
-              }
+          () -> {
+            threadStartCountDownLatch.countDown();
+            boolean shouldStart;
+            try {
+              shouldStart = getAssignmentStartCountDownLatch.await(1000, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+              shouldStart = false;
+            }
+            final Integer assignment;
+            if (shouldStart) {
+              assignment = eppoClient.getIntegerAssignment("numeric-one-of", "alice", subjectAttributes, 0);
+            } else {
+              assignment = null;
+            }
 
-              assignments.set(threadIndex, assignment);
-            });
+            assignments.set(threadIndex, assignment);
+          }
+        );
       }
 
       boolean shouldStart;
@@ -623,16 +779,6 @@ public class BaseEppoClientTest {
 
       assertTrue(shouldStart, "All worker threads did not start");
       getAssignmentStartCountDownLatch.countDown();
-    } finally {
-      pool.shutdown();
-      try {
-        if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
-          pool.shutdownNow();
-        }
-      } catch (InterruptedException e) {
-        pool.shutdownNow();
-        Thread.currentThread().interrupt();
-      }
     }
 
     final List<Integer> expectedAssignments;
@@ -649,6 +795,55 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testAssignmentEventCorrectlyDeduplicatedResult() {
+    initClientWithAssignmentCache(new LRUInMemoryAssignmentCache(1024));
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
+
+    // Get the assignment twice
+    ValuedFlagEvaluationResult valuedEvaluationResult =
+        eppoClient.getTypedAssignmentResult("numeric-one-of", "alice", subjectAttributes, EppoValue.valueOf(0), VariationType.INTEGER);
+    eppoClient.getTypedAssignmentResult("numeric-one-of", "alice", subjectAttributes, EppoValue.valueOf(0), VariationType.INTEGER);
+
+    // `2` matches the attribute `number` value of "123456789"
+    assertEquals(2, valuedEvaluationResult.getValue().intValue());
+    assertNotNull(valuedEvaluationResult.getEvaluationResult());
+    assertEquals(OK, valuedEvaluationResult.getType());
+
+    // `logAssignment` should be called only once.
+    verify(mockAssignmentLogger, times(1)).logAssignment(any(Assignment.class));
+
+    // Now, change the assigned value to get a logged entry. `number="1"` will map to the assignment
+    // of `1`.
+    subjectAttributes.put("number", EppoValue.valueOf("1"));
+
+    // Get the assignment
+    ValuedFlagEvaluationResult newValuedEvaluationResult =
+        eppoClient.getTypedAssignmentResult("numeric-one-of", "alice", subjectAttributes, EppoValue.valueOf(0), VariationType.INTEGER);
+    assertEquals(1, newValuedEvaluationResult.getValue().intValue());
+    assertNotNull(newValuedEvaluationResult.getEvaluationResult());
+    assertEquals(OK, newValuedEvaluationResult.getType());
+
+    // Verify a new log call
+    verify(mockAssignmentLogger, times(2)).logAssignment(any(Assignment.class));
+
+    // Change back to the original variation to ensure it is not still cached after the previous
+    // value evicted it.
+    subjectAttributes.put("number", EppoValue.valueOf("123456789"));
+
+    // Get the assignment
+    ValuedFlagEvaluationResult oldValuedEvaluationResult =
+        eppoClient.getTypedAssignmentResult("numeric-one-of", "alice", subjectAttributes, EppoValue.valueOf(0), VariationType.INTEGER);
+    assertEquals(2, oldValuedEvaluationResult.getValue().intValue());
+    assertNotNull(oldValuedEvaluationResult.getEvaluationResult());
+    assertEquals(OK, oldValuedEvaluationResult.getType());
+
+    // Verify a new log call
+    verify(mockAssignmentLogger, times(3)).logAssignment(any(Assignment.class));
+  }
+
+  @Test
   public void testAssignmentLogErrorNonFatal() {
     initClient();
     doThrow(new RuntimeException("Mock Assignment Logging Error"))
@@ -661,6 +856,41 @@ public class BaseEppoClientTest {
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testAssignmentLogErrorNonFatalResult() {
+    initClient();
+    doThrow(new RuntimeException("Mock Assignment Logging Error"))
+        .when(mockAssignmentLogger)
+        .logAssignment(any());
+    ValuedFlagEvaluationResult valuedEvaluationResult =
+        eppoClient.getTypedAssignmentResult("numeric_flag", "alice", new Attributes(), EppoValue.valueOf(0.0), VariationType.NUMERIC);
+
+    assertEquals(3.1415926, valuedEvaluationResult.getValue().doubleValue(), 0.0000001);
+    assertEquals(OK, valuedEvaluationResult.getType());
+    assertNotNull(valuedEvaluationResult.getEvaluationResult());
+
+    ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
+  }
+
+  @Test
+  public void testBadFlagKeyReturnsNoFlagConfigAndNullEvaluationResult() {
+    initClient();
+    EppoValue defaultValue = EppoValue.valueOf("default");
+    ValuedFlagEvaluationResult valuedFlagEvaluationResult =
+        eppoClient.getTypedAssignmentResult("does_not_exist", "bob", new Attributes(), defaultValue, VariationType.STRING);
+    assertEquals(new ValuedFlagEvaluationResult(defaultValue, null, NO_FLAG_CONFIG), valuedFlagEvaluationResult);
+  }
+
+  @Test
+  public void testBadVariationTypeReturnsBadVariationTypeAndNullEvaluationResult() {
+    initClient();
+    EppoValue defaultValue = EppoValue.valueOf("default");
+    ValuedFlagEvaluationResult valuedFlagEvaluationResult =
+        eppoClient.getTypedAssignmentResult("numeric_flag", "alice", new Attributes(), defaultValue, VariationType.STRING);
+    assertEquals(new ValuedFlagEvaluationResult(defaultValue, null, BAD_VARIATION_TYPE), valuedFlagEvaluationResult);
   }
 
   @Test

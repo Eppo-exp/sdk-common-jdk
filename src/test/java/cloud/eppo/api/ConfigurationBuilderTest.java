@@ -68,6 +68,7 @@ public class ConfigurationBuilderTest {
             1,
             VariationType.STRING,
             Collections.emptyMap(),
+            Collections.emptyList(),
             Collections.emptyList());
 
     // Create configuration with this flag
@@ -92,6 +93,7 @@ public class ConfigurationBuilderTest {
             1,
             VariationType.NUMERIC,
             Collections.emptyMap(),
+            Collections.emptyList(),
             Collections.emptyList());
 
     // Create configuration with this flag using MD5 hash of the flag key

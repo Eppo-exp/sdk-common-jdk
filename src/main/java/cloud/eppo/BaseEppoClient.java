@@ -3,6 +3,13 @@ package cloud.eppo;
 import static cloud.eppo.Constants.DEFAULT_JITTER_INTERVAL_RATIO;
 import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
+import static cloud.eppo.Utils.throwIfNull;
+import static cloud.eppo.ValuedFlagEvaluationResultType.BAD_VALUE_TYPE;
+import static cloud.eppo.ValuedFlagEvaluationResultType.BAD_VARIATION_TYPE;
+import static cloud.eppo.ValuedFlagEvaluationResultType.FLAG_DISABLED;
+import static cloud.eppo.ValuedFlagEvaluationResultType.NO_ALLOCATION;
+import static cloud.eppo.ValuedFlagEvaluationResultType.NO_FLAG_CONFIG;
+import static cloud.eppo.ValuedFlagEvaluationResultType.OK;
 
 import cloud.eppo.api.*;
 import cloud.eppo.cache.AssignmentCacheEntry;
@@ -190,28 +197,33 @@ public class BaseEppoClient {
     return future;
   }
 
-  protected EppoValue getTypedAssignment(
-      String flagKey,
-      String subjectKey,
-      Attributes subjectAttributes,
-      EppoValue defaultValue,
-      VariationType expectedType) {
-
+  @NotNull
+  protected ValuedFlagEvaluationResult getTypedAssignmentResult(
+      @NotNull String flagKey,
+      @NotNull String subjectKey,
+      @NotNull Attributes subjectAttributes,
+      @NotNull EppoValue defaultValue,
+      @NotNull VariationType expectedType) {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
+    throwIfNull(subjectAttributes, "subjectAttributes must not be empty");
+    throwIfNull(defaultValue, "defaultValue must not be empty");
+    throwIfNull(expectedType, "expectedType must not be empty");
 
-    Configuration config = getConfiguration();
+    @NotNull final Configuration config = getConfiguration();
 
-    FlagConfig flag = config.getFlag(flagKey);
-    if (flag == null) {
+    @Nullable final FlagConfig maybeFlag = config.getFlag(flagKey);
+    if (maybeFlag == null) {
       log.warn("no configuration found for key: {}", flagKey);
-      return defaultValue;
+      return new ValuedFlagEvaluationResult(defaultValue, null, NO_FLAG_CONFIG);
     }
+
+    @NotNull final FlagConfig flag = maybeFlag;
 
     if (!flag.isEnabled()) {
       log.info(
           "no assigned variation because the experiment or feature flag is disabled: {}", flagKey);
-      return defaultValue;
+      return new ValuedFlagEvaluationResult(defaultValue, null, FLAG_DISABLED);
     }
 
     if (flag.getVariationType() != expectedType) {
@@ -220,68 +232,88 @@ public class BaseEppoClient {
           flagKey,
           flag.getVariationType(),
           expectedType);
-      return defaultValue;
+      return new ValuedFlagEvaluationResult(defaultValue, null, BAD_VARIATION_TYPE);
     }
 
-    FlagEvaluationResult evaluationResult =
+    @NotNull final FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
             flag, flagKey, subjectKey, subjectAttributes, config.isConfigObfuscated());
-    EppoValue assignedValue =
-        evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
+    @Nullable final FlagEvaluationAllocationKeyAndVariation allocationKeyAndVariation =
+        evaluationResult.getAllocationKeyAndVariation();
 
-    if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
-      log.warn(
+    @NotNull final ValuedFlagEvaluationResult valuedEvaluationResult;
+    if (allocationKeyAndVariation == null) {
+      valuedEvaluationResult = new ValuedFlagEvaluationResult(defaultValue, evaluationResult, NO_ALLOCATION);
+    } else {
+      @NotNull final EppoValue assignedValue = allocationKeyAndVariation.getVariation().getValue();
+      if (!valueTypeMatchesExpected(expectedType, assignedValue)) {
+        log.warn(
           "no assigned variation because the flag type doesn't match the variation type: {} has type {}, variation value is {}",
           flagKey,
           flag.getVariationType(),
           assignedValue);
-      return defaultValue;
-    }
+         return new ValuedFlagEvaluationResult(defaultValue, evaluationResult, BAD_VALUE_TYPE);
+      } else {
+        valuedEvaluationResult = new ValuedFlagEvaluationResult(assignedValue, evaluationResult, OK);
+        if (assignmentLogger != null && evaluationResult.doLog()) {
 
-    if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
+          try {
+            @NotNull final String allocationKey = allocationKeyAndVariation.getAllocationKey();
+            @NotNull final String experimentKey =
+                flagKey
+                    + '-'
+                    + allocationKey; // Our experiment key is derived by hyphenating the flag key and
+            // allocation key
+            @NotNull final String variationKey = allocationKeyAndVariation.getVariation().getKey();
+            @NotNull final Map<String, String> extraLogging = evaluationResult.getExtraLogging();
+            @NotNull final Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
-      try {
-        String allocationKey = evaluationResult.getAllocationKey();
-        String experimentKey =
-            flagKey
-                + '-'
-                + allocationKey; // Our experiment key is derived by hyphenating the flag key and
-        // allocation key
-        String variationKey = evaluationResult.getVariation().getKey();
-        Map<String, String> extraLogging = evaluationResult.getExtraLogging();
-        Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
+            @NotNull final Assignment assignment =
+                new Assignment(
+                    experimentKey,
+                    flagKey,
+                    allocationKey,
+                    variationKey,
+                    subjectKey,
+                    subjectAttributes,
+                    extraLogging,
+                    metaData);
+            final boolean logAssignment;
+            @NotNull final AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
+            if (assignmentCache != null) {
+              logAssignment = assignmentCache.putIfAbsent(cacheEntry);
+            } else {
+              // Deduplication of assignment logging is possible by providing an `IAssignmentCache`.
+              // Default to true, only avoid logging if there's a cache hit.
+              logAssignment = true;
+            }
 
-        Assignment assignment =
-            new Assignment(
-                experimentKey,
-                flagKey,
-                allocationKey,
-                variationKey,
-                subjectKey,
-                subjectAttributes,
-                extraLogging,
-                metaData);
-
-        // Deduplication of assignment logging is possible by providing an `IAssignmentCache`.
-        // Default to true, only avoid logging if there's a cache hit.
-        boolean logAssignment = true;
-        AssignmentCacheEntry cacheEntry = AssignmentCacheEntry.fromVariationAssignment(assignment);
-        if (assignmentCache != null) {
-          logAssignment = assignmentCache.putIfAbsent(cacheEntry);
+            if (logAssignment) {
+              assignmentLogger.logAssignment(assignment);
+            }
+          } catch (Exception e) {
+            log.error("Error logging assignment: {}", e.getMessage(), e);
+          }
         }
-
-        if (logAssignment) {
-          assignmentLogger.logAssignment(assignment);
-        }
-
-      } catch (Exception e) {
-        log.error("Error logging assignment: {}", e.getMessage(), e);
       }
     }
-    return assignedValue != null ? assignedValue : defaultValue;
+    return valuedEvaluationResult;
   }
 
-  private boolean valueTypeMatchesExpected(VariationType expectedType, EppoValue value) {
+  @NotNull
+  protected EppoValue getTypedAssignment(
+      @NotNull String flagKey,
+      @NotNull String subjectKey,
+      @NotNull Attributes subjectAttributes,
+      @NotNull EppoValue defaultValue,
+      @NotNull VariationType expectedType) {
+
+    @NotNull final ValuedFlagEvaluationResult valuedEvaluationResult = getTypedAssignmentResult(
+        flagKey, subjectKey, subjectAttributes, defaultValue, expectedType);
+    return valuedEvaluationResult.getValue();
+  }
+
+  private boolean valueTypeMatchesExpected(@NotNull VariationType expectedType, @NotNull EppoValue value) {
     boolean typeMatch;
     switch (expectedType) {
       case BOOLEAN:
@@ -312,14 +344,14 @@ public class BaseEppoClient {
     return typeMatch;
   }
 
-  public boolean getBooleanAssignment(String flagKey, String subjectKey, boolean defaultValue) {
+  public boolean getBooleanAssignment(@NotNull String flagKey, @NotNull String subjectKey, boolean defaultValue) {
     return this.getBooleanAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   public boolean getBooleanAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, boolean defaultValue) {
+      @NotNull String flagKey, @NotNull String subjectKey, @NotNull Attributes subjectAttributes, boolean defaultValue) {
     try {
-      EppoValue value =
+      @NotNull final EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
@@ -332,14 +364,14 @@ public class BaseEppoClient {
     }
   }
 
-  public int getIntegerAssignment(String flagKey, String subjectKey, int defaultValue) {
+  public int getIntegerAssignment(@NotNull String flagKey, @NotNull String subjectKey, int defaultValue) {
     return getIntegerAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
   public int getIntegerAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
+      @NotNull String flagKey, @NotNull String subjectKey, @NotNull Attributes subjectAttributes, int defaultValue) {
     try {
-      EppoValue value =
+      @NotNull final EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
@@ -352,14 +384,16 @@ public class BaseEppoClient {
     }
   }
 
-  public Double getDoubleAssignment(String flagKey, String subjectKey, double defaultValue) {
+  @NotNull
+  public Double getDoubleAssignment(@NotNull String flagKey, @NotNull String subjectKey, double defaultValue) {
     return getDoubleAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  @NotNull
   public Double getDoubleAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
+      @NotNull String flagKey, @NotNull String subjectKey, @NotNull Attributes subjectAttributes, double defaultValue) {
     try {
-      EppoValue value =
+      @NotNull final EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
@@ -372,14 +406,16 @@ public class BaseEppoClient {
     }
   }
 
-  public String getStringAssignment(String flagKey, String subjectKey, String defaultValue) {
+  @NotNull
+  public String getStringAssignment(@NotNull String flagKey, @NotNull String subjectKey, @NotNull String defaultValue) {
     return this.getStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  @NotNull
   public String getStringAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
+          @NotNull String flagKey, @NotNull String subjectKey, @NotNull Attributes subjectAttributes, @NotNull String defaultValue) {
     try {
-      EppoValue value =
+      @NotNull final EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
@@ -402,7 +438,8 @@ public class BaseEppoClient {
    * @param defaultValue the default value to return if the flag is not found
    * @return the JSON string value of the assignment
    */
-  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
+  @NotNull
+  public JsonNode getJSONAssignment(@NotNull String flagKey, @NotNull String subjectKey, @NotNull JsonNode defaultValue) {
     return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
@@ -416,17 +453,19 @@ public class BaseEppoClient {
    * @param defaultValue the default value to return if the flag is not found
    * @return the JSON string value of the assignment
    */
+  @NotNull
   public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+      @NotNull String flagKey, @NotNull String subjectKey, @NotNull Attributes subjectAttributes, @NotNull JsonNode defaultValue) {
     try {
-      EppoValue value =
+      @NotNull final EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
               subjectAttributes,
               EppoValue.valueOf(defaultValue.toString()),
               VariationType.JSON);
-      return parseJsonString(value.stringValue());
+      @Nullable final JsonNode jsonValue = parseJsonString(value.stringValue());
+      return jsonValue != null ? jsonValue : defaultValue;
     } catch (Exception e) {
       return throwIfNotGraceful(e, defaultValue);
     }
@@ -442,10 +481,11 @@ public class BaseEppoClient {
    * @param defaultValue the default value to return if the flag is not found
    * @return the JSON string value of the assignment
    */
+  @NotNull
   public String getJSONStringAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
+      @NotNull String flagKey, @NotNull String subjectKey, @NotNull Attributes subjectAttributes, @NotNull String defaultValue) {
     try {
-      EppoValue value =
+      @NotNull final EppoValue value =
           this.getTypedAssignment(
               flagKey,
               subjectKey,
@@ -468,11 +508,13 @@ public class BaseEppoClient {
    * @param defaultValue the default value to return if the flag is not found
    * @return the JSON string value of the assignment
    */
-  public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
+  @NotNull
+  public String getJSONStringAssignment(@NotNull String flagKey, @NotNull String subjectKey, @NotNull String defaultValue) {
     return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  private JsonNode parseJsonString(String jsonString) {
+  @Nullable
+  private JsonNode parseJsonString(@NotNull String jsonString) {
     try {
       return mapper.readTree(jsonString);
     } catch (JsonProcessingException e) {
@@ -551,15 +593,17 @@ public class BaseEppoClient {
     }
   }
 
+  @NotNull
   private Map<String, String> buildLogMetaData(boolean isConfigObfuscated) {
-    HashMap<String, String> metaData = new HashMap<>();
+    @NotNull final HashMap<String, String> metaData = new HashMap<>();
     metaData.put("obfuscated", Boolean.valueOf(isConfigObfuscated).toString());
     metaData.put("sdkLanguage", sdkName);
     metaData.put("sdkLibVersion", sdkVersion);
     return metaData;
   }
 
-  private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
+  @NotNull
+  private <T> T throwIfNotGraceful(@NotNull Exception e, @NotNull T defaultValue) {
     if (this.isGracefulMode) {
       log.info("error getting assignment value: {}", e.getMessage());
       return defaultValue;
