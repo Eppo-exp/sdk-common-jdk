@@ -27,7 +27,7 @@ env:
   CI: true
   SDK_BRANCH: ${{ inputs.sdk_branch  || github.head_ref || github.ref_name || 'main' }}
   TEST_DATA_BRANCH: ${{ inputs.test_data_branch || 'main' }}
-  SDK_REPO: ${{ (github.event_name == 'workflow_call' && 'Eppo-exp/sdk-common-jdk') || github.repository }}
+  SDK_REPO: Eppo-exp/sdk-common-jdk
 
 jobs:
   lint-test-sdk:
