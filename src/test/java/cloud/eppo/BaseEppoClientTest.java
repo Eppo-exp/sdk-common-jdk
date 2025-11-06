@@ -11,7 +11,8 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.*;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
-import cloud.eppo.helpers.JacksonJsonDeserializer;
+import cloud.eppo.helpers.JacksonEppoResponseParser;
+import cloud.eppo.helpers.JacksonJsonValidator;
 import cloud.eppo.helpers.JavaBase64Codec;
 import cloud.eppo.helpers.TestUtils;
 import cloud.eppo.logging.Assignment;
@@ -54,7 +55,8 @@ public class BaseEppoClientTest {
 
   static {
     Utils.setBase64Codec(new JavaBase64Codec());
-    Utils.setJsonDeserializer(new JacksonJsonDeserializer());
+    Utils.setJsonResponseParser(new JacksonEppoResponseParser());
+    Utils.setJsonValidator(new JacksonJsonValidator());
   }
 
   private BaseEppoClient eppoClient;

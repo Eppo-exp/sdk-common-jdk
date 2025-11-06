@@ -1,6 +1,5 @@
 package cloud.eppo.api;
 
-import cloud.eppo.Utils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -61,10 +60,5 @@ public class Attributes extends HashMap<String, EppoValue> implements Discrimina
   @Override
   public Attributes getAllAttributes() {
     return this;
-  }
-
-  /** Serializes the attributes to a JSON string, omitting attributes with a null value. */
-  public String serializeNonNullAttributesToJSONString() {
-    return Utils.serializeAttributesToJSONString(this, true);
   }
 }

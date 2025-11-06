@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.api.*;
 import cloud.eppo.cache.ExpiringInMemoryAssignmentCache;
 import cloud.eppo.helpers.*;
+import cloud.eppo.helpers.JacksonJsonValidator;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
@@ -56,7 +57,8 @@ public class BaseEppoClientBanditTest {
 
   static {
     Utils.setBase64Codec(new JavaBase64Codec());
-    Utils.setJsonDeserializer(new JacksonJsonDeserializer());
+    Utils.setJsonResponseParser(new JacksonEppoResponseParser());
+    Utils.setJsonValidator(new JacksonJsonValidator());
   }
 
   @BeforeEach

@@ -1,6 +1,5 @@
 package cloud.eppo;
 
-import cloud.eppo.api.EppoValue;
 import cloud.eppo.exception.JsonParsingException;
 import cloud.eppo.ufc.dto.BanditParametersResponse;
 import cloud.eppo.ufc.dto.FlagConfigResponse;
@@ -10,7 +9,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -21,14 +19,19 @@ public final class Utils {
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
   private static Base64Codec base64Codec;
-  private static JsonDeserializer jsonDeserializer;
+  private static EppoResponseJsonParser jsonResponseParser;
+  private static JsonValidator jsonValidator;
 
   public static void setBase64Codec(@NotNull Base64Codec base64Codec) {
     Utils.base64Codec = base64Codec;
   }
 
-  public static void setJsonDeserializer(@NotNull JsonDeserializer jsonDeserializer) {
-    Utils.jsonDeserializer = jsonDeserializer;
+  public static void setJsonResponseParser(@NotNull EppoResponseJsonParser jsonResponseParser) {
+    Utils.jsonResponseParser = jsonResponseParser;
+  }
+
+  public static void setJsonValidator(@NotNull JsonValidator jsonValidator) {
+    Utils.jsonValidator = jsonValidator;
   }
 
   @SuppressWarnings("AnonymousHasLambdaAlternative")
@@ -162,33 +165,33 @@ public final class Utils {
     return result;
   }
 
-  private static void verifyJsonParser() {
-    if (jsonDeserializer == null) {
-      throw new RuntimeException("JSON Parser not initialized/set on Utils");
+  private static void verifyJsonResponseParser() {
+    if (jsonResponseParser == null) {
+      throw new RuntimeException("JSON Response Parser not initialized/set on Utils");
     }
   }
 
-  public static FlagConfigResponse parseFlagConfigResponse(byte[] jsonString)
+  public static FlagConfigResponse parseFlagConfigResponse(byte[] responseBody)
       throws JsonParsingException {
-    verifyJsonParser();
-    return jsonDeserializer.parseFlagConfigResponse(jsonString);
+    verifyJsonResponseParser();
+    return jsonResponseParser.parseFlagConfigResponse(responseBody);
   }
 
-  public static BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
+  public static BanditParametersResponse parseBanditParametersResponse(byte[] responseBody)
       throws JsonParsingException {
-    verifyJsonParser();
-    return jsonDeserializer.parseBanditParametersResponse(jsonString);
+    verifyJsonResponseParser();
+    return jsonResponseParser.parseBanditParametersResponse(responseBody);
+  }
+
+  private static void verifyJsonValidator() {
+    if (jsonValidator == null) {
+      throw new RuntimeException("JSON Validator not initialized/set on Utils");
+    }
   }
 
   public static boolean isValidJson(String json) {
-    verifyJsonParser();
-    return jsonDeserializer.isValidJson(json);
-  }
-
-  public static String serializeAttributesToJSONString(
-      Map<String, EppoValue> map, boolean omitNulls) {
-    verifyJsonParser();
-    return jsonDeserializer.serializeAttributesToJSONString(map, omitNulls);
+    verifyJsonValidator();
+    return jsonValidator.isValidJson(json);
   }
 
   public interface Base64Codec {
@@ -197,14 +200,14 @@ public final class Utils {
     String base64Decode(String input);
   }
 
-  public interface JsonDeserializer {
-    FlagConfigResponse parseFlagConfigResponse(byte[] jsonString) throws JsonParsingException;
+  public interface EppoResponseJsonParser {
+    FlagConfigResponse parseFlagConfigResponse(byte[] responseBody) throws JsonParsingException;
 
-    BanditParametersResponse parseBanditParametersResponse(byte[] jsonString)
+    BanditParametersResponse parseBanditParametersResponse(byte[] responseBody)
         throws JsonParsingException;
+  }
 
+  public interface JsonValidator {
     boolean isValidJson(String json);
-
-    String serializeAttributesToJSONString(Map<String, EppoValue> map, boolean omitNulls);
   }
 }

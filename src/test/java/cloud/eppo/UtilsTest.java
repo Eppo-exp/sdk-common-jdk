@@ -1,7 +1,7 @@
 package cloud.eppo;
 
 import static cloud.eppo.Utils.*;
-import static cloud.eppo.helpers.JacksonJsonDeserializer.parseUtcISODateNode;
+import static cloud.eppo.helpers.JacksonEppoResponseParser.parseUtcISODateNode;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
