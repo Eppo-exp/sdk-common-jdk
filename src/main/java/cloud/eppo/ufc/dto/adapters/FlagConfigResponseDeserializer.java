@@ -135,7 +135,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       Set<TargetingCondition> conditions = new HashSet<>();
       for (JsonNode conditionNode : ruleNode.get("conditions")) {
         String attribute = conditionNode.get("attribute").asText();
-        String operatorKey = conditionNode.get("operator").asText();
+        String operatorKey = conditionNode.get("operator").asText(null);
         OperatorType operator = OperatorType.fromString(operatorKey);
         if (operator == null) {
           log.warn("Unknown operator \"{}\"", operatorKey);

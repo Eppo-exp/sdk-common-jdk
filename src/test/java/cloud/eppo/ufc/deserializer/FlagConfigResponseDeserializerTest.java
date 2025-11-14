@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,21 @@ public class FlagConfigResponseDeserializerTest {
     FileReader fileReader = new FileReader(testUfc);
     FlagConfigResponse configResponse = mapper.readValue(fileReader, FlagConfigResponse.class);
 
+    assertFlagConfigResponse(configResponse);
+  }
+
+  @Test
+  public void testSerializePlainText() throws IOException {
+    File testUfc = new File("src/test/resources/flags-v1.json");
+    FileReader fileReader = new FileReader(testUfc);
+    FlagConfigResponse initialConfigResponse = mapper.readValue(fileReader, FlagConfigResponse.class);
+    String initialConfigResponseJson = mapper.writeValueAsString(initialConfigResponse);
+    FlagConfigResponse rereadConfigResponse = mapper.readValue(new StringReader(initialConfigResponseJson), FlagConfigResponse.class);
+
+    assertFlagConfigResponse(rereadConfigResponse);
+  }
+
+  private void assertFlagConfigResponse(FlagConfigResponse configResponse) {
     assertTrue(configResponse.getFlags().size() >= 13);
     assertTrue(configResponse.getFlags().containsKey("empty_flag"));
     assertTrue(configResponse.getFlags().containsKey("disabled_flag"));
@@ -113,5 +129,26 @@ public class FlagConfigResponseDeserializerTest {
     Split offForAllSplit = offForAll.getSplits().iterator().next();
     assertEquals("off", offForAllSplit.getVariationKey());
     assertEquals(0, offForAllSplit.getShards().size());
+  }
+
+  @Test
+  public void testSerializePlainTextWithBandit() throws IOException {
+    File testUfc = new File("src/test/resources/static/initial-flag-config-with-bandit.json");
+    FileReader fileReader = new FileReader(testUfc);
+    FlagConfigResponse initialConfigResponse = mapper.readValue(fileReader, FlagConfigResponse.class);
+    String initialConfigResponseJson = mapper.writeValueAsString(initialConfigResponse);
+    FlagConfigResponse rereadConfigResponse = mapper.readValue(new StringReader(initialConfigResponseJson), FlagConfigResponse.class);
+
+    assertEquals(1, rereadConfigResponse.getBanditReferences().size());
+    BanditReference bannerBanditReference = rereadConfigResponse.getBanditReferences().get("banner_bandit");
+    assertEquals("v123", bannerBanditReference.getModelVersion());
+
+    assertEquals(1, bannerBanditReference.getFlagVariations().size());
+    BanditFlagVariation flagVariation = bannerBanditReference.getFlagVariations().get(0);
+    assertEquals("banner_bandit", flagVariation.getBanditKey());
+    assertEquals("banner_bandit_flag", flagVariation.getFlagKey());
+    assertEquals("analysis", flagVariation.getAllocationKey());
+    assertEquals("banner_bandit", flagVariation.getVariationKey());
+    assertEquals("banner_bandit", flagVariation.getVariationValue());
   }
 }
