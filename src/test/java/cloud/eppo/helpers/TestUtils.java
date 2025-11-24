@@ -1,49 +1,55 @@
 package cloud.eppo.helpers;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
 import cloud.eppo.BaseEppoClient;
-import cloud.eppo.EppoHttpClient;
+import cloud.eppo.MockHttpClient;
+import cloud.eppo.api.Callback;
+import cloud.eppo.api.IHttpClient;
+import cloud.eppo.exception.FetchException;
 import java.lang.reflect.Field;
-import java.util.concurrent.CompletableFuture;
-import okhttp3.*;
 
 public class TestUtils {
 
   @SuppressWarnings("SameParameterValue")
-  public static EppoHttpClient mockHttpResponse(String responseBody) {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+  public static IHttpClient mockHttpResponse(String responseBody) {
+    // Create a mock HTTP client with a test base URL
+    MockHttpClient mockHttpClient = new MockHttpClient("http://test.eppo.cloud");
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
-
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.complete(responseBody.getBytes());
+    // Mock both endpoints with the same response
+    mockHttpClient.mockResponse("/flag-config/v1/config", responseBody);
+    mockHttpClient.mockResponse("/flag-config/v1/bandits", responseBody);
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
     return mockHttpClient;
   }
 
   public static void mockHttpError() {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    // Create a mock HTTP client that throws errors
+    IHttpClient errorHttpClient =
+        new IHttpClient() {
+          @Override
+          public byte[] fetch(String endpoint, java.util.Map<String, String> queryParams)
+              throws FetchException {
+            throw new FetchException("Intentional Error", new RuntimeException("Intentional Error"));
+          }
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
+          @Override
+          public void fetchAsync(
+              String endpoint,
+              java.util.Map<String, String> queryParams,
+              Callback<byte[]> callback) {
+            callback.onError(new RuntimeException("Intentional Error"));
+          }
 
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
+          @Override
+          public String getBaseUrl() {
+            return "http://error.test.com";
+          }
+        };
 
-    setBaseClientHttpClientOverrideField(mockHttpClient);
+    setBaseClientHttpClientOverrideField(errorHttpClient);
   }
 
-  public static void setBaseClientHttpClientOverrideField(EppoHttpClient httpClient) {
+  public static void setBaseClientHttpClientOverrideField(IHttpClient httpClient) {
     setBaseClientOverrideField("httpClientOverride", httpClient);
   }
 
