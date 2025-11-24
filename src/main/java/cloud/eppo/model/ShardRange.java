@@ -3,7 +3,6 @@ package cloud.eppo.model;
 import cloud.eppo.api.IShardRange;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Objects;
 
 /** Shard Range Class */
@@ -21,8 +20,7 @@ public class ShardRange implements IShardRange {
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     ShardRange that = (ShardRange) o;
-    return start == that.start &&
-            end == that.end;
+    return start == that.start && end == that.end;
   }
 
   @Override

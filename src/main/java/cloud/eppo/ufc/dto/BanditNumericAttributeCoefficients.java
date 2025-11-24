@@ -1,10 +1,9 @@
 package cloud.eppo.ufc.dto;
 
 import cloud.eppo.api.IBanditNumericAttributeCoefficients;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Objects;
 
 public class BanditNumericAttributeCoefficients
     implements BanditAttributeCoefficients, IBanditNumericAttributeCoefficients {
@@ -22,11 +21,15 @@ public class BanditNumericAttributeCoefficients
 
   @Override
   public String toString() {
-    return "BanditNumericAttributeCoefficients{" +
-      "attributeKey='" + attributeKey + '\'' +
-      ", coefficient=" + coefficient +
-      ", missingValueCoefficient=" + missingValueCoefficient +
-      '}';
+    return "BanditNumericAttributeCoefficients{"
+        + "attributeKey='"
+        + attributeKey
+        + '\''
+        + ", coefficient="
+        + coefficient
+        + ", missingValueCoefficient="
+        + missingValueCoefficient
+        + '}';
   }
 
   @Override
@@ -34,9 +37,9 @@ public class BanditNumericAttributeCoefficients
     if (o == null || getClass() != o.getClass()) return false;
     BanditNumericAttributeCoefficients that = (BanditNumericAttributeCoefficients) o;
     return Objects.equals(logger, that.logger)
-            && Objects.equals(attributeKey, that.attributeKey)
-            && Objects.equals(coefficient, that.coefficient)
-            && Objects.equals(missingValueCoefficient, that.missingValueCoefficient);
+        && Objects.equals(attributeKey, that.attributeKey)
+        && Objects.equals(coefficient, that.coefficient)
+        && Objects.equals(missingValueCoefficient, that.missingValueCoefficient);
   }
 
   @Override

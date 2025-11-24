@@ -29,14 +29,21 @@ public class BanditCoefficients implements IBanditCoefficients {
 
   @Override
   public String toString() {
-    return "BanditCoefficients{" +
-      "actionKey='" + actionKey + '\'' +
-      ", intercept=" + intercept +
-      ", subjectNumericCoefficients=" + subjectNumericCoefficients +
-      ", subjectCategoricalCoefficients=" + subjectCategoricalCoefficients +
-      ", actionNumericCoefficients=" + actionNumericCoefficients +
-      ", actionCategoricalCoefficients=" + actionCategoricalCoefficients +
-      '}';
+    return "BanditCoefficients{"
+        + "actionKey='"
+        + actionKey
+        + '\''
+        + ", intercept="
+        + intercept
+        + ", subjectNumericCoefficients="
+        + subjectNumericCoefficients
+        + ", subjectCategoricalCoefficients="
+        + subjectCategoricalCoefficients
+        + ", actionNumericCoefficients="
+        + actionNumericCoefficients
+        + ", actionCategoricalCoefficients="
+        + actionCategoricalCoefficients
+        + '}';
   }
 
   @Override
@@ -44,16 +51,22 @@ public class BanditCoefficients implements IBanditCoefficients {
     if (o == null || getClass() != o.getClass()) return false;
     BanditCoefficients that = (BanditCoefficients) o;
     return Objects.equals(actionKey, that.actionKey)
-            && Objects.equals(intercept, that.intercept)
-            && Objects.equals(subjectNumericCoefficients, that.subjectNumericCoefficients)
-            && Objects.equals(subjectCategoricalCoefficients, that.subjectCategoricalCoefficients)
-            && Objects.equals(actionNumericCoefficients, that.actionNumericCoefficients)
-            && Objects.equals(actionCategoricalCoefficients, that.actionCategoricalCoefficients);
+        && Objects.equals(intercept, that.intercept)
+        && Objects.equals(subjectNumericCoefficients, that.subjectNumericCoefficients)
+        && Objects.equals(subjectCategoricalCoefficients, that.subjectCategoricalCoefficients)
+        && Objects.equals(actionNumericCoefficients, that.actionNumericCoefficients)
+        && Objects.equals(actionCategoricalCoefficients, that.actionCategoricalCoefficients);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(actionKey, intercept, subjectNumericCoefficients, subjectCategoricalCoefficients, actionNumericCoefficients, actionCategoricalCoefficients);
+    return Objects.hash(
+        actionKey,
+        intercept,
+        subjectNumericCoefficients,
+        subjectCategoricalCoefficients,
+        actionNumericCoefficients,
+        actionCategoricalCoefficients);
   }
 
   public String getActionKey() {

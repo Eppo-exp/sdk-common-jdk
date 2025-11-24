@@ -4,9 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Interface for Allocation allowing downstream SDKs to provide custom implementations.
- */
+/** Interface for Allocation allowing downstream SDKs to provide custom implementations. */
 public interface IAllocation {
   String getKey();
 

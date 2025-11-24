@@ -12,7 +12,6 @@ import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

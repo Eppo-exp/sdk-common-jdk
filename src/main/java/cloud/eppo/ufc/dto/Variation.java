@@ -1,9 +1,8 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.IVariation;
 import java.util.Objects;
-
-import cloud.eppo.api.EppoValue;
 
 public class Variation implements IVariation {
   private final String key;
@@ -16,18 +15,14 @@ public class Variation implements IVariation {
 
   @Override
   public String toString() {
-    return "Variation{" +
-      "key='" + key + '\'' +
-      ", value=" + value +
-      '}';
+    return "Variation{" + "key='" + key + '\'' + ", value=" + value + '}';
   }
 
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     Variation variation = (Variation) o;
-    return Objects.equals(key, variation.key)
-            && Objects.equals(value, variation.value);
+    return Objects.equals(key, variation.key) && Objects.equals(value, variation.value);
   }
 
   @Override

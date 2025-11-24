@@ -3,7 +3,6 @@ package cloud.eppo.ufc.dto;
 import cloud.eppo.api.IBanditCategoricalAttributeCoefficients;
 import java.util.Map;
 import java.util.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +23,15 @@ public class BanditCategoricalAttributeCoefficients
 
   @Override
   public String toString() {
-    return "BanditCategoricalAttributeCoefficients{" +
-      "attributeKey='" + attributeKey + '\'' +
-      ", missingValueCoefficient=" + missingValueCoefficient +
-      ", valueCoefficients=" + valueCoefficients +
-      '}';
+    return "BanditCategoricalAttributeCoefficients{"
+        + "attributeKey='"
+        + attributeKey
+        + '\''
+        + ", missingValueCoefficient="
+        + missingValueCoefficient
+        + ", valueCoefficients="
+        + valueCoefficients
+        + '}';
   }
 
   @Override
@@ -36,9 +39,9 @@ public class BanditCategoricalAttributeCoefficients
     if (o == null || getClass() != o.getClass()) return false;
     BanditCategoricalAttributeCoefficients that = (BanditCategoricalAttributeCoefficients) o;
     return Objects.equals(logger, that.logger)
-            && Objects.equals(attributeKey, that.attributeKey)
-            && Objects.equals(missingValueCoefficient, that.missingValueCoefficient)
-            && Objects.equals(valueCoefficients, that.valueCoefficients);
+        && Objects.equals(attributeKey, that.attributeKey)
+        && Objects.equals(missingValueCoefficient, that.missingValueCoefficient)
+        && Objects.equals(valueCoefficients, that.valueCoefficients);
   }
 
   @Override

@@ -14,7 +14,6 @@ import cloud.eppo.api.IFlagConfig;
 import cloud.eppo.api.IShard;
 import cloud.eppo.api.IShardRange;
 import cloud.eppo.api.ISplit;
-import cloud.eppo.api.ITargetingRule;
 import cloud.eppo.api.IVariation;
 import cloud.eppo.api.MatchedRule;
 import cloud.eppo.api.RuleCondition;

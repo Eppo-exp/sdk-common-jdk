@@ -2,9 +2,7 @@ package cloud.eppo.api;
 
 import java.util.Map;
 
-/**
- * Interface for BanditModelData allowing downstream SDKs to provide custom implementations.
- */
+/** Interface for BanditModelData allowing downstream SDKs to provide custom implementations. */
 public interface IBanditModelData {
   Double getGamma();
 

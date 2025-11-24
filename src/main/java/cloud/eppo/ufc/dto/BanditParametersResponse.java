@@ -19,9 +19,7 @@ public class BanditParametersResponse implements IBanditParametersResponse {
 
   @Override
   public String toString() {
-    return "BanditParametersResponse{" +
-      "bandits=" + bandits +
-      '}';
+    return "BanditParametersResponse{" + "bandits=" + bandits + '}';
   }
 
   @Override

@@ -4,9 +4,7 @@ import cloud.eppo.ufc.dto.VariationType;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Interface for FlagConfig allowing downstream SDKs to provide custom implementations.
- */
+/** Interface for FlagConfig allowing downstream SDKs to provide custom implementations. */
 public interface IFlagConfig {
   String getKey();
 

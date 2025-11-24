@@ -327,9 +327,7 @@ public class Configuration {
     }
 
     public Set<String> loadedBanditModelVersions() {
-      return bandits.values().stream()
-          .map(b -> b.getModelVersion())
-          .collect(Collectors.toSet());
+      return bandits.values().stream().map(b -> b.getModelVersion()).collect(Collectors.toSet());
     }
 
     public Set<String> referencedBanditModelVersion() {

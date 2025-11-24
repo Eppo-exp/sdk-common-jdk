@@ -31,14 +31,21 @@ public class Allocation implements IAllocation {
 
   @Override
   public String toString() {
-    return "Allocation{" +
-      "key='" + key + '\'' +
-      ", rules=" + rules +
-      ", startAt=" + startAt +
-      ", endAt=" + endAt +
-      ", splits=" + splits +
-      ", doLog=" + doLog +
-      '}';
+    return "Allocation{"
+        + "key='"
+        + key
+        + '\''
+        + ", rules="
+        + rules
+        + ", startAt="
+        + startAt
+        + ", endAt="
+        + endAt
+        + ", splits="
+        + splits
+        + ", doLog="
+        + doLog
+        + '}';
   }
 
   @Override
@@ -46,11 +53,11 @@ public class Allocation implements IAllocation {
     if (o == null || getClass() != o.getClass()) return false;
     Allocation that = (Allocation) o;
     return doLog == that.doLog
-            && Objects.equals(key, that.key)
-            && Objects.equals(rules, that.rules)
-            && Objects.equals(startAt, that.startAt)
-            && Objects.equals(endAt, that.endAt)
-            && Objects.equals(splits, that.splits);
+        && Objects.equals(key, that.key)
+        && Objects.equals(rules, that.rules)
+        && Objects.equals(startAt, that.startAt)
+        && Objects.equals(endAt, that.endAt)
+        && Objects.equals(splits, that.splits);
   }
 
   @Override
