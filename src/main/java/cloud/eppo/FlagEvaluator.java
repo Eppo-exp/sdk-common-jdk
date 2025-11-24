@@ -9,14 +9,16 @@ import cloud.eppo.api.AllocationEvaluationCode;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.FlagEvaluationCode;
+import cloud.eppo.api.IAllocation;
+import cloud.eppo.api.IFlagConfig;
+import cloud.eppo.api.IShard;
+import cloud.eppo.api.IShardRange;
+import cloud.eppo.api.ISplit;
+import cloud.eppo.api.ITargetingRule;
+import cloud.eppo.api.IVariation;
 import cloud.eppo.api.MatchedRule;
 import cloud.eppo.api.RuleCondition;
 import cloud.eppo.model.ShardRange;
-import cloud.eppo.ufc.dto.Allocation;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.Shard;
-import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.TargetingRule;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.HashMap;
@@ -34,7 +36,7 @@ public class FlagEvaluator {
    * particular variation was assigned.
    */
   public static FlagEvaluationResult evaluateFlag(
-      FlagConfig flag,
+      IFlagConfig flag,
       String flagKey,
       String subjectKey,
       Attributes subjectAttributes,
@@ -64,7 +66,7 @@ public class FlagEvaluator {
       // All allocations are unevaluated for disabled flags
       if (flag.getAllocations() != null) {
         for (int i = 0; i < flag.getAllocations().size(); i++) {
-          Allocation allocation = flag.getAllocations().get(i);
+          IAllocation allocation = flag.getAllocations().get(i);
           String allocationKey =
               isConfigObfuscated ? base64Decode(allocation.getKey()) : allocation.getKey();
           builder.addUnevaluatedAllocation(
@@ -75,13 +77,13 @@ public class FlagEvaluator {
       return builder.build();
     }
 
-    List<Allocation> allocationsToConsider =
+    List<? extends IAllocation> allocationsToConsider =
         flag.getAllocations() != null ? flag.getAllocations() : new LinkedList<>();
 
     int allocationPosition = 0;
     boolean foundMatch = false;
 
-    for (Allocation allocation : allocationsToConsider) {
+    for (IAllocation allocation : allocationsToConsider) {
       allocationPosition++;
       String allocationKey = allocation.getKey();
       String deobfuscatedAllocationKey =
@@ -114,7 +116,7 @@ public class FlagEvaluator {
       }
 
       // Check rules
-      TargetingRule matchedTargetingRule = null;
+      ITargetingRule matchedTargetingRule = null;
       if (allocation.getRules() != null && !allocation.getRules().isEmpty()) {
         matchedTargetingRule =
             RuleEvaluator.findMatchingRule(
@@ -134,9 +136,9 @@ public class FlagEvaluator {
       // This allocation has matched rules; find variation in splits
       Variation variation = null;
       Map<String, String> extraLogging = new HashMap<>();
-      Split matchedSplit = null;
+      ISplit matchedSplit = null;
 
-      for (Split split : allocation.getSplits()) {
+      for (ISplit split : allocation.getSplits()) {
         if (allShardsMatch(split, subjectKey, flag.getTotalShards(), isConfigObfuscated)) {
           variation = flag.getVariations().get(split.getVariationKey());
           if (variation == null) {
@@ -299,13 +301,13 @@ public class FlagEvaluator {
   }
 
   private static boolean allShardsMatch(
-      Split split, String subjectKey, int totalShards, boolean isObfuscated) {
+      ISplit split, String subjectKey, int totalShards, boolean isObfuscated) {
     if (split.getShards() == null || split.getShards().isEmpty()) {
       // Default to matching if no explicit shards
       return true;
     }
 
-    for (Shard shard : split.getShards()) {
+    for (IShard shard : split.getShards()) {
       if (!matchesShard(shard, subjectKey, totalShards, isObfuscated)) {
         return false;
       }
@@ -316,14 +318,14 @@ public class FlagEvaluator {
   }
 
   private static boolean matchesShard(
-      Shard shard, String subjectKey, int totalShards, boolean isObfuscated) {
+      IShard shard, String subjectKey, int totalShards, boolean isObfuscated) {
     String salt = shard.getSalt();
     if (isObfuscated) {
       salt = base64Decode(salt);
     }
     String hashKey = salt + "-" + subjectKey;
     int assignedShard = getShard(hashKey, totalShards);
-    for (ShardRange range : shard.getRanges()) {
+    for (IShardRange range : shard.getRanges()) {
       if (assignedShard >= range.getStart() && assignedShard < range.getEnd()) {
         return true;
       }

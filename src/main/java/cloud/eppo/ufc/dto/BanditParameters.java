@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditParameters;
 import java.util.Date;
 import java.util.Objects;
 
-public class BanditParameters {
+public class BanditParameters implements IBanditParameters {
   private final String banditKey;
   private final Date updatedAt;
   private final String modelName;

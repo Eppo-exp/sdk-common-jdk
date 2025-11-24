@@ -1,10 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.ISplit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class Split {
+public class Split implements ISplit {
   private final String variationKey;
   private final Set<Shard> shards;
   private final Map<String, String> extraLogging;

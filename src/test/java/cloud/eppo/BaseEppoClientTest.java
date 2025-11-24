@@ -801,7 +801,7 @@ public class BaseEppoClientTest {
       assertNotNull(config);
 
       // Verify known flag from initial configuration
-      FlagConfig numericFlag = config.getFlag("numeric_flag");
+      cloud.eppo.api.IFlagConfig numericFlag = config.getFlag("numeric_flag");
       assertNotNull(numericFlag);
       assertEquals(VariationType.NUMERIC, numericFlag.getVariationType());
 

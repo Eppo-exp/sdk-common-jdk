@@ -1,8 +1,9 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditFlagVariation;
 import java.util.Objects;
 
-public class BanditFlagVariation {
+public class BanditFlagVariation implements IBanditFlagVariation {
   private final String banditKey;
   private final String flagKey;
   private final String allocationKey;

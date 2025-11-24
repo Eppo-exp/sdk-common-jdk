@@ -5,9 +5,10 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IEppoValue;
+import cloud.eppo.api.ITargetingCondition;
+import cloud.eppo.api.ITargetingRule;
 import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.TargetingCondition;
-import cloud.eppo.ufc.dto.TargetingRule;
 import com.github.zafarkhaja.semver.Version;
 import java.util.Collections;
 import java.util.Map;
@@ -16,9 +17,9 @@ import java.util.regex.Pattern;
 
 public class RuleEvaluator {
 
-  public static TargetingRule findMatchingRule(
-      Attributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {
-    for (TargetingRule rule : rules) {
+  public static ITargetingRule findMatchingRule(
+      Attributes subjectAttributes, Set<? extends ITargetingRule> rules, boolean isObfuscated) {
+    for (ITargetingRule rule : rules) {
       if (allConditionsMatch(subjectAttributes, rule.getConditions(), isObfuscated)) {
         return rule;
       }
@@ -27,8 +28,8 @@ public class RuleEvaluator {
   }
 
   private static boolean allConditionsMatch(
-      Attributes subjectAttributes, Set<TargetingCondition> conditions, boolean isObfuscated) {
-    for (TargetingCondition condition : conditions) {
+      Attributes subjectAttributes, Set<? extends ITargetingCondition> conditions, boolean isObfuscated) {
+    for (ITargetingCondition condition : conditions) {
       if (!evaluateCondition(subjectAttributes, condition, isObfuscated)) {
         return false;
       }
@@ -37,10 +38,10 @@ public class RuleEvaluator {
   }
 
   private static boolean evaluateCondition(
-      Attributes subjectAttributes, TargetingCondition condition, boolean isObfuscated) {
-    EppoValue conditionValue = condition.getValue();
+      Attributes subjectAttributes, ITargetingCondition condition, boolean isObfuscated) {
+    IEppoValue conditionValue = condition.getValue();
     String attributeKey = condition.getAttribute();
-    EppoValue attributeValue = null;
+    IEppoValue attributeValue = null;
     if (isObfuscated) {
       // attribute names are hashed
       for (Map.Entry<String, EppoValue> entry : subjectAttributes.entrySet()) {
@@ -187,7 +188,7 @@ public class RuleEvaluator {
    * IN and NOT IN checks are not strongly typed, as the user is only entering in strings Thus we
    * need to cast the attribute to a string before hashing and checking
    */
-  private static String castAttributeForListComparison(EppoValue attributeValue) {
+  private static String castAttributeForListComparison(IEppoValue attributeValue) {
     if (attributeValue.isBoolean()) {
       return Boolean.valueOf(attributeValue.booleanValue()).toString();
     } else if (attributeValue.isNumeric()) {

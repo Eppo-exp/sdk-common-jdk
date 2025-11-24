@@ -1,21 +1,22 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IFlagConfigResponse;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FlagConfigResponse {
+public class FlagConfigResponse implements IFlagConfigResponse {
   private final Map<String, FlagConfig> flags;
   private final Map<String, BanditReference> banditReferences;
-  private final Format format;
+  private final IFlagConfigResponse.Format format;
   private final String environmentName;
   private final Date createdAt;
 
   public FlagConfigResponse(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
-      Format dataFormat,
+      IFlagConfigResponse.Format dataFormat,
       String environmentName,
       Date createdAt) {
     this.flags = flags;
@@ -28,17 +29,17 @@ public class FlagConfigResponse {
   public FlagConfigResponse(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
-      Format dataFormat) {
+      IFlagConfigResponse.Format dataFormat) {
     this(flags, banditReferences, dataFormat, null, null);
   }
 
   public FlagConfigResponse(
       Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
-    this(flags, banditReferences, Format.SERVER, null, null);
+    this(flags, banditReferences, IFlagConfigResponse.Format.SERVER, null, null);
   }
 
   public FlagConfigResponse() {
-    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER, null, null);
+    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), IFlagConfigResponse.Format.SERVER, null, null);
   }
 
   @Override
@@ -82,7 +83,8 @@ public class FlagConfigResponse {
     return this.banditReferences;
   }
 
-  public Format getFormat() {
+  @Override
+  public IFlagConfigResponse.Format getFormat() {
     return format;
   }
 
@@ -92,10 +94,5 @@ public class FlagConfigResponse {
 
   public Date getCreatedAt() {
     return createdAt;
-  }
-
-  public enum Format {
-    SERVER,
-    CLIENT
   }
 }

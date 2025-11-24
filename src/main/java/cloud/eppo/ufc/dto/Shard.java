@@ -1,11 +1,12 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IShard;
 import cloud.eppo.model.ShardRange;
 
 import java.util.Objects;
 import java.util.Set;
 
-public class Shard {
+public class Shard implements IShard {
   private final String salt;
   private final Set<ShardRange> ranges;
 

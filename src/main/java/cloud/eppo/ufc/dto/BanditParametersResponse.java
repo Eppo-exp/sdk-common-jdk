@@ -1,10 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditParametersResponse;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class BanditParametersResponse {
+public class BanditParametersResponse implements IBanditParametersResponse {
 
   private final Map<String, BanditParameters> bandits;
 

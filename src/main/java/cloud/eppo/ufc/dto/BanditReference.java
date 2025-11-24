@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditReference;
 import java.util.List;
 import java.util.Objects;
 
-public class BanditReference {
+public class BanditReference implements IBanditReference {
   private final String modelVersion;
   private final List<BanditFlagVariation> flagVariations;
 

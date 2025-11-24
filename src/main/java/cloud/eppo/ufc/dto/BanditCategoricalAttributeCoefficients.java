@@ -1,13 +1,14 @@
 package cloud.eppo.ufc.dto;
 
-import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IBanditCategoricalAttributeCoefficients;
 import java.util.Map;
 import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BanditCategoricalAttributeCoefficients implements BanditAttributeCoefficients {
+public class BanditCategoricalAttributeCoefficients
+    implements BanditAttributeCoefficients, IBanditCategoricalAttributeCoefficients {
   private final Logger logger =
       LoggerFactory.getLogger(BanditCategoricalAttributeCoefficients.class);
   private final String attributeKey;
@@ -50,7 +51,7 @@ public class BanditCategoricalAttributeCoefficients implements BanditAttributeCo
     return attributeKey;
   }
 
-  public double scoreForAttributeValue(EppoValue attributeValue) {
+  public double scoreForAttributeValue(cloud.eppo.api.IEppoValue attributeValue) {
     if (attributeValue == null || attributeValue.isNull()) {
       return missingValueCoefficient;
     }
