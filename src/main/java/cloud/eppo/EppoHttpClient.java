@@ -61,14 +61,7 @@ public class EppoHttpClient {
 
   public CompletableFuture<EppoHttpResponse> getAsync(String path, @Nullable String ifNoneMatch) {
     CompletableFuture<EppoHttpResponse> future = new CompletableFuture<>();
-    Request.Builder requestBuilder = buildRequestBuilder(path);
-
-    // Add If-None-Match header if eTag provided
-    if (ifNoneMatch != null && !ifNoneMatch.isEmpty()) {
-      requestBuilder.header("If-None-Match", ifNoneMatch);
-    }
-
-    Request request = requestBuilder.build();
+    Request request = buildRequest(path, ifNoneMatch);
 
     client
         .newCall(request)
@@ -123,7 +116,7 @@ public class EppoHttpClient {
     return future;
   }
 
-  private Request.Builder buildRequestBuilder(String path) {
+  private Request buildRequest(String path, @Nullable String ifNoneMatch) {
     HttpUrl httpUrl =
         HttpUrl.parse(baseUrl + path)
             .newBuilder()
@@ -132,6 +125,13 @@ public class EppoHttpClient {
             .addQueryParameter("sdkVersion", sdkVersion)
             .build();
 
-    return new Request.Builder().url(httpUrl);
+    Request.Builder requestBuilder = new Request.Builder().url(httpUrl);
+
+    // Add If-None-Match header if eTag provided
+    if (ifNoneMatch != null && !ifNoneMatch.isEmpty()) {
+      requestBuilder.header("If-None-Match", ifNoneMatch);
+    }
+
+    return requestBuilder.build();
   }
 }
