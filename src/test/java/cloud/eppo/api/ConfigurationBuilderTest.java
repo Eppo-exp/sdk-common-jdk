@@ -73,7 +73,8 @@ public class ConfigurationBuilderTest {
     // Create configuration with this flag
     Map<String, FlagConfig> flags = Collections.singletonMap("test-flag", flagConfig);
     Configuration config =
-        new Configuration(flags, Collections.emptyMap(), Collections.emptyMap(), false, null, null);
+        new Configuration(
+            flags, Collections.emptyMap(), Collections.emptyMap(), false, null, null, null);
 
     // Test successful case
     assertEquals(VariationType.STRING, config.getFlagType("test-flag"));
@@ -103,6 +104,7 @@ public class ConfigurationBuilderTest {
             Collections.emptyMap(),
             Collections.emptyMap(),
             true, // obfuscated
+            null,
             null,
             null);
 

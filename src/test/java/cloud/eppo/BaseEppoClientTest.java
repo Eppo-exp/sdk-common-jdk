@@ -734,7 +734,8 @@ public class BaseEppoClientTest {
     verify(httpClient, times(2)).get(anyString());
 
     // Set up a different config to be served
-    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    when(httpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse(DISABLED_BOOL_FLAG_CONFIG.getBytes(), 200, null));
     client.startPolling(20);
 
     // True until the next config is fetched.
