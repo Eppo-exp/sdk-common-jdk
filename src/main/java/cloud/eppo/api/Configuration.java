@@ -68,6 +68,8 @@ public class Configuration {
 
   private final byte[] banditParamsJson;
 
+  @Nullable private final String flagsETag;
+
   /** Default visibility for tests. */
   Configuration(
       Map<String, FlagConfig> flags,
@@ -75,7 +77,8 @@ public class Configuration {
       Map<String, BanditParameters> bandits,
       boolean isConfigObfuscated,
       byte[] flagConfigJson,
-      byte[] banditParamsJson) {
+      byte[] banditParamsJson,
+      @Nullable String flagsETag) {
     this.flags = flags;
     this.banditReferences = banditReferences;
     this.bandits = bandits;
@@ -97,6 +100,7 @@ public class Configuration {
     }
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
+    this.flagsETag = flagsETag;
   }
 
   public static Configuration emptyConfig() {
@@ -106,19 +110,29 @@ public class Configuration {
         Collections.emptyMap(),
         false,
         emptyFlagsBytes,
+        null,
         null);
   }
 
   @Override
   public String toString() {
-    return "Configuration{" +
-      "banditReferences=" + banditReferences +
-      ", flags=" + flags +
-      ", bandits=" + bandits +
-      ", isConfigObfuscated=" + isConfigObfuscated +
-      ", flagConfigJson=" + Arrays.toString(flagConfigJson) +
-      ", banditParamsJson=" + Arrays.toString(banditParamsJson) +
-      '}';
+    return "Configuration{"
+        + "banditReferences="
+        + banditReferences
+        + ", flags="
+        + flags
+        + ", bandits="
+        + bandits
+        + ", isConfigObfuscated="
+        + isConfigObfuscated
+        + ", flagConfigJson="
+        + Arrays.toString(flagConfigJson)
+        + ", banditParamsJson="
+        + Arrays.toString(banditParamsJson)
+        + ", flagsETag='"
+        + flagsETag
+        + '\''
+        + '}';
   }
 
   @Override
@@ -126,16 +140,24 @@ public class Configuration {
     if (o == null || getClass() != o.getClass()) return false;
     Configuration that = (Configuration) o;
     return isConfigObfuscated == that.isConfigObfuscated
-            && Objects.equals(banditReferences, that.banditReferences)
-            && Objects.equals(flags, that.flags)
-            && Objects.equals(bandits, that.bandits)
-            && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
-            && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+        && Objects.equals(banditReferences, that.banditReferences)
+        && Objects.equals(flags, that.flags)
+        && Objects.equals(bandits, that.bandits)
+        && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
+        && Objects.deepEquals(banditParamsJson, that.banditParamsJson)
+        && Objects.equals(flagsETag, that.flagsETag);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(banditReferences, flags, bandits, isConfigObfuscated, Arrays.hashCode(flagConfigJson), Arrays.hashCode(banditParamsJson));
+    return Objects.hash(
+        banditReferences,
+        flags,
+        bandits,
+        isConfigObfuscated,
+        Arrays.hashCode(flagConfigJson),
+        Arrays.hashCode(banditParamsJson),
+        flagsETag);
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -197,6 +219,10 @@ public class Configuration {
     return banditParamsJson;
   }
 
+  @Nullable public String getFlagsETag() {
+    return flagsETag;
+  }
+
   public boolean isEmpty() {
     return flags == null || flags.isEmpty();
   }
@@ -226,6 +252,7 @@ public class Configuration {
     private Map<String, BanditParameters> bandits = Collections.emptyMap();
     private final byte[] flagJson;
     private byte[] banditParamsJson;
+    @Nullable private String flagsETag;
 
     private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
@@ -336,9 +363,20 @@ public class Configuration {
       return this;
     }
 
+    public Builder flagsETag(@Nullable String eTag) {
+      this.flagsETag = eTag;
+      return this;
+    }
+
     public Configuration build() {
       return new Configuration(
-          flags, banditReferences, bandits, isConfigObfuscated, flagJson, banditParamsJson);
+          flags,
+          banditReferences,
+          bandits,
+          isConfigObfuscated,
+          flagJson,
+          banditParamsJson,
+          flagsETag);
     }
   }
 }

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.EppoHttpClient;
+import cloud.eppo.EppoHttpResponse;
 import java.lang.reflect.Field;
 import java.util.concurrent.CompletableFuture;
 import okhttp3.*;
@@ -16,13 +17,17 @@ public class TestUtils {
     // Create a mock instance of EppoHttpClient
     EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
+    // Create EppoHttpResponse with 200 status and no eTag
+    EppoHttpResponse response = new EppoHttpResponse(responseBody.getBytes(), 200, null);
 
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
+    // Mock sync get
+    when(mockHttpClient.get(anyString())).thenReturn(response);
+
+    // Mock async get - both signatures
+    CompletableFuture<EppoHttpResponse> mockAsyncResponse = new CompletableFuture<>();
     when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.complete(responseBody.getBytes());
+    when(mockHttpClient.getAsync(anyString(), any())).thenReturn(mockAsyncResponse);
+    mockAsyncResponse.complete(response);
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
     return mockHttpClient;
@@ -35,9 +40,10 @@ public class TestUtils {
     // Mock sync get
     when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
 
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
+    // Mock async get - both signatures
+    CompletableFuture<EppoHttpResponse> mockAsyncResponse = new CompletableFuture<>();
     when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
+    when(mockHttpClient.getAsync(anyString(), any())).thenReturn(mockAsyncResponse);
     mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
