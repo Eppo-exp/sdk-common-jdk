@@ -1,7 +1,6 @@
 package cloud.eppo;
 
-import static cloud.eppo.helpers.AssignmentTestCase.parseTestCaseFile;
-import static cloud.eppo.helpers.AssignmentTestCase.runTestCase;
+import static cloud.eppo.helpers.AssignmentTestCase.*;
 import static cloud.eppo.helpers.TestUtils.mockHttpError;
 import static cloud.eppo.helpers.TestUtils.mockHttpResponse;
 import static cloud.eppo.helpers.TestUtils.setBaseClientHttpClientOverrideField;
@@ -188,6 +187,22 @@ public class BaseEppoClientTest {
     runTestCase(testCase, eppoClient);
   }
 
+  @ParameterizedTest
+  @MethodSource("getAssignmentTestData")
+  public void testUnobfuscatedAssignmentsWithDetails(File testFile) {
+    initClient(false, false);
+    AssignmentTestCase testCase = parseTestCaseFile(testFile);
+    runTestCaseWithDetails(testCase, eppoClient);
+  }
+
+  @ParameterizedTest
+  @MethodSource("getAssignmentTestData")
+  public void testObfuscatedAssignmentsWithDetails(File testFile) {
+    initClient(false, true);
+    AssignmentTestCase testCase = parseTestCaseFile(testFile);
+    runTestCaseWithDetails(testCase, eppoClient);
+  }
+
   private static Stream<Arguments> getAssignmentTestData() {
     return AssignmentTestCase.getAssignmentTestData();
   }
@@ -243,12 +258,8 @@ public class BaseEppoClientTest {
     BaseEppoClient spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
-        .getTypedAssignment(
-            anyString(),
-            anyString(),
-            any(Attributes.class),
-            any(EppoValue.class),
-            any(VariationType.class));
+        .evaluateAndMaybeLog(
+            anyString(), anyString(), any(Attributes.class), any(VariationType.class));
 
     assertTrue(spyClient.getBooleanAssignment("experiment1", "subject1", true));
     assertFalse(spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
@@ -292,12 +303,8 @@ public class BaseEppoClientTest {
     BaseEppoClient spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
-        .getTypedAssignment(
-            anyString(),
-            anyString(),
-            any(Attributes.class),
-            any(EppoValue.class),
-            any(VariationType.class));
+        .evaluateAndMaybeLog(
+            anyString(), anyString(), any(Attributes.class), any(VariationType.class));
 
     assertThrows(
         RuntimeException.class,

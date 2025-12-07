@@ -5,7 +5,6 @@ import static cloud.eppo.Utils.parseUtcISODateNode;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
-import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,7 +34,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
 
   @Override
   public FlagConfigResponse deserialize(JsonParser jp, DeserializationContext ctxt)
-      throws IOException, JacksonException {
+      throws IOException {
     JsonNode rootNode = jp.getCodec().readTree(jp);
 
     if (rootNode == null || !rootNode.isObject()) {

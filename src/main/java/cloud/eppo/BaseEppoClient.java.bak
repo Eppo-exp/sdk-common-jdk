@@ -12,6 +12,7 @@ import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -190,31 +191,16 @@ public class BaseEppoClient {
     return future;
   }
 
-    /**
-     * Top-level assignment details method that evaluates, logs if applicable, and returns the user-facing AssignmentDetails result class.
-     * If any error in the evaluation, the result value will be set to the default value.
-     */
-  protected <T> AssignmentDetails<T> getTypedAssignmentWithDetails(
-      String flagKey,
-      String subjectKey,
-      Attributes subjectAttributes,
-      T defaultValue,
-      VariationType expectedType) {
-
-    EvaluationDetails details =
-        evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, expectedType);
-
-    T resultValue = details.evaluationSuccessful() ? EppoValue.unwrap(details.getVariationValue(), expectedType) : defaultValue;
-    return new AssignmentDetails<>(resultValue, null, details);
-  }
-
   /**
    * Core evaluation method that handles validation, evaluation, and logging. This consolidates the
    * shared logic between all assignment methods. Returns evaluation details with variationValue set
    * to the result.
    */
-  protected EvaluationDetails evaluateAndMaybeLog(
-      String flagKey, String subjectKey, Attributes subjectAttributes, VariationType expectedType) {
+  protected EvaluationDetails evaluateAndLog(
+      String flagKey,
+      String subjectKey,
+      Attributes subjectAttributes,
+      VariationType expectedType) {
 
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
@@ -275,6 +261,7 @@ public class BaseEppoClient {
 
       // Update evaluation details with error code but keep the matched allocation and variation
       // info
+      // Set variationValue to null since no valid variation can be assigned
       String variationKey =
           detailedResult.getVariation() != null ? detailedResult.getVariation().getKey() : null;
       String errorDescription =
@@ -284,9 +271,7 @@ public class BaseEppoClient {
 
       return new EvaluationDetails(
           evaluationDetails.getEnvironmentName(),
-          FlagEvaluationCode
-              .ASSIGNMENT_ERROR, // We use ASSIGNMENT_ERROR for value mismatch as it's a
-          // misconfiguration of the flag itself
+          FlagEvaluationCode.ASSIGNMENT_ERROR, // We use ASSIGNMENT_ERROR for value mismatch as it's a misconfiguration of the flag itself
           errorDescription,
           evaluationDetails.getBanditKey(),
           evaluationDetails.getBanditAction(),
@@ -352,7 +337,7 @@ public class BaseEppoClient {
         typeMatch =
             value.isNumeric()
                 // Java has no isInteger check so we check using mod
-                && value.doubleValue() % 1 == 0;
+                && value.doubleValue() % 1 == 0.0;
         break;
       case NUMERIC:
         typeMatch = value.isNumeric();
@@ -364,7 +349,7 @@ public class BaseEppoClient {
         typeMatch =
             value.isString()
                 // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse
-                && EppoValue.unwrap(value, VariationType.JSON) != null;
+                && parseJsonString(value.stringValue()) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
@@ -379,15 +364,272 @@ public class BaseEppoClient {
 
   public boolean getBooleanAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, boolean defaultValue) {
-    return this.getBooleanAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    try {
+      EvaluationDetails details =
+          evaluateAndLog(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue),
+              VariationType.BOOLEAN);
+      EppoValue value = details.getVariationValue();
+      return details.evaluationSuccessful() ? value.booleanValue() : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
   }
 
+  public int getIntegerAssignment(String flagKey, String subjectKey, int defaultValue) {
+    return getIntegerAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  public int getIntegerAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
+    try {
+      EvaluationDetails details =
+          evaluateAndLog(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue),
+              VariationType.INTEGER);
+      EppoValue value = details.getVariationValue();
+      return details.evaluationSuccessful() ? (int) value.doubleValue() : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  public Double getDoubleAssignment(String flagKey, String subjectKey, double defaultValue) {
+    return getDoubleAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  public Double getDoubleAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
+    try {
+      EvaluationDetails details =
+          evaluateAndLog(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue),
+              VariationType.NUMERIC);
+      EppoValue value = details.getVariationValue();
+      return details.evaluationSuccessful() ? value.doubleValue() : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  public String getStringAssignment(String flagKey, String subjectKey, String defaultValue) {
+    return this.getStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  public String getStringAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
+    try {
+      EvaluationDetails details =
+          evaluateAndLog(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue),
+              VariationType.STRING);
+      EppoValue value = details.getVariationValue();
+      return details.evaluationSuccessful() ? value.stringValue() : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  /**
+   * Returns the assignment for the provided feature flag key and subject key as a {@link JsonNode}.
+   * If the flag is not found, does not match the requested type or is disabled, defaultValue is
+   * returned.
+   *
+   * @param flagKey the feature flag key
+   * @param subjectKey the subject key
+   * @param defaultValue the default value to return if the flag is not found
+   * @return the JSON string value of the assignment
+   */
+  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
+    return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  /**
+   * Returns the assignment for the provided feature flag key and subject key as a {@link JsonNode}.
+   * If the flag is not found, does not match the requested type or is disabled, defaultValue is
+   * returned.
+   *
+   * @param flagKey the feature flag key
+   * @param subjectKey the subject key
+   * @param defaultValue the default value to return if the flag is not found
+   * @return the JSON string value of the assignment
+   */
+  public JsonNode getJSONAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+    try {
+      EvaluationDetails details =
+          evaluateAndLog(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue.toString()),
+              VariationType.JSON);
+      EppoValue value = details.getVariationValue();
+      if (details.evaluationSuccessful()) {
+        String stringValue = value.stringValue();
+        return parseJsonString(stringValue);
+      } else {
+          return defaultValue;
+      }
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  /**
+   * Returns the assignment for the provided feature flag key, subject key and subject attributes as
+   * a JSON string. If the flag is not found, does not match the requested type or is disabled,
+   * defaultValue is returned.
+   *
+   * @param flagKey the feature flag key
+   * @param subjectKey the subject key
+   * @param defaultValue the default value to return if the flag is not found
+   * @return the JSON string value of the assignment
+   */
+  public String getJSONStringAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
+    try {
+      EvaluationDetails details =
+          evaluateAndLog(
+              flagKey,
+              subjectKey,
+              subjectAttributes,
+              EppoValue.valueOf(defaultValue),
+              VariationType.JSON);
+      EppoValue value = details.getVariationValue();
+      return details.evaluationSuccessful() ? value.stringValue() : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  /**
+   * Returns the assignment for the provided feature flag key and subject key as a JSON String. If
+   * the flag is not found, does not match the requested type or is disabled, defaultValue is
+   * returned.
+   *
+   * @param flagKey the feature flag key
+   * @param subjectKey the subject key
+   * @param defaultValue the default value to return if the flag is not found
+   * @return the JSON string value of the assignment
+   */
+  public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
+    return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  private JsonNode parseJsonString(String jsonString) {
+    try {
+      return mapper.readTree(jsonString);
+    } catch (JsonProcessingException e) {
+      return null;
+    }
+  }
+
+  /** Internal method to get assignment with detailed evaluation information. */
+  protected <T> AssignmentDetails<T> getTypedAssignmentWithDetails(
+      String flagKey,
+      String subjectKey,
+      Attributes subjectAttributes,
+      T defaultValue,
+      VariationType expectedType) {
+
+    // Convert default value to EppoValue for evaluation
+    EppoValue defaultEppoValue;
+    if (defaultValue == null) {
+      defaultEppoValue = EppoValue.nullValue();
+    } else {
+      switch (expectedType) {
+        case BOOLEAN:
+          defaultEppoValue = EppoValue.valueOf((Boolean) defaultValue);
+          break;
+        case INTEGER:
+          // EppoValue doesn't have valueOf(int), so convert to double first
+          defaultEppoValue = EppoValue.valueOf(((Integer) defaultValue).doubleValue());
+          break;
+        case NUMERIC:
+          defaultEppoValue = EppoValue.valueOf((Double) defaultValue);
+          break;
+        case STRING:
+          defaultEppoValue = EppoValue.valueOf((String) defaultValue);
+          break;
+        case JSON:
+          // Handle JsonNode by converting to string
+          if (defaultValue instanceof JsonNode) {
+            defaultEppoValue = EppoValue.valueOf(defaultValue.toString());
+          } else {
+            defaultEppoValue = EppoValue.valueOf((String) defaultValue);
+          }
+          break;
+        default:
+          defaultEppoValue = EppoValue.nullValue();
+      }
+    }
+
+    EvaluationDetails details =
+        evaluateAndLog(flagKey, subjectKey, subjectAttributes, defaultEppoValue, expectedType);
+
+    EppoValue value = details.getVariationValue();
+    EppoValue valueToConvert = details.evaluationSuccessful() ? value : defaultEppoValue;
+    T resultValue = convertEppoValue(valueToConvert, expectedType, defaultValue);
+    return new AssignmentDetails<>(resultValue, null, details);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> T convertEppoValue(EppoValue value, VariationType expectedType, T defaultValue) {
+    switch (expectedType) {
+      case BOOLEAN:
+        return (T) Boolean.valueOf(value.booleanValue());
+      case INTEGER:
+        return (T) Integer.valueOf((int) value.doubleValue());
+      case NUMERIC:
+        return (T) Double.valueOf(value.doubleValue());
+      case STRING:
+      case JSON:
+        return (T) value.stringValue();
+      default:
+        return defaultValue;
+    }
+  }
+
+  private EvaluationDetails buildDefaultEvaluationDetails(
+      FlagEvaluationCode code, String description, EppoValue variationValue) {
+    return new EvaluationDetails(
+        "Test", // Default environment name
+        code,
+        description,
+        null, // banditKey
+        null, // banditAction
+        null, // variationKey
+        variationValue,
+        null, // matchedRule
+        null, // matchedAllocation
+        new ArrayList<>(), // unmatchedAllocations
+        new ArrayList<>()); // unevaluatedAllocations
+  }
+
+  /**
+   * Returns assignment details for a boolean flag including comprehensive evaluation information.
+   */
   public AssignmentDetails<Boolean> getBooleanAssignmentDetails(
       String flagKey, String subjectKey, boolean defaultValue) {
     return this.getBooleanAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  /**
+   * Returns assignment details for a boolean flag including comprehensive evaluation information.
+   */
   public AssignmentDetails<Boolean> getBooleanAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, boolean defaultValue) {
     try {
@@ -404,21 +646,17 @@ public class BaseEppoClient {
     }
   }
 
-  public int getIntegerAssignment(String flagKey, String subjectKey, int defaultValue) {
-    return getIntegerAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public int getIntegerAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
-    return this.getIntegerAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
+  /**
+   * Returns assignment details for an integer flag including comprehensive evaluation information.
+   */
   public AssignmentDetails<Integer> getIntegerAssignmentDetails(
       String flagKey, String subjectKey, int defaultValue) {
     return getIntegerAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  /**
+   * Returns assignment details for an integer flag including comprehensive evaluation information.
+   */
   public AssignmentDetails<Integer> getIntegerAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
     try {
@@ -435,21 +673,19 @@ public class BaseEppoClient {
     }
   }
 
-  public Double getDoubleAssignment(String flagKey, String subjectKey, double defaultValue) {
-    return getDoubleAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public Double getDoubleAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
-    return this.getDoubleAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
+  /**
+   * Returns assignment details for a numeric (double) flag including comprehensive evaluation
+   * information.
+   */
   public AssignmentDetails<Double> getDoubleAssignmentDetails(
       String flagKey, String subjectKey, double defaultValue) {
     return getDoubleAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  /**
+   * Returns assignment details for a numeric (double) flag including comprehensive evaluation
+   * information.
+   */
   public AssignmentDetails<Double> getDoubleAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
     try {
@@ -466,21 +702,17 @@ public class BaseEppoClient {
     }
   }
 
-  public String getStringAssignment(String flagKey, String subjectKey, String defaultValue) {
-    return this.getStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public String getStringAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
-    return this.getStringAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
+  /**
+   * Returns assignment details for a string flag including comprehensive evaluation information.
+   */
   public AssignmentDetails<String> getStringAssignmentDetails(
       String flagKey, String subjectKey, String defaultValue) {
     return this.getStringAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  /**
+   * Returns assignment details for a string flag including comprehensive evaluation information.
+   */
   public AssignmentDetails<String> getStringAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
@@ -497,26 +729,38 @@ public class BaseEppoClient {
     }
   }
 
-  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
-    return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
-    return this.getJSONAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
+  /**
+   * Returns assignment details for a JSON flag including comprehensive evaluation information. The
+   * variation value is returned as a JsonNode.
+   */
   public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
       String flagKey, String subjectKey, JsonNode defaultValue) {
     return this.getJSONAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  /**
+   * Returns assignment details for a JSON flag including comprehensive evaluation information. The
+   * variation value is returned as a JsonNode.
+   */
   public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
     try {
-      return this.getTypedAssignmentWithDetails(
-          flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
+      // Get the string assignment details first
+      AssignmentDetails<String> stringDetails =
+          this.getTypedAssignmentWithDetails(
+              flagKey, subjectKey, subjectAttributes, null, VariationType.JSON);
+
+      String jsonString = stringDetails.getVariation();
+      JsonNode resultValue = defaultValue;
+      if (jsonString != null) {
+        JsonNode parsed = parseJsonString(jsonString);
+        if (parsed != null) {
+          resultValue = parsed;
+        }
+      }
+
+      return new AssignmentDetails<>(
+          resultValue, stringDetails.getAction(), stringDetails.getEvaluationDetails());
     } catch (Exception e) {
       String defaultValueString = defaultValue != null ? defaultValue.toString() : null;
       return new AssignmentDetails<>(
@@ -529,21 +773,19 @@ public class BaseEppoClient {
     }
   }
 
-  public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
-    return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public String getJSONStringAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
-    return this.getJSONStringAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
+  /**
+   * Returns assignment details for a JSON flag including comprehensive evaluation information. The
+   * variation value is returned as a JSON string.
+   */
   public AssignmentDetails<String> getJSONStringAssignmentDetails(
       String flagKey, String subjectKey, String defaultValue) {
     return this.getJSONStringAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
+  /**
+   * Returns assignment details for a JSON flag including comprehensive evaluation information. The
+   * variation value is returned as a JSON string.
+   */
   public AssignmentDetails<String> getJSONStringAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
@@ -631,149 +873,133 @@ public class BaseEppoClient {
     }
   }
 
-    /**
-     * Returns bandit action assignment with detailed evaluation information including flag evaluation
-     * details and bandit action selection.
-     */
-    public AssignmentDetails<String> getBanditActionDetails(
-            String flagKey,
-            String subjectKey,
-            DiscriminableAttributes subjectAttributes,
-            Actions actions,
-            String defaultValue) {
-        final Configuration config = getConfiguration();
+  /**
+   * Returns bandit action assignment with detailed evaluation information including flag evaluation
+   * details and bandit action selection.
+   */
+  public AssignmentDetails<String> getBanditActionDetails(
+      String flagKey,
+      String subjectKey,
+      DiscriminableAttributes subjectAttributes,
+      Actions actions,
+      String defaultValue) {
+    final Configuration config = getConfiguration();
+    try {
+      // Get detailed flag assignment
+      AssignmentDetails<String> flagDetails =
+          getStringAssignmentDetails(
+              flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
+
+      String assignedVariation = flagDetails.getVariation();
+      String assignedAction = null;
+
+      // If we got a variation, check for bandit
+      String banditKey = config.banditKeyForVariation(flagKey, assignedVariation);
+      if (banditKey != null && !actions.isEmpty()) {
         try {
-            // Get detailed flag assignment
-            AssignmentDetails<String> flagDetails =
-                    getStringAssignmentDetails(
-                            flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
+          BanditParameters banditParameters = config.getBanditParameters(banditKey);
+          if (banditParameters == null) {
+            throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
+          }
+          BanditEvaluationResult banditResult =
+              BanditEvaluator.evaluateBandit(
+                  flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
 
-            String assignedVariation = flagDetails.getVariation();
-            String assignedAction = null;
+          assignedAction = banditResult.getActionKey();
 
-            // If we got a variation, check for bandit
-            String banditKey = config.banditKeyForVariation(flagKey, assignedVariation);
-            if (banditKey != null && !actions.isEmpty()) {
-                try {
-                    BanditParameters banditParameters = config.getBanditParameters(banditKey);
-                    if (banditParameters == null) {
-                        throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
-                    }
-                    BanditEvaluationResult banditResult =
-                            BanditEvaluator.evaluateBandit(
-                                    flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
+          // Log bandit assignment if needed
+          if (banditLogger != null) {
+            try {
+              BanditAssignment banditAssignment =
+                  new BanditAssignment(
+                      flagKey,
+                      banditKey,
+                      subjectKey,
+                      banditResult.getActionKey(),
+                      banditResult.getActionWeight(),
+                      banditResult.getOptimalityGap(),
+                      banditParameters.getModelVersion(),
+                      subjectAttributes.getNumericAttributes(),
+                      subjectAttributes.getCategoricalAttributes(),
+                      banditResult.getActionAttributes().getNumericAttributes(),
+                      banditResult.getActionAttributes().getCategoricalAttributes(),
+                      buildLogMetaData(config.isConfigObfuscated()));
 
-                    assignedAction = banditResult.getActionKey();
-
-                    // Log bandit assignment if needed
-                    if (banditLogger != null) {
-                        try {
-                            BanditAssignment banditAssignment =
-                                    new BanditAssignment(
-                                            flagKey,
-                                            banditKey,
-                                            subjectKey,
-                                            banditResult.getActionKey(),
-                                            banditResult.getActionWeight(),
-                                            banditResult.getOptimalityGap(),
-                                            banditParameters.getModelVersion(),
-                                            subjectAttributes.getNumericAttributes(),
-                                            subjectAttributes.getCategoricalAttributes(),
-                                            banditResult.getActionAttributes().getNumericAttributes(),
-                                            banditResult.getActionAttributes().getCategoricalAttributes(),
-                                            buildLogMetaData(config.isConfigObfuscated()));
-
-                            boolean logBanditAssignment = true;
-                            AssignmentCacheEntry cacheEntry =
-                                    AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
-                            if (banditAssignmentCache != null) {
-                                if (banditAssignmentCache.hasEntry(cacheEntry)) {
-                                    logBanditAssignment = false;
-                                }
-                            }
-
-                            if (logBanditAssignment) {
-                                banditLogger.logBanditAssignment(banditAssignment);
-                                if (banditAssignmentCache != null) {
-                                    banditAssignmentCache.put(cacheEntry);
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
-                        }
-                    }
-
-                    // Update evaluation details to include bandit information
-                    EvaluationDetails updatedDetails =
-                            new EvaluationDetails(
-                                    flagDetails.getEvaluationDetails().getEnvironmentName(),
-                                    flagDetails.getEvaluationDetails().getFlagEvaluationCode(),
-                                    flagDetails.getEvaluationDetails().getFlagEvaluationDescription(),
-                                    banditKey,
-                                    assignedAction,
-                                    flagDetails.getEvaluationDetails().getVariationKey(),
-                                    flagDetails.getEvaluationDetails().getVariationValue(),
-                                    flagDetails.getEvaluationDetails().getMatchedRule(),
-                                    flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                                    flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                                    flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
-
-                    return new AssignmentDetails<>(assignedVariation, assignedAction, updatedDetails);
-                } catch (Exception banditError) {
-                    // Bandit evaluation failed - return flag details with BANDIT_ERROR code
-                    log.warn(
-                            "Bandit evaluation failed for flag {}: {}",
-                            flagKey,
-                            banditError.getMessage(),
-                            banditError);
-                    EvaluationDetails banditErrorDetails =
-                            new EvaluationDetails(
-                                    flagDetails.getEvaluationDetails().getEnvironmentName(),
-                                    FlagEvaluationCode.BANDIT_ERROR,
-                                    "Bandit evaluation failed: " + banditError.getMessage(),
-                                    banditKey,
-                                    null, // no action assigned due to error
-                                    flagDetails.getEvaluationDetails().getVariationKey(),
-                                    flagDetails.getEvaluationDetails().getVariationValue(),
-                                    flagDetails.getEvaluationDetails().getMatchedRule(),
-                                    flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                                    flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                                    flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
-                    return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
+              boolean logBanditAssignment = true;
+              AssignmentCacheEntry cacheEntry =
+                  AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
+              if (banditAssignmentCache != null) {
+                if (banditAssignmentCache.hasEntry(cacheEntry)) {
+                  logBanditAssignment = false;
                 }
+              }
+
+              if (logBanditAssignment) {
+                banditLogger.logBanditAssignment(banditAssignment);
+                if (banditAssignmentCache != null) {
+                  banditAssignmentCache.put(cacheEntry);
+                }
+              }
+            } catch (Exception e) {
+              log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
             }
+          }
 
-            // No bandit - return flag details as-is
-            return flagDetails;
-        } catch (Exception e) {
-            BanditResult defaultResult = new BanditResult(defaultValue, null);
-            AssignmentDetails<String> errorDetails =
-                    new AssignmentDetails<>(
-                            defaultValue,
-                            null,
-                            buildDefaultEvaluationDetails(
-                                    FlagEvaluationCode.ASSIGNMENT_ERROR,
-                                    e.getMessage(),
-                                    EppoValue.valueOf(defaultValue)));
-            return throwIfNotGraceful(e, errorDetails);
+          // Update evaluation details to include bandit information
+          EvaluationDetails updatedDetails =
+              new EvaluationDetails(
+                  flagDetails.getEvaluationDetails().getEnvironmentName(),
+                  flagDetails.getEvaluationDetails().getFlagEvaluationCode(),
+                  flagDetails.getEvaluationDetails().getFlagEvaluationDescription(),
+                  banditKey,
+                  assignedAction,
+                  flagDetails.getEvaluationDetails().getVariationKey(),
+                  flagDetails.getEvaluationDetails().getVariationValue(),
+                  flagDetails.getEvaluationDetails().getMatchedRule(),
+                  flagDetails.getEvaluationDetails().getMatchedAllocation(),
+                  flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
+                  flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+
+          return new AssignmentDetails<>(assignedVariation, assignedAction, updatedDetails);
+        } catch (Exception banditError) {
+          // Bandit evaluation failed - return flag details with BANDIT_ERROR code
+          log.warn(
+              "Bandit evaluation failed for flag {}: {}",
+              flagKey,
+              banditError.getMessage(),
+              banditError);
+          EvaluationDetails banditErrorDetails =
+              new EvaluationDetails(
+                  flagDetails.getEvaluationDetails().getEnvironmentName(),
+                  FlagEvaluationCode.BANDIT_ERROR,
+                  "Bandit evaluation failed: " + banditError.getMessage(),
+                  banditKey,
+                  null, // no action assigned due to error
+                  flagDetails.getEvaluationDetails().getVariationKey(),
+                  flagDetails.getEvaluationDetails().getVariationValue(),
+                  flagDetails.getEvaluationDetails().getMatchedRule(),
+                  flagDetails.getEvaluationDetails().getMatchedAllocation(),
+                  flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
+                  flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+          return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
         }
-    }
+      }
 
-    private EvaluationDetails buildDefaultEvaluationDetails(
-            FlagEvaluationCode code, String description, EppoValue variationValue) {
-        return new EvaluationDetails(
-                "Test", // Environment name - matches FlagEvaluator default
-                code,
-                description,
-                null, // banditKey
-                null, // banditAction
-                null, // variationKey
-                variationValue,
-                null, // matchedRule
-                null, // matchedAllocation
-                new ArrayList<>(), // unmatchedAllocations
-                new ArrayList<>()); // unevaluatedAllocations
+      // No bandit - return flag details as-is
+      return flagDetails;
+    } catch (Exception e) {
+      BanditResult defaultResult = new BanditResult(defaultValue, null);
+      AssignmentDetails<String> errorDetails =
+          new AssignmentDetails<>(
+              defaultValue,
+              null,
+              buildDefaultEvaluationDetails(
+                  FlagEvaluationCode.ASSIGNMENT_ERROR,
+                  e.getMessage(),
+                  EppoValue.valueOf(defaultValue)));
+      return throwIfNotGraceful(e, errorDetails);
     }
+  }
 
   private Map<String, String> buildLogMetaData(boolean isConfigObfuscated) {
     HashMap<String, String> metaData = new HashMap<>();
