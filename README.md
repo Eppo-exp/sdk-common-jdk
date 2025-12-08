@@ -54,6 +54,6 @@ repositories {
 }
 
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:3.13.1-SNAPSHOT'
+  implementation 'cloud.eppo:sdk-common-jvm:3.13.2'
 }
 ```
