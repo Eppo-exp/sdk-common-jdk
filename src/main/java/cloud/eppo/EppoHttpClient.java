@@ -70,7 +70,8 @@ public class EppoHttpClient {
                   } catch (IOException ex) {
                     future.completeExceptionally(
                         new RuntimeException(
-                            "Failed to read response from URL {}" + request.url(), ex));
+                            "Failed to read response from URL {}" + redactApiKey(request.url()),
+                            ex));
                   }
                 } else {
                   if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
@@ -78,7 +79,8 @@ public class EppoHttpClient {
                   } else {
                     log.debug("Fetch failed with status code: {}", response.code());
                     future.completeExceptionally(
-                        new RuntimeException("Bad response from URL " + request.url()));
+                        new RuntimeException(
+                            "Bad response from URL " + redactApiKey(request.url())));
                   }
                 }
                 response.close();
@@ -92,7 +94,8 @@ public class EppoHttpClient {
                     Arrays.toString(e.getStackTrace()),
                     e);
                 future.completeExceptionally(
-                    new RuntimeException("Unable to fetch from URL " + request.url()));
+                    new RuntimeException(
+                        "Unable to fetch from URL " + redactApiKey(request.url())));
               }
             });
     return future;
@@ -108,5 +111,9 @@ public class EppoHttpClient {
             .build();
 
     return new Request.Builder().url(httpUrl).build();
+  }
+
+  private String redactApiKey(HttpUrl url) {
+    return url.toString().replaceAll("apiKey=[^&]*", "apiKey=<redacted>");
   }
 }
