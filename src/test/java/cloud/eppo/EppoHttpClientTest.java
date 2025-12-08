@@ -36,7 +36,10 @@ public class EppoHttpClientTest {
   public void testApiKeyRedactedInIOExceptionMessage() {
     // Simulate a response that will cause an IOException when reading the body
     mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setBody("test").setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY));
+        new MockResponse()
+            .setResponseCode(200)
+            .setBody("test")
+            .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY));
 
     CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
 
@@ -50,8 +53,7 @@ public class EppoHttpClientTest {
 
     // Verify the actual API key is NOT present in the error message
     assertFalse(
-        errorMessage.contains(TEST_API_KEY),
-        "Error message should not contain the actual API key");
+        errorMessage.contains(TEST_API_KEY), "Error message should not contain the actual API key");
 
     // Verify the redacted placeholder IS present
     assertTrue(
@@ -72,12 +74,13 @@ public class EppoHttpClientTest {
     String errorMessage = cause.getMessage();
 
     // Verify the error message is about a bad response
-    assertTrue(errorMessage.contains("Bad response from URL"), "Error message should mention bad response");
+    assertTrue(
+        errorMessage.contains("Bad response from URL"),
+        "Error message should mention bad response");
 
     // Verify the actual API key is NOT present in the error message
     assertFalse(
-        errorMessage.contains(TEST_API_KEY),
-        "Error message should not contain the actual API key");
+        errorMessage.contains(TEST_API_KEY), "Error message should not contain the actual API key");
 
     // Verify the redacted placeholder IS present
     assertTrue(
@@ -98,12 +101,13 @@ public class EppoHttpClientTest {
     String errorMessage = cause.getMessage();
 
     // Verify the error message is about being unable to fetch
-    assertTrue(errorMessage.contains("Unable to fetch from URL"), "Error message should mention unable to fetch");
+    assertTrue(
+        errorMessage.contains("Unable to fetch from URL"),
+        "Error message should mention unable to fetch");
 
     // Verify the actual API key is NOT present in the error message
     assertFalse(
-        errorMessage.contains(TEST_API_KEY),
-        "Error message should not contain the actual API key");
+        errorMessage.contains(TEST_API_KEY), "Error message should not contain the actual API key");
 
     // Verify the redacted placeholder IS present
     assertTrue(
@@ -112,7 +116,8 @@ public class EppoHttpClientTest {
   }
 
   @Test
-  public void testApiKeyNotRedactedInSuccessfulRequest() throws ExecutionException, InterruptedException {
+  public void testApiKeyNotRedactedInSuccessfulRequest()
+      throws ExecutionException, InterruptedException {
     // Return a successful response
     String responseBody = "success response";
     mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(responseBody));
@@ -138,7 +143,10 @@ public class EppoHttpClientTest {
     String errorMessage = cause.getMessage();
 
     // For 403 errors, the message should be "Invalid API key" without URL details
-    assertEquals("Invalid API key", errorMessage, "403 errors should show generic 'Invalid API key' message");
+    assertEquals(
+        "Invalid API key",
+        errorMessage,
+        "403 errors should show generic 'Invalid API key' message");
   }
 
   @Test
@@ -155,10 +163,12 @@ public class EppoHttpClientTest {
 
     // Verify other query parameters are still present
     assertTrue(errorMessage.contains("sdkName=" + SDK_NAME), "SDK name should be preserved");
-    assertTrue(errorMessage.contains("sdkVersion=" + SDK_VERSION), "SDK version should be preserved");
+    assertTrue(
+        errorMessage.contains("sdkVersion=" + SDK_VERSION), "SDK version should be preserved");
 
     // Verify API key is redacted
     assertFalse(errorMessage.contains(TEST_API_KEY), "API key should be redacted");
-    assertTrue(errorMessage.contains("apiKey=<redacted>"), "Redacted placeholder should be present");
+    assertTrue(
+        errorMessage.contains("apiKey=<redacted>"), "Redacted placeholder should be present");
   }
 }
