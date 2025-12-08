@@ -481,4 +481,208 @@ public class BaseEppoClientBanditTest {
       throw new RuntimeException(e);
     }
   }
+
+  @Test
+  public void testBanditActionDetailsSuccessful() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = getBrandActions();
+
+    AssignmentDetails<String> assignmentDetails =
+        eppoClient.getBanditActionDetails(
+            flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    // Verify assignment
+    assertEquals("banner_bandit", assignmentDetails.getVariation());
+    assertEquals("adidas", assignmentDetails.getAction());
+
+    // Verify evaluation details are populated correctly
+    EvaluationDetails details = assignmentDetails.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertNotNull(details.getEnvironmentName());
+
+    // Verify bandit-specific fields
+    assertEquals("banner_bandit", details.getBanditKey());
+    assertEquals("adidas", details.getBanditAction());
+
+    // Verify config metadata
+    assertNotNull(details.getConfigPublishedAt());
+    assertNotNull(details.getConfigFetchedAt());
+    assertTrue(
+        details.getConfigFetchedAt().after(details.getConfigPublishedAt()),
+        "Config fetched at should be after config published at");
+
+    // Verify matched allocation
+    assertNotNull(details.getMatchedAllocation());
+    assertEquals("training", details.getMatchedAllocation().getKey());
+  }
+
+  @Test
+  public void testBanditActionDetailsNoActionsSupplied() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = new BanditActions(); // Empty actions
+
+    AssignmentDetails<String> assignmentDetails =
+        eppoClient.getBanditActionDetails(
+            flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    // Verify assignment - should get variation but no action
+    assertEquals("banner_bandit", assignmentDetails.getVariation());
+    assertNull(assignmentDetails.getAction());
+
+    // Verify evaluation details
+    EvaluationDetails details = assignmentDetails.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+
+    // When no actions are supplied, bandit evaluation is skipped
+    // so both bandit key and action should be null
+    assertNull(details.getBanditKey());
+    assertNull(details.getBanditAction());
+
+    // Verify config metadata is present
+    assertNotNull(details.getEnvironmentName());
+    assertNotNull(details.getConfigPublishedAt());
+    assertNotNull(details.getConfigFetchedAt());
+  }
+
+  @Test
+  public void testBanditActionDetailsNonBanditVariation() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "anthony"; // This subject gets "control" variation which is not a bandit
+    Attributes subjectAttributes = new Attributes();
+
+    BanditActions actions = getBrandActions();
+
+    AssignmentDetails<String> assignmentDetails =
+        eppoClient.getBanditActionDetails(
+            flagKey, subjectKey, subjectAttributes, actions, "default");
+
+    // Verify assignment - should get non-bandit variation with no action
+    assertEquals("control", assignmentDetails.getVariation());
+    assertNull(assignmentDetails.getAction());
+
+    // Verify evaluation details
+    EvaluationDetails details = assignmentDetails.getEvaluationDetails();
+    assertNotNull(details);
+
+    // Should not have BANDIT_ERROR since this is a valid non-bandit variation
+    assertNotEquals(FlagEvaluationCode.BANDIT_ERROR, details.getFlagEvaluationCode());
+
+    // Verify no bandit key or action since this variation is not a bandit
+    assertNull(details.getBanditKey());
+    assertNull(details.getBanditAction());
+
+    // Verify config metadata is present
+    assertNotNull(details.getEnvironmentName());
+    assertNotNull(details.getConfigPublishedAt());
+    assertNotNull(details.getConfigFetchedAt());
+  }
+
+  @Test
+  public void testBanditActionDetailsWithBanditLogError() {
+    // Even if bandit logging fails, we should still get details back
+    doThrow(new RuntimeException("Mock Bandit Logging Error"))
+        .when(mockBanditLogger)
+        .logBanditAssignment(any());
+
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = getBrandActions();
+
+    AssignmentDetails<String> assignmentDetails =
+        eppoClient.getBanditActionDetails(
+            flagKey, subjectKey, subjectAttributes, actions, "control");
+
+    // Verify assignment still succeeds
+    assertEquals("banner_bandit", assignmentDetails.getVariation());
+    assertEquals("adidas", assignmentDetails.getAction());
+
+    // Verify evaluation details are populated correctly
+    EvaluationDetails details = assignmentDetails.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+
+    // Verify bandit information is present
+    assertEquals("banner_bandit", details.getBanditKey());
+    assertEquals("adidas", details.getBanditAction());
+
+    // Verify config metadata
+    assertNotNull(details.getEnvironmentName());
+    assertNotNull(details.getConfigPublishedAt());
+    assertNotNull(details.getConfigFetchedAt());
+
+    // Verify logging was attempted
+    ArgumentCaptor<BanditAssignment> banditLogCaptor =
+        ArgumentCaptor.forClass(BanditAssignment.class);
+    verify(mockBanditLogger, times(1)).logBanditAssignment(banditLogCaptor.capture());
+  }
+
+  @Test
+  public void testBanditActionDetailsMetadataFlow() {
+    String flagKey = "banner_bandit_flag";
+    String subjectKey = "bob";
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("age", 25);
+    subjectAttributes.put("country", "USA");
+    subjectAttributes.put("gender_identity", "female");
+
+    BanditActions actions = getBrandActions();
+
+    Date beforeFetch = new Date();
+    AssignmentDetails<String> assignmentDetails =
+        eppoClient.getBanditActionDetails(
+            flagKey, subjectKey, subjectAttributes, actions, "control");
+    Date afterFetch = new Date();
+
+    // Verify evaluation details metadata
+    EvaluationDetails details = assignmentDetails.getEvaluationDetails();
+    assertNotNull(details);
+
+    // Verify environment name
+    assertNotNull(details.getEnvironmentName());
+    assertFalse(details.getEnvironmentName().isEmpty());
+
+    // Verify timestamps are populated
+    assertNotNull(details.getConfigPublishedAt());
+    assertNotNull(details.getConfigFetchedAt());
+
+    // configPublishedAt should be from the past (from the test JSON)
+    assertTrue(
+        details.getConfigPublishedAt().before(beforeFetch),
+        "Config published at should be before test started");
+
+    // configFetchedAt should be between test start and now
+    assertTrue(
+        details.getConfigFetchedAt().after(details.getConfigPublishedAt()),
+        "Config fetched at should be after config published at");
+    assertTrue(
+        details.getConfigFetchedAt().before(afterFetch),
+        "Config fetched at should be before test completed");
+
+    // Verify variation information
+    assertNotNull(details.getVariationKey());
+    assertNotNull(details.getVariationValue());
+
+    // Verify matched allocation details
+    assertNotNull(details.getMatchedAllocation());
+    assertNotNull(details.getMatchedAllocation().getKey());
+  }
 }
