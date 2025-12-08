@@ -1,5 +1,6 @@
 package cloud.eppo.api;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -19,9 +20,13 @@ public class EvaluationDetails {
   private final AllocationDetails matchedAllocation;
   private final List<AllocationDetails> unmatchedAllocations;
   private final List<AllocationDetails> unevaluatedAllocations;
+  private final Date configFetchedAt;
+  private final Date configPublishedAt;
 
   public EvaluationDetails(
       String environmentName,
+      Date configFetchedAt,
+      Date configPublishedAt,
       FlagEvaluationCode flagEvaluationCode,
       String flagEvaluationDescription,
       String banditKey,
@@ -33,6 +38,8 @@ public class EvaluationDetails {
       List<AllocationDetails> unmatchedAllocations,
       List<AllocationDetails> unevaluatedAllocations) {
     this.environmentName = environmentName;
+    this.configFetchedAt = configFetchedAt;
+    this.configPublishedAt = configPublishedAt;
     this.flagEvaluationCode = flagEvaluationCode;
     this.flagEvaluationDescription = flagEvaluationDescription;
     this.banditKey = banditKey;
@@ -47,6 +54,14 @@ public class EvaluationDetails {
 
   public String getEnvironmentName() {
     return environmentName;
+  }
+
+  public Date getConfigFetchedAt() {
+    return configFetchedAt;
+  }
+
+  public Date getConfigPublishedAt() {
+    return configPublishedAt;
   }
 
   public FlagEvaluationCode getFlagEvaluationCode() {

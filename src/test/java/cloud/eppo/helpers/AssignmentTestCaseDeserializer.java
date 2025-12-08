@@ -127,6 +127,8 @@ public class AssignmentTestCaseDeserializer extends StdDeserializer<AssignmentTe
 
     return new EvaluationDetails(
         environmentName,
+        null, // configFetchedAt - not available in test data
+        null, // configPublishedAt - not available in test data
         flagEvaluationCode,
         flagEvaluationDescription,
         banditKey,

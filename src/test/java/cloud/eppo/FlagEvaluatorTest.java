@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.EvaluationDetails;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
 import cloud.eppo.ufc.dto.FlagConfig;
@@ -37,8 +38,22 @@ public class FlagEvaluatorTest {
     List<Split> splits = createSplits("a", shards);
     List<Allocation> allocations = createAllocations("allocation", splits);
     FlagConfig flag = createFlag("flag", false, variations, allocations);
+
+    // Create test metadata values
+    String testEnvironmentName = "Production";
+    Date testConfigFetchedAt = new Date(1672531200000L); // Jan 1, 2023
+    Date testConfigPublishedAt = new Date(1672444800000L); // Dec 31, 2022
+
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag,
+            "flag",
+            "subjectKey",
+            new Attributes(),
+            false,
+            testEnvironmentName,
+            testConfigFetchedAt,
+            testConfigPublishedAt);
 
     assertEquals(flag.getKey(), result.getFlagKey());
     assertEquals("subjectKey", result.getSubjectKey());
@@ -46,6 +61,13 @@ public class FlagEvaluatorTest {
     assertNull(result.getAllocationKey());
     assertNull(result.getVariation());
     assertFalse(result.doLog());
+
+    // Verify configuration metadata flows through to evaluation details
+    EvaluationDetails details = result.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals("Production", details.getEnvironmentName());
+    assertEquals(testConfigFetchedAt, details.getConfigFetchedAt());
+    assertEquals(testConfigPublishedAt, details.getConfigPublishedAt());
   }
 
   @Test
@@ -53,7 +75,8 @@ public class FlagEvaluatorTest {
     Map<String, Variation> variations = createVariations("a");
     FlagConfig flag = createFlag("flag", true, variations, null);
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subjectKey", new Attributes(), false, null, null, null);
 
     assertEquals(flag.getKey(), result.getFlagKey());
     assertEquals("subjectKey", result.getSubjectKey());
@@ -70,8 +93,22 @@ public class FlagEvaluatorTest {
     List<Split> splits = createSplits("a", shards);
     List<Allocation> allocations = createAllocations("allocation", splits);
     FlagConfig flag = createFlag("flag", true, variations, allocations);
+
+    // Create test metadata values
+    String testEnvironmentName = "Staging";
+    Date testConfigFetchedAt = new Date(1672617600000L); // Jan 2, 2023
+    Date testConfigPublishedAt = new Date(1672531200000L); // Jan 1, 2023
+
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag,
+            "flag",
+            "subjectKey",
+            new Attributes(),
+            false,
+            testEnvironmentName,
+            testConfigFetchedAt,
+            testConfigPublishedAt);
 
     assertEquals(flag.getKey(), result.getFlagKey());
     assertEquals("subjectKey", result.getSubjectKey());
@@ -79,6 +116,13 @@ public class FlagEvaluatorTest {
     assertEquals("allocation", result.getAllocationKey());
     assertEquals("A", result.getVariation().getValue().stringValue());
     assertTrue(result.doLog());
+
+    // Verify configuration metadata flows through to evaluation details
+    EvaluationDetails details = result.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals("Staging", details.getEnvironmentName());
+    assertEquals(testConfigFetchedAt, details.getConfigFetchedAt());
+    assertEquals(testConfigPublishedAt, details.getConfigPublishedAt());
   }
 
   @Test
@@ -98,15 +142,20 @@ public class FlagEvaluatorTest {
     // Check that subjectKey is evaluated as the "id" attribute
 
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "alice", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "alice", new Attributes(), false, null, null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "bob", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "bob", new Attributes(), false, null, null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "charlie", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "charlie", new Attributes(), false, null, null, null);
 
     assertNull(result.getVariation());
 
@@ -114,14 +163,18 @@ public class FlagEvaluatorTest {
 
     Attributes aliceAttributes = new Attributes();
     aliceAttributes.put("id", "charlie");
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "alice", aliceAttributes, false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "alice", aliceAttributes, false, null, null, null);
 
     assertNull(result.getVariation());
 
     Attributes charlieAttributes = new Attributes();
     charlieAttributes.put("id", "alice");
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "charlie", charlieAttributes, false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "charlie", charlieAttributes, false, null, null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
   }
@@ -134,7 +187,8 @@ public class FlagEvaluatorTest {
     FlagConfig flag = createFlag("key", true, variations, allocations);
 
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subjectKey", new Attributes(), false, null, null, null);
 
     assertEquals("default", result.getAllocationKey());
     assertEquals("A", result.getVariation().getValue().stringValue());
@@ -156,15 +210,20 @@ public class FlagEvaluatorTest {
     Attributes matchingEmailAttributes = new Attributes();
     matchingEmailAttributes.put("email", "eppo@example.com");
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", matchingEmailAttributes, false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subjectKey", matchingEmailAttributes, false, null, null, null);
     assertEquals("B", result.getVariation().getValue().stringValue());
 
     Attributes unknownEmailAttributes = new Attributes();
     unknownEmailAttributes.put("email", "eppo@test.com");
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", unknownEmailAttributes, false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subjectKey", unknownEmailAttributes, false, null, null, null);
     assertEquals("A", result.getVariation().getValue().stringValue());
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subjectKey", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subjectKey", new Attributes(), false, null, null, null);
     assertEquals("A", result.getVariation().getValue().stringValue());
   }
 
@@ -189,15 +248,20 @@ public class FlagEvaluatorTest {
     FlagConfig flag = createFlag("key", true, variations, allocations);
 
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subject4", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subject4", new Attributes(), false, null, null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subject13", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subject13", new Attributes(), false, null, null, null);
 
     assertEquals("B", result.getVariation().getValue().stringValue());
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subject14", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subject14", new Attributes(), false, null, null, null);
 
     assertEquals("C", result.getVariation().getValue().stringValue());
   }
@@ -220,7 +284,8 @@ public class FlagEvaluatorTest {
     allocation.setEndAt(endAt);
 
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subject", new Attributes(), false);
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subject", new Attributes(), false, null, null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
     assertTrue(result.doLog());
@@ -229,7 +294,9 @@ public class FlagEvaluatorTest {
     allocation.setStartAt(new Date(now.getTime() + oneDayInMilliseconds));
     allocation.setEndAt(new Date(now.getTime() + 2 * oneDayInMilliseconds));
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subject", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subject", new Attributes(), false, null, null, null);
 
     assertNull(result.getVariation());
     assertFalse(result.doLog());
@@ -238,7 +305,9 @@ public class FlagEvaluatorTest {
     allocation.setStartAt(new Date(now.getTime() - 2 * oneDayInMilliseconds));
     allocation.setEndAt(new Date(now.getTime() - oneDayInMilliseconds));
 
-    result = FlagEvaluator.evaluateFlagWithDetails(flag, "flag", "subject", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag, "flag", "subject", new Attributes(), false, null, null, null);
 
     assertNull(result.getVariation());
     assertFalse(result.doLog());
@@ -334,7 +403,7 @@ public class FlagEvaluatorTest {
             encodedAllocations);
     DetailedFlagEvaluationResult result =
         FlagEvaluator.evaluateFlagWithDetails(
-            obfuscatedFlag, "flag", "subjectKey", matchingEmailAttributes, true);
+            obfuscatedFlag, "flag", "subjectKey", matchingEmailAttributes, true, null, null, null);
 
     // Expect an unobfuscated evaluation result
     assertEquals("flag", result.getFlagKey());
@@ -348,11 +417,12 @@ public class FlagEvaluatorTest {
     unknownEmailAttributes.put("email", "eppo@test.com");
     result =
         FlagEvaluator.evaluateFlagWithDetails(
-            obfuscatedFlag, "flag", "subjectKey", unknownEmailAttributes, true);
+            obfuscatedFlag, "flag", "subjectKey", unknownEmailAttributes, true, null, null, null);
     assertEquals("A", result.getVariation().getValue().stringValue());
 
     result =
-        FlagEvaluator.evaluateFlagWithDetails(obfuscatedFlag, "flag", "subjectKey", new Attributes(), true);
+        FlagEvaluator.evaluateFlagWithDetails(
+            obfuscatedFlag, "flag", "subjectKey", new Attributes(), true, null, null, null);
     assertEquals("A", result.getVariation().getValue().stringValue());
   }
 
@@ -424,7 +494,8 @@ public class FlagEvaluatorTest {
 
     // Test with obfuscated config
     DetailedFlagEvaluationResult result =
-        FlagEvaluator.evaluateFlagWithDetails(obfuscatedFlag, "flag", "subject", new Attributes(), true);
+        FlagEvaluator.evaluateFlagWithDetails(
+            obfuscatedFlag, "flag", "subject", new Attributes(), true, null, null, null);
 
     // Verify that extraLogging is deobfuscated
     Map<String, String> extraLogging = result.getExtraLogging();
@@ -434,7 +505,9 @@ public class FlagEvaluatorTest {
     assertEquals(2, extraLogging.size());
 
     // Test with non-obfuscated config to ensure no deobfuscation happens
-    result = FlagEvaluator.evaluateFlagWithDetails(obfuscatedFlag, "flag", "subject", new Attributes(), false);
+    result =
+        FlagEvaluator.evaluateFlagWithDetails(
+            obfuscatedFlag, "flag", "subject", new Attributes(), false, null, null, null);
 
     // Verify that extraLogging remains obfuscated
     extraLogging = result.getExtraLogging();

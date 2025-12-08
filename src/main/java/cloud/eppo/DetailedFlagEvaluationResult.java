@@ -3,6 +3,7 @@ package cloud.eppo;
 import cloud.eppo.api.*;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,8 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
     private AllocationDetails matchedAllocation;
     private final List<AllocationDetails> unmatchedAllocations = new ArrayList<>();
     private final List<AllocationDetails> unevaluatedAllocations = new ArrayList<>();
+    private Date configFetchedAt;
+    private Date configPublishedAt;
 
     public Builder flagKey(String flagKey) {
       this.flagKey = flagKey;
@@ -131,6 +134,16 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
       return this;
     }
 
+    public Builder configFetchedAt(Date configFetchedAt) {
+      this.configFetchedAt = configFetchedAt;
+      return this;
+    }
+
+    public Builder configPublishedAt(Date configPublishedAt) {
+      this.configPublishedAt = configPublishedAt;
+      return this;
+    }
+
     public DetailedFlagEvaluationResult build() {
       // Build evaluation details
       String variationKey = variation != null ? variation.getKey() : null;
@@ -139,6 +152,8 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
       EvaluationDetails details =
           new EvaluationDetails(
               environmentName,
+              configFetchedAt,
+              configPublishedAt,
               flagEvaluationCode,
               flagEvaluationDescription,
               banditKey,

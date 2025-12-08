@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -62,6 +63,9 @@ public class Configuration {
   private final Map<String, FlagConfig> flags;
   private final Map<String, BanditParameters> bandits;
   private final boolean isConfigObfuscated;
+  private final String environmentName;
+  private final Date configFetchedAt;
+  private final Date configPublishedAt;
 
   @SuppressWarnings("unused")
   private final byte[] flagConfigJson;
@@ -74,12 +78,18 @@ public class Configuration {
       Map<String, BanditReference> banditReferences,
       Map<String, BanditParameters> bandits,
       boolean isConfigObfuscated,
+      String environmentName,
+      Date configFetchedAt,
+      Date configPublishedAt,
       byte[] flagConfigJson,
       byte[] banditParamsJson) {
     this.flags = flags;
     this.banditReferences = banditReferences;
     this.bandits = bandits;
     this.isConfigObfuscated = isConfigObfuscated;
+    this.environmentName = environmentName;
+    this.configFetchedAt = configFetchedAt;
+    this.configPublishedAt = configPublishedAt;
 
     // Graft the `forServer` boolean into the flagConfigJson'
     if (flagConfigJson != null && flagConfigJson.length != 0) {
@@ -105,20 +115,36 @@ public class Configuration {
         Collections.emptyMap(),
         Collections.emptyMap(),
         false,
+        null, // environmentName
+        null, // configFetchedAt
+        null, // configPublishedAt
         emptyFlagsBytes,
         null);
   }
 
   @Override
   public String toString() {
-    return "Configuration{" +
-      "banditReferences=" + banditReferences +
-      ", flags=" + flags +
-      ", bandits=" + bandits +
-      ", isConfigObfuscated=" + isConfigObfuscated +
-      ", flagConfigJson=" + Arrays.toString(flagConfigJson) +
-      ", banditParamsJson=" + Arrays.toString(banditParamsJson) +
-      '}';
+    return "Configuration{"
+        + "banditReferences="
+        + banditReferences
+        + ", flags="
+        + flags
+        + ", bandits="
+        + bandits
+        + ", isConfigObfuscated="
+        + isConfigObfuscated
+        + ", environmentName='"
+        + environmentName
+        + '\''
+        + ", configFetchedAt="
+        + configFetchedAt
+        + ", configPublishedAt="
+        + configPublishedAt
+        + ", flagConfigJson="
+        + Arrays.toString(flagConfigJson)
+        + ", banditParamsJson="
+        + Arrays.toString(banditParamsJson)
+        + '}';
   }
 
   @Override
@@ -126,16 +152,28 @@ public class Configuration {
     if (o == null || getClass() != o.getClass()) return false;
     Configuration that = (Configuration) o;
     return isConfigObfuscated == that.isConfigObfuscated
-            && Objects.equals(banditReferences, that.banditReferences)
-            && Objects.equals(flags, that.flags)
-            && Objects.equals(bandits, that.bandits)
-            && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
-            && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+        && Objects.equals(banditReferences, that.banditReferences)
+        && Objects.equals(flags, that.flags)
+        && Objects.equals(bandits, that.bandits)
+        && Objects.equals(environmentName, that.environmentName)
+        && Objects.equals(configFetchedAt, that.configFetchedAt)
+        && Objects.equals(configPublishedAt, that.configPublishedAt)
+        && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
+        && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(banditReferences, flags, bandits, isConfigObfuscated, Arrays.hashCode(flagConfigJson), Arrays.hashCode(banditParamsJson));
+    return Objects.hash(
+        banditReferences,
+        flags,
+        bandits,
+        isConfigObfuscated,
+        environmentName,
+        configFetchedAt,
+        configPublishedAt,
+        Arrays.hashCode(flagConfigJson),
+        Arrays.hashCode(banditParamsJson));
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -205,6 +243,18 @@ public class Configuration {
     return flags == null ? Collections.emptySet() : flags.keySet();
   }
 
+  public String getEnvironmentName() {
+    return environmentName;
+  }
+
+  public Date getConfigFetchedAt() {
+    return configFetchedAt;
+  }
+
+  public Date getConfigPublishedAt() {
+    return configPublishedAt;
+  }
+
   public static Builder builder(byte[] flagJson) {
     return new Builder(flagJson);
   }
@@ -226,6 +276,8 @@ public class Configuration {
     private Map<String, BanditParameters> bandits = Collections.emptyMap();
     private final byte[] flagJson;
     private byte[] banditParamsJson;
+    private final String environmentName;
+    private final Date configPublishedAt;
 
     private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
@@ -274,9 +326,16 @@ public class Configuration {
         log.warn("'flags' map missing in flag definition JSON");
         flags = Collections.emptyMap();
         banditReferences = Collections.emptyMap();
+        environmentName = null;
+        configPublishedAt = null;
       } else {
         flags = Collections.unmodifiableMap(flagConfigResponse.getFlags());
         banditReferences = Collections.unmodifiableMap(flagConfigResponse.getBanditReferences());
+
+        // Extract environment name and published at timestamp from the response
+        environmentName = flagConfigResponse.getEnvironmentName();
+        configPublishedAt = flagConfigResponse.getCreatedAt();
+
         log.debug("Loaded {} flag definitions from flag definition JSON", flags.size());
       }
     }
@@ -337,8 +396,18 @@ public class Configuration {
     }
 
     public Configuration build() {
+      // Record the time when configuration is built/fetched
+      Date configFetchedAt = new Date();
       return new Configuration(
-          flags, banditReferences, bandits, isConfigObfuscated, flagJson, banditParamsJson);
+          flags,
+          banditReferences,
+          bandits,
+          isConfigObfuscated,
+          environmentName,
+          configFetchedAt,
+          configPublishedAt,
+          flagJson,
+          banditParamsJson);
     }
   }
 }

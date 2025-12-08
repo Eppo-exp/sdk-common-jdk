@@ -76,7 +76,10 @@ public class FlagEvaluator {
       String flagKey,
       String subjectKey,
       Attributes subjectAttributes,
-      boolean isConfigObfuscated) {
+      boolean isConfigObfuscated,
+      String environmentName,
+      Date configFetchedAt,
+      Date configPublishedAt) {
     Date now = new Date();
 
     DetailedFlagEvaluationResult.Builder builder =
@@ -84,7 +87,10 @@ public class FlagEvaluator {
             .flagKey(flagKey)
             .subjectKey(subjectKey)
             .subjectAttributes(subjectAttributes)
-            .extraLogging(new HashMap<>());
+            .extraLogging(new HashMap<>())
+            .environmentName(environmentName != null ? environmentName : "Unknown")
+            .configFetchedAt(configFetchedAt)
+            .configPublishedAt(configPublishedAt);
 
     // Handle disabled flag
     if (!flag.isEnabled()) {

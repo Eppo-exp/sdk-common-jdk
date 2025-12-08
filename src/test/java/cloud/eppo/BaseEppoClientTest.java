@@ -661,10 +661,29 @@ public class BaseEppoClientTest {
     doThrow(new RuntimeException("Mock Assignment Logging Error"))
         .when(mockAssignmentLogger)
         .logAssignment(any());
-    double assignment =
-        eppoClient.getDoubleAssignment("numeric_flag", "alice", new Attributes(), 0.0);
+    AssignmentDetails<Double> assignmentDetails =
+        eppoClient.getDoubleAssignmentDetails("numeric_flag", "alice", new Attributes(), 0.0);
 
-    assertEquals(3.1415926, assignment, 0.0000001);
+    assertEquals(3.1415926, assignmentDetails.getVariation(), 0.0000001);
+
+    // Verify evaluation details are populated correctly
+    EvaluationDetails details = assignmentDetails.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertNotNull(details.getEnvironmentName());
+    assertEquals("Test", details.getEnvironmentName());
+
+    // Verify config timestamps
+    assertNotNull(details.getConfigPublishedAt());
+    assertNotNull(details.getConfigFetchedAt());
+    // Published at should be Wed Apr 17 15:40:53 EDT 2024 (from test JSON)
+    Date expectedPublishedAt =
+        new Date(1713382853716L); // 2024-04-17T19:40:53.716Z; matches flags-v1.json
+    assertEquals(expectedPublishedAt, details.getConfigPublishedAt());
+    // Fetched at should be after published at (it's set when config is built)
+    assertTrue(
+        details.getConfigFetchedAt().after(details.getConfigPublishedAt()),
+        "Config fetched at should be after config published at");
 
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());

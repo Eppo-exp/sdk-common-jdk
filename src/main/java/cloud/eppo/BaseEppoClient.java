@@ -190,10 +190,11 @@ public class BaseEppoClient {
     return future;
   }
 
-    /**
-     * Top-level assignment details method that evaluates, logs if applicable, and returns the user-facing AssignmentDetails result class.
-     * If any error in the evaluation, the result value will be set to the default value.
-     */
+  /**
+   * Top-level assignment details method that evaluates, logs if applicable, and returns the
+   * user-facing AssignmentDetails result class. If any error in the evaluation, the result value
+   * will be set to the default value.
+   */
   protected <T> AssignmentDetails<T> getTypedAssignmentWithDetails(
       String flagKey,
       String subjectKey,
@@ -204,7 +205,10 @@ public class BaseEppoClient {
     EvaluationDetails details =
         evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, expectedType);
 
-    T resultValue = details.evaluationSuccessful() ? EppoValue.unwrap(details.getVariationValue(), expectedType) : defaultValue;
+    T resultValue =
+        details.evaluationSuccessful()
+            ? EppoValue.unwrap(details.getVariationValue(), expectedType)
+            : defaultValue;
     return new AssignmentDetails<>(resultValue, null, details);
   }
 
@@ -226,6 +230,7 @@ public class BaseEppoClient {
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return buildDefaultEvaluationDetails(
+          config,
           FlagEvaluationCode.FLAG_UNRECOGNIZED_OR_DISABLED,
           "Unrecognized or disabled flag: " + flagKey,
           null);
@@ -236,6 +241,7 @@ public class BaseEppoClient {
       log.info(
           "no assigned variation because the experiment or feature flag is disabled: {}", flagKey);
       return buildDefaultEvaluationDetails(
+          config,
           FlagEvaluationCode.FLAG_UNRECOGNIZED_OR_DISABLED,
           "Unrecognized or disabled flag: " + flagKey,
           null);
@@ -249,6 +255,7 @@ public class BaseEppoClient {
           flag.getVariationType(),
           expectedType);
       return buildDefaultEvaluationDetails(
+          config,
           FlagEvaluationCode.TYPE_MISMATCH,
           String.format(
               "Flag \"%s\" has type %s, requested %s",
@@ -259,7 +266,14 @@ public class BaseEppoClient {
     // Evaluate flag with details
     DetailedFlagEvaluationResult detailedResult =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, flagKey, subjectKey, subjectAttributes, config.isConfigObfuscated());
+            flag,
+            flagKey,
+            subjectKey,
+            subjectAttributes,
+            config.isConfigObfuscated(),
+            config.getEnvironmentName(),
+            config.getConfigFetchedAt(),
+            config.getConfigPublishedAt());
     EvaluationDetails evaluationDetails = detailedResult.getEvaluationDetails();
 
     EppoValue assignedValue =
@@ -284,6 +298,8 @@ public class BaseEppoClient {
 
       return new EvaluationDetails(
           evaluationDetails.getEnvironmentName(),
+          evaluationDetails.getConfigFetchedAt(),
+          evaluationDetails.getConfigPublishedAt(),
           FlagEvaluationCode
               .ASSIGNMENT_ERROR, // We use ASSIGNMENT_ERROR for value mismatch as it's a
           // misconfiguration of the flag itself
@@ -398,6 +414,7 @@ public class BaseEppoClient {
           throwIfNotGraceful(e, defaultValue),
           null,
           buildDefaultEvaluationDetails(
+              getConfiguration(),
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValue)));
@@ -429,6 +446,7 @@ public class BaseEppoClient {
           throwIfNotGraceful(e, defaultValue),
           null,
           buildDefaultEvaluationDetails(
+              getConfiguration(),
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValue)));
@@ -460,6 +478,7 @@ public class BaseEppoClient {
           throwIfNotGraceful(e, defaultValue),
           null,
           buildDefaultEvaluationDetails(
+              getConfiguration(),
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValue)));
@@ -491,6 +510,7 @@ public class BaseEppoClient {
           throwIfNotGraceful(e, defaultValue),
           null,
           buildDefaultEvaluationDetails(
+              getConfiguration(),
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValue)));
@@ -523,6 +543,7 @@ public class BaseEppoClient {
           throwIfNotGraceful(e, defaultValue),
           null,
           buildDefaultEvaluationDetails(
+              getConfiguration(),
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValueString)));
@@ -554,6 +575,7 @@ public class BaseEppoClient {
           throwIfNotGraceful(e, defaultValue),
           null,
           buildDefaultEvaluationDetails(
+              getConfiguration(),
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValue)));
@@ -631,149 +653,156 @@ public class BaseEppoClient {
     }
   }
 
-    /**
-     * Returns bandit action assignment with detailed evaluation information including flag evaluation
-     * details and bandit action selection.
-     */
-    public AssignmentDetails<String> getBanditActionDetails(
-            String flagKey,
-            String subjectKey,
-            DiscriminableAttributes subjectAttributes,
-            Actions actions,
-            String defaultValue) {
-        final Configuration config = getConfiguration();
+  /**
+   * Returns bandit action assignment with detailed evaluation information including flag evaluation
+   * details and bandit action selection.
+   */
+  public AssignmentDetails<String> getBanditActionDetails(
+      String flagKey,
+      String subjectKey,
+      DiscriminableAttributes subjectAttributes,
+      Actions actions,
+      String defaultValue) {
+    final Configuration config = getConfiguration();
+    try {
+      // Get detailed flag assignment
+      AssignmentDetails<String> flagDetails =
+          getStringAssignmentDetails(
+              flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
+
+      String assignedVariation = flagDetails.getVariation();
+      String assignedAction = null;
+
+      // If we got a variation, check for bandit
+      String banditKey = config.banditKeyForVariation(flagKey, assignedVariation);
+      if (banditKey != null && !actions.isEmpty()) {
         try {
-            // Get detailed flag assignment
-            AssignmentDetails<String> flagDetails =
-                    getStringAssignmentDetails(
-                            flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
+          BanditParameters banditParameters = config.getBanditParameters(banditKey);
+          if (banditParameters == null) {
+            throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
+          }
+          BanditEvaluationResult banditResult =
+              BanditEvaluator.evaluateBandit(
+                  flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
 
-            String assignedVariation = flagDetails.getVariation();
-            String assignedAction = null;
+          assignedAction = banditResult.getActionKey();
 
-            // If we got a variation, check for bandit
-            String banditKey = config.banditKeyForVariation(flagKey, assignedVariation);
-            if (banditKey != null && !actions.isEmpty()) {
-                try {
-                    BanditParameters banditParameters = config.getBanditParameters(banditKey);
-                    if (banditParameters == null) {
-                        throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
-                    }
-                    BanditEvaluationResult banditResult =
-                            BanditEvaluator.evaluateBandit(
-                                    flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
+          // Log bandit assignment if needed
+          if (banditLogger != null) {
+            try {
+              BanditAssignment banditAssignment =
+                  new BanditAssignment(
+                      flagKey,
+                      banditKey,
+                      subjectKey,
+                      banditResult.getActionKey(),
+                      banditResult.getActionWeight(),
+                      banditResult.getOptimalityGap(),
+                      banditParameters.getModelVersion(),
+                      subjectAttributes.getNumericAttributes(),
+                      subjectAttributes.getCategoricalAttributes(),
+                      banditResult.getActionAttributes().getNumericAttributes(),
+                      banditResult.getActionAttributes().getCategoricalAttributes(),
+                      buildLogMetaData(config.isConfigObfuscated()));
 
-                    assignedAction = banditResult.getActionKey();
-
-                    // Log bandit assignment if needed
-                    if (banditLogger != null) {
-                        try {
-                            BanditAssignment banditAssignment =
-                                    new BanditAssignment(
-                                            flagKey,
-                                            banditKey,
-                                            subjectKey,
-                                            banditResult.getActionKey(),
-                                            banditResult.getActionWeight(),
-                                            banditResult.getOptimalityGap(),
-                                            banditParameters.getModelVersion(),
-                                            subjectAttributes.getNumericAttributes(),
-                                            subjectAttributes.getCategoricalAttributes(),
-                                            banditResult.getActionAttributes().getNumericAttributes(),
-                                            banditResult.getActionAttributes().getCategoricalAttributes(),
-                                            buildLogMetaData(config.isConfigObfuscated()));
-
-                            boolean logBanditAssignment = true;
-                            AssignmentCacheEntry cacheEntry =
-                                    AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
-                            if (banditAssignmentCache != null) {
-                                if (banditAssignmentCache.hasEntry(cacheEntry)) {
-                                    logBanditAssignment = false;
-                                }
-                            }
-
-                            if (logBanditAssignment) {
-                                banditLogger.logBanditAssignment(banditAssignment);
-                                if (banditAssignmentCache != null) {
-                                    banditAssignmentCache.put(cacheEntry);
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
-                        }
-                    }
-
-                    // Update evaluation details to include bandit information
-                    EvaluationDetails updatedDetails =
-                            new EvaluationDetails(
-                                    flagDetails.getEvaluationDetails().getEnvironmentName(),
-                                    flagDetails.getEvaluationDetails().getFlagEvaluationCode(),
-                                    flagDetails.getEvaluationDetails().getFlagEvaluationDescription(),
-                                    banditKey,
-                                    assignedAction,
-                                    flagDetails.getEvaluationDetails().getVariationKey(),
-                                    flagDetails.getEvaluationDetails().getVariationValue(),
-                                    flagDetails.getEvaluationDetails().getMatchedRule(),
-                                    flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                                    flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                                    flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
-
-                    return new AssignmentDetails<>(assignedVariation, assignedAction, updatedDetails);
-                } catch (Exception banditError) {
-                    // Bandit evaluation failed - return flag details with BANDIT_ERROR code
-                    log.warn(
-                            "Bandit evaluation failed for flag {}: {}",
-                            flagKey,
-                            banditError.getMessage(),
-                            banditError);
-                    EvaluationDetails banditErrorDetails =
-                            new EvaluationDetails(
-                                    flagDetails.getEvaluationDetails().getEnvironmentName(),
-                                    FlagEvaluationCode.BANDIT_ERROR,
-                                    "Bandit evaluation failed: " + banditError.getMessage(),
-                                    banditKey,
-                                    null, // no action assigned due to error
-                                    flagDetails.getEvaluationDetails().getVariationKey(),
-                                    flagDetails.getEvaluationDetails().getVariationValue(),
-                                    flagDetails.getEvaluationDetails().getMatchedRule(),
-                                    flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                                    flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                                    flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
-                    return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
+              boolean logBanditAssignment = true;
+              AssignmentCacheEntry cacheEntry =
+                  AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
+              if (banditAssignmentCache != null) {
+                if (banditAssignmentCache.hasEntry(cacheEntry)) {
+                  logBanditAssignment = false;
                 }
+              }
+
+              if (logBanditAssignment) {
+                banditLogger.logBanditAssignment(banditAssignment);
+                if (banditAssignmentCache != null) {
+                  banditAssignmentCache.put(cacheEntry);
+                }
+              }
+            } catch (Exception e) {
+              log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
             }
+          }
 
-            // No bandit - return flag details as-is
-            return flagDetails;
-        } catch (Exception e) {
-            BanditResult defaultResult = new BanditResult(defaultValue, null);
-            AssignmentDetails<String> errorDetails =
-                    new AssignmentDetails<>(
-                            defaultValue,
-                            null,
-                            buildDefaultEvaluationDetails(
-                                    FlagEvaluationCode.ASSIGNMENT_ERROR,
-                                    e.getMessage(),
-                                    EppoValue.valueOf(defaultValue)));
-            return throwIfNotGraceful(e, errorDetails);
+          // Update evaluation details to include bandit information
+          EvaluationDetails updatedDetails =
+              new EvaluationDetails(
+                  flagDetails.getEvaluationDetails().getEnvironmentName(),
+                  flagDetails.getEvaluationDetails().getConfigFetchedAt(),
+                  flagDetails.getEvaluationDetails().getConfigPublishedAt(),
+                  flagDetails.getEvaluationDetails().getFlagEvaluationCode(),
+                  flagDetails.getEvaluationDetails().getFlagEvaluationDescription(),
+                  banditKey,
+                  assignedAction,
+                  flagDetails.getEvaluationDetails().getVariationKey(),
+                  flagDetails.getEvaluationDetails().getVariationValue(),
+                  flagDetails.getEvaluationDetails().getMatchedRule(),
+                  flagDetails.getEvaluationDetails().getMatchedAllocation(),
+                  flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
+                  flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+
+          return new AssignmentDetails<>(assignedVariation, assignedAction, updatedDetails);
+        } catch (Exception banditError) {
+          // Bandit evaluation failed - return flag details with BANDIT_ERROR code
+          log.warn(
+              "Bandit evaluation failed for flag {}: {}",
+              flagKey,
+              banditError.getMessage(),
+              banditError);
+          EvaluationDetails banditErrorDetails =
+              new EvaluationDetails(
+                  flagDetails.getEvaluationDetails().getEnvironmentName(),
+                  flagDetails.getEvaluationDetails().getConfigFetchedAt(),
+                  flagDetails.getEvaluationDetails().getConfigPublishedAt(),
+                  FlagEvaluationCode.BANDIT_ERROR,
+                  "Bandit evaluation failed: " + banditError.getMessage(),
+                  banditKey,
+                  null, // no action assigned due to error
+                  flagDetails.getEvaluationDetails().getVariationKey(),
+                  flagDetails.getEvaluationDetails().getVariationValue(),
+                  flagDetails.getEvaluationDetails().getMatchedRule(),
+                  flagDetails.getEvaluationDetails().getMatchedAllocation(),
+                  flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
+                  flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+          return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
         }
-    }
+      }
 
-    private EvaluationDetails buildDefaultEvaluationDetails(
-            FlagEvaluationCode code, String description, EppoValue variationValue) {
-        return new EvaluationDetails(
-                "Test", // Environment name - matches FlagEvaluator default
-                code,
-                description,
-                null, // banditKey
-                null, // banditAction
-                null, // variationKey
-                variationValue,
-                null, // matchedRule
-                null, // matchedAllocation
-                new ArrayList<>(), // unmatchedAllocations
-                new ArrayList<>()); // unevaluatedAllocations
+      // No bandit - return flag details as-is
+      return flagDetails;
+    } catch (Exception e) {
+      BanditResult defaultResult = new BanditResult(defaultValue, null);
+      AssignmentDetails<String> errorDetails =
+          new AssignmentDetails<>(
+              defaultValue,
+              null,
+              buildDefaultEvaluationDetails(
+                  config,
+                  FlagEvaluationCode.ASSIGNMENT_ERROR,
+                  e.getMessage(),
+                  EppoValue.valueOf(defaultValue)));
+      return throwIfNotGraceful(e, errorDetails);
     }
+  }
+
+  private EvaluationDetails buildDefaultEvaluationDetails(
+      Configuration config, FlagEvaluationCode code, String description, EppoValue variationValue) {
+    return new EvaluationDetails(
+        config.getEnvironmentName() != null ? config.getEnvironmentName() : "Test",
+        config.getConfigFetchedAt(),
+        config.getConfigPublishedAt(),
+        code,
+        description,
+        null, // banditKey
+        null, // banditAction
+        null, // variationKey
+        variationValue,
+        null, // matchedRule
+        null, // matchedAllocation
+        new ArrayList<>(), // unmatchedAllocations
+        new ArrayList<>()); // unevaluatedAllocations
+  }
 
   private Map<String, String> buildLogMetaData(boolean isConfigObfuscated) {
     HashMap<String, String> metaData = new HashMap<>();

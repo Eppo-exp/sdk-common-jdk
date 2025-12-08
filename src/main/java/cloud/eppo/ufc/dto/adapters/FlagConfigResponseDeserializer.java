@@ -54,6 +54,19 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
             ? FlagConfigResponse.Format.SERVER
             : FlagConfigResponse.Format.valueOf(formatNode.asText());
 
+    // Parse environment name from environment object
+    String environmentName = null;
+    JsonNode environmentNode = rootNode.get("environment");
+    if (environmentNode != null && environmentNode.isObject()) {
+      JsonNode nameNode = environmentNode.get("name");
+      if (nameNode != null) {
+        environmentName = nameNode.asText();
+      }
+    }
+
+    // Parse createdAt
+    Date createdAt = parseUtcISODateNode(rootNode.get("createdAt"));
+
     Map<String, FlagConfig> flags = new ConcurrentHashMap<>();
 
     flagsNode
@@ -80,7 +93,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       }
     }
 
-    return new FlagConfigResponse(flags, banditReferences, dataFormat);
+    return new FlagConfigResponse(flags, banditReferences, dataFormat, environmentName, createdAt);
   }
 
   private FlagConfig deserializeFlag(JsonNode jsonNode) {
