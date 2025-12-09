@@ -109,38 +109,163 @@ public class EvaluationDetails {
     return !flagEvaluationCode.isError();
   }
 
+  /** Creates a new Builder for constructing EvaluationDetails. */
+  public static Builder builder() {
+    return new Builder();
+  }
+
   /**
-   * Builds a default EvaluationDetails for error cases or when detailed evaluation information is
-   * not available.
-   *
-   * @param environmentName The environment name from configuration, or null
-   * @param configFetchedAt The timestamp when configuration was fetched, or null
-   * @param configPublishedAt The timestamp when configuration was published, or null
-   * @param code The flag evaluation code
-   * @param description A description of why this evaluation result was returned
-   * @param variationValue The variation value being returned
-   * @return An EvaluationDetails with minimal information populated
+   * Creates a default EvaluationDetails for error conditions or when no flag was matched. This is a
+   * convenience factory method for common error scenarios.
    */
   public static EvaluationDetails buildDefault(
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt,
-      FlagEvaluationCode code,
-      String description,
+      FlagEvaluationCode flagEvaluationCode,
+      String flagEvaluationDescription,
       EppoValue variationValue) {
-    return new EvaluationDetails(
-        environmentName != null ? environmentName : "Unknown",
-        configFetchedAt,
-        configPublishedAt,
-        code,
-        description,
-        null, // banditKey
-        null, // banditAction
-        null, // variationKey
-        variationValue,
-        null, // matchedRule
-        null, // matchedAllocation
-        new ArrayList<>(), // unmatchedAllocations
-        new ArrayList<>()); // unevaluatedAllocations
+    return builder()
+        .environmentName(environmentName)
+        .configFetchedAt(configFetchedAt)
+        .configPublishedAt(configPublishedAt)
+        .flagEvaluationCode(flagEvaluationCode)
+        .flagEvaluationDescription(flagEvaluationDescription)
+        .variationValue(variationValue)
+        .build();
+  }
+
+  /**
+   * Creates a new Builder initialized with values from an existing EvaluationDetails. Useful for
+   * creating a modified copy.
+   */
+  public static Builder builder(EvaluationDetails copyFrom) {
+    return new Builder()
+        .environmentName(copyFrom.environmentName)
+        .configFetchedAt(copyFrom.configFetchedAt)
+        .configPublishedAt(copyFrom.configPublishedAt)
+        .flagEvaluationCode(copyFrom.flagEvaluationCode)
+        .flagEvaluationDescription(copyFrom.flagEvaluationDescription)
+        .banditKey(copyFrom.banditKey)
+        .banditAction(copyFrom.banditAction)
+        .variationKey(copyFrom.variationKey)
+        .variationValue(copyFrom.variationValue)
+        .matchedRule(copyFrom.matchedRule)
+        .matchedAllocation(copyFrom.matchedAllocation)
+        .unmatchedAllocations(copyFrom.unmatchedAllocations)
+        .unevaluatedAllocations(copyFrom.unevaluatedAllocations);
+  }
+
+  /** Builder for constructing EvaluationDetails instances. */
+  public static class Builder {
+    private String environmentName = "Unknown";
+    private Date configFetchedAt;
+    private Date configPublishedAt;
+    private FlagEvaluationCode flagEvaluationCode;
+    private String flagEvaluationDescription;
+    private String banditKey;
+    private String banditAction;
+    private String variationKey;
+    private EppoValue variationValue;
+    private MatchedRule matchedRule;
+    private AllocationDetails matchedAllocation;
+    private List<AllocationDetails> unmatchedAllocations = new ArrayList<>();
+    private List<AllocationDetails> unevaluatedAllocations = new ArrayList<>();
+
+    public Builder environmentName(String environmentName) {
+      this.environmentName = environmentName != null ? environmentName : "Unknown";
+      return this;
+    }
+
+    public Builder configFetchedAt(Date configFetchedAt) {
+      this.configFetchedAt = configFetchedAt;
+      return this;
+    }
+
+    public Builder configPublishedAt(Date configPublishedAt) {
+      this.configPublishedAt = configPublishedAt;
+      return this;
+    }
+
+    public Builder flagEvaluationCode(FlagEvaluationCode flagEvaluationCode) {
+      this.flagEvaluationCode = flagEvaluationCode;
+      return this;
+    }
+
+    public Builder flagEvaluationDescription(String flagEvaluationDescription) {
+      this.flagEvaluationDescription = flagEvaluationDescription;
+      return this;
+    }
+
+    public Builder banditKey(String banditKey) {
+      this.banditKey = banditKey;
+      return this;
+    }
+
+    public Builder banditAction(String banditAction) {
+      this.banditAction = banditAction;
+      return this;
+    }
+
+    public Builder variationKey(String variationKey) {
+      this.variationKey = variationKey;
+      return this;
+    }
+
+    public Builder variationValue(EppoValue variationValue) {
+      this.variationValue = variationValue;
+      return this;
+    }
+
+    public Builder matchedRule(MatchedRule matchedRule) {
+      this.matchedRule = matchedRule;
+      return this;
+    }
+
+    public Builder matchedAllocation(AllocationDetails matchedAllocation) {
+      this.matchedAllocation = matchedAllocation;
+      return this;
+    }
+
+    public Builder unmatchedAllocations(List<AllocationDetails> unmatchedAllocations) {
+      this.unmatchedAllocations =
+          unmatchedAllocations != null ? new ArrayList<>(unmatchedAllocations) : new ArrayList<>();
+      return this;
+    }
+
+    public Builder addUnmatchedAllocation(AllocationDetails allocation) {
+      this.unmatchedAllocations.add(allocation);
+      return this;
+    }
+
+    public Builder unevaluatedAllocations(List<AllocationDetails> unevaluatedAllocations) {
+      this.unevaluatedAllocations =
+          unevaluatedAllocations != null
+              ? new ArrayList<>(unevaluatedAllocations)
+              : new ArrayList<>();
+      return this;
+    }
+
+    public Builder addUnevaluatedAllocation(AllocationDetails allocation) {
+      this.unevaluatedAllocations.add(allocation);
+      return this;
+    }
+
+    public EvaluationDetails build() {
+      return new EvaluationDetails(
+          environmentName,
+          configFetchedAt,
+          configPublishedAt,
+          flagEvaluationCode,
+          flagEvaluationDescription,
+          banditKey,
+          banditAction,
+          variationKey,
+          variationValue,
+          matchedRule,
+          matchedAllocation,
+          unmatchedAllocations,
+          unevaluatedAllocations);
+    }
   }
 }

@@ -301,22 +301,15 @@ public class BaseEppoClient {
               "Variation (%s) is configured for type %s, but is set to incompatible value (%s)",
               variationKey, expectedType, assignedValue.doubleValue());
 
-      return new EvaluationDetails(
-          evaluationDetails.getEnvironmentName(),
-          evaluationDetails.getConfigFetchedAt(),
-          evaluationDetails.getConfigPublishedAt(),
-          FlagEvaluationCode
-              .ASSIGNMENT_ERROR, // We use ASSIGNMENT_ERROR for value mismatch as it's a
+      return EvaluationDetails.builder(evaluationDetails)
+          .flagEvaluationCode(
+              FlagEvaluationCode
+                  .ASSIGNMENT_ERROR) // We use ASSIGNMENT_ERROR for value mismatch as it's a
           // misconfiguration of the flag itself
-          errorDescription,
-          evaluationDetails.getBanditKey(),
-          evaluationDetails.getBanditAction(),
-          variationKey,
-          assignedValue,
-          evaluationDetails.getMatchedRule(),
-          evaluationDetails.getMatchedAllocation(),
-          evaluationDetails.getUnmatchedAllocations(),
-          evaluationDetails.getUnevaluatedAllocations());
+          .flagEvaluationDescription(errorDescription)
+          .variationKey(variationKey)
+          .variationValue(assignedValue)
+          .build();
     }
 
     // Log assignment if applicable
@@ -642,20 +635,12 @@ public class BaseEppoClient {
       // action"
       if (banditKey != null && actions.isEmpty()) {
         EvaluationDetails noActionsDetails =
-            new EvaluationDetails(
-                flagDetails.getEvaluationDetails().getEnvironmentName(),
-                flagDetails.getEvaluationDetails().getConfigFetchedAt(),
-                flagDetails.getEvaluationDetails().getConfigPublishedAt(),
-                FlagEvaluationCode.NO_ACTIONS_SUPPLIED_FOR_BANDIT,
-                "No actions supplied for bandit evaluation",
-                banditKey,
-                null, // no action selected
-                flagDetails.getEvaluationDetails().getVariationKey(),
-                flagDetails.getEvaluationDetails().getVariationValue(),
-                flagDetails.getEvaluationDetails().getMatchedRule(),
-                flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+            EvaluationDetails.builder(flagDetails.getEvaluationDetails())
+                .flagEvaluationCode(FlagEvaluationCode.NO_ACTIONS_SUPPLIED_FOR_BANDIT)
+                .flagEvaluationDescription("No actions supplied for bandit evaluation")
+                .banditKey(banditKey)
+                .banditAction(null)
+                .build();
         return new AssignmentDetails<>(assignedVariation, null, noActionsDetails);
       }
 
@@ -711,20 +696,10 @@ public class BaseEppoClient {
 
           // Update evaluation details to include bandit information
           EvaluationDetails updatedDetails =
-              new EvaluationDetails(
-                  flagDetails.getEvaluationDetails().getEnvironmentName(),
-                  flagDetails.getEvaluationDetails().getConfigFetchedAt(),
-                  flagDetails.getEvaluationDetails().getConfigPublishedAt(),
-                  flagDetails.getEvaluationDetails().getFlagEvaluationCode(),
-                  flagDetails.getEvaluationDetails().getFlagEvaluationDescription(),
-                  banditKey,
-                  assignedAction,
-                  flagDetails.getEvaluationDetails().getVariationKey(),
-                  flagDetails.getEvaluationDetails().getVariationValue(),
-                  flagDetails.getEvaluationDetails().getMatchedRule(),
-                  flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                  flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                  flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+              EvaluationDetails.builder(flagDetails.getEvaluationDetails())
+                  .banditKey(banditKey)
+                  .banditAction(assignedAction)
+                  .build();
 
           return new AssignmentDetails<>(assignedVariation, assignedAction, updatedDetails);
         } catch (Exception banditError) {
@@ -742,20 +717,13 @@ public class BaseEppoClient {
 
           // In graceful mode, return flag details with BANDIT_ERROR code
           EvaluationDetails banditErrorDetails =
-              new EvaluationDetails(
-                  flagDetails.getEvaluationDetails().getEnvironmentName(),
-                  flagDetails.getEvaluationDetails().getConfigFetchedAt(),
-                  flagDetails.getEvaluationDetails().getConfigPublishedAt(),
-                  FlagEvaluationCode.BANDIT_ERROR,
-                  "Bandit evaluation failed: " + banditError.getMessage(),
-                  banditKey,
-                  null, // no action assigned due to error
-                  flagDetails.getEvaluationDetails().getVariationKey(),
-                  flagDetails.getEvaluationDetails().getVariationValue(),
-                  flagDetails.getEvaluationDetails().getMatchedRule(),
-                  flagDetails.getEvaluationDetails().getMatchedAllocation(),
-                  flagDetails.getEvaluationDetails().getUnmatchedAllocations(),
-                  flagDetails.getEvaluationDetails().getUnevaluatedAllocations());
+              EvaluationDetails.builder(flagDetails.getEvaluationDetails())
+                  .flagEvaluationCode(FlagEvaluationCode.BANDIT_ERROR)
+                  .flagEvaluationDescription(
+                      "Bandit evaluation failed: " + banditError.getMessage())
+                  .banditKey(banditKey)
+                  .banditAction(null)
+                  .build();
           return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
         }
       }

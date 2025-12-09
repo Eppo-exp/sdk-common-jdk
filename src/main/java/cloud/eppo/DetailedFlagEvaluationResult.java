@@ -2,9 +2,7 @@ package cloud.eppo;
 
 import cloud.eppo.api.*;
 import cloud.eppo.ufc.dto.Variation;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,18 +39,8 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
     private Map<String, String> extraLogging;
     private boolean doLog;
 
-    // Evaluation details fields
-    private String environmentName = "Test"; // Default for now
-    private FlagEvaluationCode flagEvaluationCode;
-    private String flagEvaluationDescription;
-    private String banditKey;
-    private String banditAction;
-    private MatchedRule matchedRule;
-    private AllocationDetails matchedAllocation;
-    private final List<AllocationDetails> unmatchedAllocations = new ArrayList<>();
-    private final List<AllocationDetails> unevaluatedAllocations = new ArrayList<>();
-    private Date configFetchedAt;
-    private Date configPublishedAt;
+    // Delegate to EvaluationDetails.Builder for evaluation details
+    private final EvaluationDetails.Builder detailsBuilder = EvaluationDetails.builder();
 
     public Builder flagKey(String flagKey) {
       this.flagKey = flagKey;
@@ -90,80 +78,66 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
     }
 
     public Builder environmentName(String environmentName) {
-      this.environmentName = environmentName;
+      detailsBuilder.environmentName(environmentName);
       return this;
     }
 
     public Builder flagEvaluationCode(FlagEvaluationCode code) {
-      this.flagEvaluationCode = code;
+      detailsBuilder.flagEvaluationCode(code);
       return this;
     }
 
     public Builder flagEvaluationDescription(String description) {
-      this.flagEvaluationDescription = description;
+      detailsBuilder.flagEvaluationDescription(description);
       return this;
     }
 
     public Builder banditKey(String banditKey) {
-      this.banditKey = banditKey;
+      detailsBuilder.banditKey(banditKey);
       return this;
     }
 
     public Builder banditAction(String banditAction) {
-      this.banditAction = banditAction;
+      detailsBuilder.banditAction(banditAction);
       return this;
     }
 
     public Builder matchedRule(MatchedRule matchedRule) {
-      this.matchedRule = matchedRule;
+      detailsBuilder.matchedRule(matchedRule);
       return this;
     }
 
     public Builder matchedAllocation(AllocationDetails matchedAllocation) {
-      this.matchedAllocation = matchedAllocation;
+      detailsBuilder.matchedAllocation(matchedAllocation);
       return this;
     }
 
     public Builder addUnmatchedAllocation(AllocationDetails allocation) {
-      this.unmatchedAllocations.add(allocation);
+      detailsBuilder.addUnmatchedAllocation(allocation);
       return this;
     }
 
     public Builder addUnevaluatedAllocation(AllocationDetails allocation) {
-      this.unevaluatedAllocations.add(allocation);
+      detailsBuilder.addUnevaluatedAllocation(allocation);
       return this;
     }
 
     public Builder configFetchedAt(Date configFetchedAt) {
-      this.configFetchedAt = configFetchedAt;
+      detailsBuilder.configFetchedAt(configFetchedAt);
       return this;
     }
 
     public Builder configPublishedAt(Date configPublishedAt) {
-      this.configPublishedAt = configPublishedAt;
+      detailsBuilder.configPublishedAt(configPublishedAt);
       return this;
     }
 
     public DetailedFlagEvaluationResult build() {
-      // Build evaluation details
-      String variationKey = variation != null ? variation.getKey() : null;
-      EppoValue variationValue = variation != null ? variation.getValue() : null;
-
-      EvaluationDetails details =
-          new EvaluationDetails(
-              environmentName,
-              configFetchedAt,
-              configPublishedAt,
-              flagEvaluationCode,
-              flagEvaluationDescription,
-              banditKey,
-              banditAction,
-              variationKey,
-              variationValue,
-              matchedRule,
-              matchedAllocation,
-              new ArrayList<>(unmatchedAllocations),
-              new ArrayList<>(unevaluatedAllocations));
+      // Set variation details before building
+      if (variation != null) {
+        detailsBuilder.variationKey(variation.getKey());
+        detailsBuilder.variationValue(variation.getValue());
+      }
 
       return new DetailedFlagEvaluationResult(
           flagKey,
@@ -173,7 +147,7 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
           variation,
           extraLogging,
           doLog,
-          details);
+          detailsBuilder.build());
     }
   }
 }
