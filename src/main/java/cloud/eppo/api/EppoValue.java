@@ -1,6 +1,9 @@
 package cloud.eppo.api;
 
 import cloud.eppo.ufc.dto.EppoValueType;
+import cloud.eppo.ufc.dto.VariationType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -94,6 +97,37 @@ public class EppoValue {
 
   public EppoValueType getType() {
     return type;
+  }
+
+  /**
+   * Unwraps an EppoValue to the appropriate Java type based on the variation type.
+   *
+   * @param value the EppoValue to unwrap
+   * @param expectedType the expected variation type
+   * @param <T> the target type
+   * @return the unwrapped value
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> T unwrap(EppoValue value, VariationType expectedType) {
+    switch (expectedType) {
+      case BOOLEAN:
+        return (T) Boolean.valueOf(value.booleanValue());
+      case INTEGER:
+        return (T) Integer.valueOf(Double.valueOf(value.doubleValue()).intValue());
+      case NUMERIC:
+        return (T) Double.valueOf(value.doubleValue());
+      case STRING:
+        return (T) value.stringValue();
+      case JSON:
+        String jsonString = value.stringValue();
+        try {
+          ObjectMapper mapper = new ObjectMapper();
+          return (T) mapper.readTree(jsonString);
+        } catch (JsonProcessingException e) {
+          return null;
+        }
+    }
+    throw new IllegalArgumentException("Unknown variation type: " + expectedType);
   }
 
   @Override
