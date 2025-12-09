@@ -24,7 +24,6 @@ public class EvaluationDetails {
   private final List<AllocationDetails> unmatchedAllocations;
   private final List<AllocationDetails> unevaluatedAllocations;
 
-
   public EvaluationDetails(
       String environmentName,
       Date configFetchedAt,
