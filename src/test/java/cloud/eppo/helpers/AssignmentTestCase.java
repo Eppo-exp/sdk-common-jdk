@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.api.AllocationDetails;
-import cloud.eppo.api.AssignmentDetails;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.EvaluationDetails;
