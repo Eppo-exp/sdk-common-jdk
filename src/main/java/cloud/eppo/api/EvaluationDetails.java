@@ -11,6 +11,8 @@ import java.util.List;
  */
 public class EvaluationDetails {
   private final String environmentName;
+  private final Date configFetchedAt;
+  private final Date configPublishedAt;
   private final FlagEvaluationCode flagEvaluationCode;
   private final String flagEvaluationDescription;
   private final String banditKey;
@@ -21,8 +23,7 @@ public class EvaluationDetails {
   private final AllocationDetails matchedAllocation;
   private final List<AllocationDetails> unmatchedAllocations;
   private final List<AllocationDetails> unevaluatedAllocations;
-  private final Date configFetchedAt;
-  private final Date configPublishedAt;
+
 
   public EvaluationDetails(
       String environmentName,
