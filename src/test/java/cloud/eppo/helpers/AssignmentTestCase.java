@@ -260,17 +260,26 @@ public class AssignmentTestCase {
         String.format("Matched allocation mismatch for flag %s, subject %s", flagKey, subjectKey));
 
     // Compare allocation lists
-    assertEquals(
-        expectedDetails.getUnmatchedAllocations().size(),
-        actualDetails.getUnmatchedAllocations().size(),
-        String.format(
-            "Unmatched allocations count mismatch for flag %s, subject %s", flagKey, subjectKey));
+    assertAllocationListsEqual(
+        expectedDetails.getUnmatchedAllocations(),
+        actualDetails.getUnmatchedAllocations(),
+        String.format("Unmatched allocations mismatch for flag %s, subject %s", flagKey, subjectKey));
 
-    assertEquals(
-        expectedDetails.getUnevaluatedAllocations().size(),
-        actualDetails.getUnevaluatedAllocations().size(),
+    assertAllocationListsEqual(
+        expectedDetails.getUnevaluatedAllocations(),
+        actualDetails.getUnevaluatedAllocations(),
         String.format(
-            "Unevaluated allocations count mismatch for flag %s, subject %s", flagKey, subjectKey));
+            "Unevaluated allocations mismatch for flag %s, subject %s", flagKey, subjectKey));
+  }
+
+  private static void assertAllocationListsEqual(
+      List<AllocationDetails> expected, List<AllocationDetails> actual, String message) {
+    assertEquals(expected.size(), actual.size(), message + " (count)");
+
+    for (int i = 0; i < expected.size(); i++) {
+      assertAllocationDetailsEqual(
+          expected.get(i), actual.get(i), message + " (index " + i + ")");
+    }
   }
 
   private static void assertVariationValuesEqual(

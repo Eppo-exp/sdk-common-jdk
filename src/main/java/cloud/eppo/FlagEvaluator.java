@@ -280,7 +280,7 @@ public class FlagEvaluator {
                 ? base64Decode(unevaluatedAllocation.getKey())
                 : unevaluatedAllocation.getKey();
         builder.addUnevaluatedAllocation(
-            new AllocationDetails(unevaluatedKey, AllocationEvaluationCode.UNEVALUATED, i + 2));
+            new AllocationDetails(unevaluatedKey, AllocationEvaluationCode.UNEVALUATED, i + 1));
       }
 
       break;

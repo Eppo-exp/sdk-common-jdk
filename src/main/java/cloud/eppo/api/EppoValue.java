@@ -113,7 +113,7 @@ public class EppoValue {
       case BOOLEAN:
         return (T) Boolean.valueOf(value.booleanValue());
       case INTEGER:
-        return (T) Integer.valueOf((int) value.doubleValue());
+        return (T) Integer.valueOf(Double.valueOf(value.doubleValue()).intValue());
       case NUMERIC:
         return (T) Double.valueOf(value.doubleValue());
       case STRING:
