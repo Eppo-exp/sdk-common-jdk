@@ -263,7 +263,8 @@ public class AssignmentTestCase {
     assertAllocationListsEqual(
         expectedDetails.getUnmatchedAllocations(),
         actualDetails.getUnmatchedAllocations(),
-        String.format("Unmatched allocations mismatch for flag %s, subject %s", flagKey, subjectKey));
+        String.format(
+            "Unmatched allocations mismatch for flag %s, subject %s", flagKey, subjectKey));
 
     assertAllocationListsEqual(
         expectedDetails.getUnevaluatedAllocations(),
@@ -277,8 +278,7 @@ public class AssignmentTestCase {
     assertEquals(expected.size(), actual.size(), message + " (count)");
 
     for (int i = 0; i < expected.size(); i++) {
-      assertAllocationDetailsEqual(
-          expected.get(i), actual.get(i), message + " (index " + i + ")");
+      assertAllocationDetailsEqual(expected.get(i), actual.get(i), message + " (index " + i + ")");
     }
   }
 
