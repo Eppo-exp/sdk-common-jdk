@@ -22,7 +22,10 @@ public enum FlagEvaluationCode {
   DEFAULT_ALLOCATION_NULL("DEFAULT_ALLOCATION_NULL", true),
 
   /** Flag evaluation succeeded but bandit evaluation failed. */
-  BANDIT_ERROR("BANDIT_ERROR", true);
+  BANDIT_ERROR("BANDIT_ERROR", true),
+
+  /** No actions were supplied for bandit evaluation. */
+  NO_ACTIONS_SUPPLIED_FOR_BANDIT("NO_ACTIONS_SUPPLIED_FOR_BANDIT", true);
 
   private final String code;
   private final boolean isError;

@@ -1,5 +1,6 @@
 package cloud.eppo.api;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -106,5 +107,40 @@ public class EvaluationDetails {
 
   public boolean evaluationSuccessful() {
     return !flagEvaluationCode.isError();
+  }
+
+  /**
+   * Builds a default EvaluationDetails for error cases or when detailed evaluation information is
+   * not available.
+   *
+   * @param environmentName The environment name from configuration, or null
+   * @param configFetchedAt The timestamp when configuration was fetched, or null
+   * @param configPublishedAt The timestamp when configuration was published, or null
+   * @param code The flag evaluation code
+   * @param description A description of why this evaluation result was returned
+   * @param variationValue The variation value being returned
+   * @return An EvaluationDetails with minimal information populated
+   */
+  public static EvaluationDetails buildDefault(
+      String environmentName,
+      Date configFetchedAt,
+      Date configPublishedAt,
+      FlagEvaluationCode code,
+      String description,
+      EppoValue variationValue) {
+    return new EvaluationDetails(
+        environmentName != null ? environmentName : "Unknown",
+        configFetchedAt,
+        configPublishedAt,
+        code,
+        description,
+        null, // banditKey
+        null, // banditAction
+        null, // variationKey
+        variationValue,
+        null, // matchedRule
+        null, // matchedAllocation
+        new ArrayList<>(), // unmatchedAllocations
+        new ArrayList<>()); // unevaluatedAllocations
   }
 }

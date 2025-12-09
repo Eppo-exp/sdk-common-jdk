@@ -373,11 +373,11 @@ public class BaseEppoClientBanditTest {
     BanditResult banditResult =
         eppoClient.getBanditAction(flagKey, subjectKey, subjectAttributes, actions, "control");
 
-    // Verify assignment
+    // Verify assignment - returns bandit variation with null action
     assertEquals("banner_bandit", banditResult.getVariation());
     assertNull(banditResult.getAction());
 
-    // The variation assignment should have been logged
+    // The variation assignment should have been logged (happens during flag evaluation)
     ArgumentCaptor<Assignment> assignmentLogCaptor = ArgumentCaptor.forClass(Assignment.class);
     verify(mockAssignmentLogger, times(1)).logAssignment(assignmentLogCaptor.capture());
 
@@ -538,19 +538,26 @@ public class BaseEppoClientBanditTest {
         eppoClient.getBanditActionDetails(
             flagKey, subjectKey, subjectAttributes, actions, "control");
 
-    // Verify assignment - should get variation but no action
+    // Verify assignment - should get bandit variation with null action
     assertEquals("banner_bandit", assignmentDetails.getVariation());
     assertNull(assignmentDetails.getAction());
 
     // Verify evaluation details
     EvaluationDetails details = assignmentDetails.getEvaluationDetails();
     assertNotNull(details);
-    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertEquals(
+        FlagEvaluationCode.NO_ACTIONS_SUPPLIED_FOR_BANDIT, details.getFlagEvaluationCode());
+    assertEquals(
+        "No actions supplied for bandit evaluation", details.getFlagEvaluationDescription());
 
-    // When no actions are supplied, bandit evaluation is skipped
-    // so both bandit key and action should be null
-    assertNull(details.getBanditKey());
+    // banditKey should be set (we know which bandit would have been used)
+    // but banditAction should be null (no action selected)
+    assertEquals("banner_bandit", details.getBanditKey());
     assertNull(details.getBanditAction());
+
+    // Verify variation key is set
+    assertNotNull(details.getVariationKey());
+    assertNotNull(details.getVariationValue());
 
     // Verify config metadata is present
     assertNotNull(details.getEnvironmentName());

@@ -175,20 +175,5 @@ public class DetailedFlagEvaluationResult extends FlagEvaluationResult {
           doLog,
           details);
     }
-
-    private static Object getEppoValueAsObject(EppoValue value) {
-      if (value.isNull()) {
-        return null;
-      } else if (value.isBoolean()) {
-        return value.booleanValue();
-      } else if (value.isNumeric()) {
-        return value.doubleValue();
-      } else if (value.isString()) {
-        return value.stringValue();
-      } else if (value.isStringArray()) {
-        return value.stringArrayValue();
-      }
-      return null;
-    }
   }
 }
