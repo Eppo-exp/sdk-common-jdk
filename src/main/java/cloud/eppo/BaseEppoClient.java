@@ -303,7 +303,8 @@ public class BaseEppoClient {
       case JSON:
         typeMatch =
             value.isString()
-                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via unwrapping)
+                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
+                // unwrapping)
                 && value.unwrap(VariationType.JSON) != null;
         break;
       default:
