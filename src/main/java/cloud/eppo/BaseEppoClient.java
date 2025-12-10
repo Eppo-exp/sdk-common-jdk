@@ -224,7 +224,7 @@ public class BaseEppoClient {
     }
 
     // Evaluate flag with details
-    FlagEvaluationResult detailedResult =
+    FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
             flag,
             flagKey,
@@ -236,7 +236,7 @@ public class BaseEppoClient {
             config.getConfigPublishedAt());
 
     EppoValue assignedValue =
-        detailedResult.getVariation() != null ? detailedResult.getVariation().getValue() : null;
+        evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
       log.warn(
@@ -247,17 +247,17 @@ public class BaseEppoClient {
       return defaultValue;
     }
 
-    if (assignedValue != null && assignmentLogger != null && detailedResult.doLog()) {
+    if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
 
       try {
-        String allocationKey = detailedResult.getAllocationKey();
+        String allocationKey = evaluationResult.getAllocationKey();
         String experimentKey =
             flagKey
                 + '-'
                 + allocationKey; // Our experiment key is derived by hyphenating the flag key and
         // allocation key
-        String variationKey = detailedResult.getVariation().getKey();
-        Map<String, String> extraLogging = detailedResult.getExtraLogging();
+        String variationKey = evaluationResult.getVariation().getKey();
+        Map<String, String> extraLogging = evaluationResult.getExtraLogging();
         Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
         Assignment assignment =
