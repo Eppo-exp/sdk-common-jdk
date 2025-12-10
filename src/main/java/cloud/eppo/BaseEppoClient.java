@@ -223,11 +223,20 @@ public class BaseEppoClient {
       return defaultValue;
     }
 
-    FlagEvaluationResult evaluationResult =
-        FlagEvaluator.evaluateFlag(
-            flag, flagKey, subjectKey, subjectAttributes, config.isConfigObfuscated());
+    // Evaluate flag with details
+    DetailedFlagEvaluationResult detailedResult =
+        FlagEvaluator.evaluateFlagWithDetails(
+            flag,
+            flagKey,
+            subjectKey,
+            subjectAttributes,
+            config.isConfigObfuscated(),
+            config.getEnvironmentName(),
+            config.getConfigFetchedAt(),
+            config.getConfigPublishedAt());
+
     EppoValue assignedValue =
-        evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
+        detailedResult.getVariation() != null ? detailedResult.getVariation().getValue() : null;
 
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
       log.warn(
@@ -238,17 +247,17 @@ public class BaseEppoClient {
       return defaultValue;
     }
 
-    if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
+    if (assignedValue != null && assignmentLogger != null && detailedResult.doLog()) {
 
       try {
-        String allocationKey = evaluationResult.getAllocationKey();
+        String allocationKey = detailedResult.getAllocationKey();
         String experimentKey =
             flagKey
                 + '-'
                 + allocationKey; // Our experiment key is derived by hyphenating the flag key and
         // allocation key
-        String variationKey = evaluationResult.getVariation().getKey();
-        Map<String, String> extraLogging = evaluationResult.getExtraLogging();
+        String variationKey = detailedResult.getVariation().getKey();
+        Map<String, String> extraLogging = detailedResult.getExtraLogging();
         Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
         Assignment assignment =
