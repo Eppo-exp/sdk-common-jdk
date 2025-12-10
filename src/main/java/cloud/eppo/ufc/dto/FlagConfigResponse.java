@@ -1,5 +1,6 @@
 package cloud.eppo.ufc.dto;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,32 +9,53 @@ public class FlagConfigResponse {
   private final Map<String, FlagConfig> flags;
   private final Map<String, BanditReference> banditReferences;
   private final Format format;
+  private final String environmentName;
+  private final Date createdAt;
+
+  public FlagConfigResponse(
+      Map<String, FlagConfig> flags,
+      Map<String, BanditReference> banditReferences,
+      Format dataFormat,
+      String environmentName,
+      Date createdAt) {
+    this.flags = flags;
+    this.banditReferences = banditReferences;
+    this.format = dataFormat;
+    this.environmentName = environmentName;
+    this.createdAt = createdAt;
+  }
 
   public FlagConfigResponse(
       Map<String, FlagConfig> flags,
       Map<String, BanditReference> banditReferences,
       Format dataFormat) {
-    this.flags = flags;
-    this.banditReferences = banditReferences;
-    format = dataFormat;
+    this(flags, banditReferences, dataFormat, null, null);
   }
 
   public FlagConfigResponse(
       Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
-    this(flags, banditReferences, Format.SERVER);
+    this(flags, banditReferences, Format.SERVER, null, null);
   }
 
   public FlagConfigResponse() {
-    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER);
+    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER, null, null);
   }
 
   @Override
   public String toString() {
-    return "FlagConfigResponse{" +
-      "flags=" + flags +
-      ", banditReferences=" + banditReferences +
-      ", format=" + format +
-      '}';
+    return "FlagConfigResponse{"
+        + "flags="
+        + flags
+        + ", banditReferences="
+        + banditReferences
+        + ", format="
+        + format
+        + ", environmentName='"
+        + environmentName
+        + '\''
+        + ", createdAt="
+        + createdAt
+        + '}';
   }
 
   @Override
@@ -41,13 +63,15 @@ public class FlagConfigResponse {
     if (o == null || getClass() != o.getClass()) return false;
     FlagConfigResponse that = (FlagConfigResponse) o;
     return Objects.equals(flags, that.flags)
-            && Objects.equals(banditReferences, that.banditReferences)
-            && format == that.format;
+        && Objects.equals(banditReferences, that.banditReferences)
+        && format == that.format
+        && Objects.equals(environmentName, that.environmentName)
+        && Objects.equals(createdAt, that.createdAt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(flags, banditReferences, format);
+    return Objects.hash(flags, banditReferences, format, environmentName, createdAt);
   }
 
   public Map<String, FlagConfig> getFlags() {
@@ -60,6 +84,14 @@ public class FlagConfigResponse {
 
   public Format getFormat() {
     return format;
+  }
+
+  public String getEnvironmentName() {
+    return environmentName;
+  }
+
+  public Date getCreatedAt() {
+    return createdAt;
   }
 
   public enum Format {

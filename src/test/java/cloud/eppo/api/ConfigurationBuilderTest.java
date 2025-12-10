@@ -73,7 +73,16 @@ public class ConfigurationBuilderTest {
     // Create configuration with this flag
     Map<String, FlagConfig> flags = Collections.singletonMap("test-flag", flagConfig);
     Configuration config =
-        new Configuration(flags, Collections.emptyMap(), Collections.emptyMap(), false, null, null);
+        new Configuration(
+            flags,
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            false,
+            null, // environmentName
+            null, // configFetchedAt
+            null, // configPublishedAt
+            null, // flagConfigJson
+            null); // banditParamsJson
 
     // Test successful case
     assertEquals(VariationType.STRING, config.getFlagType("test-flag"));
@@ -103,8 +112,11 @@ public class ConfigurationBuilderTest {
             Collections.emptyMap(),
             Collections.emptyMap(),
             true, // obfuscated
-            null,
-            null);
+            null, // environmentName
+            null, // configFetchedAt
+            null, // configPublishedAt
+            null, // flagConfigJson
+            null); // banditParamsJson
 
     // Test successful case with obfuscated config
     assertEquals(VariationType.NUMERIC, config.getFlagType("test-flag"));
