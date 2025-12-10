@@ -11,10 +11,7 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -27,12 +24,7 @@ import org.slf4j.LoggerFactory;
 
 public class BaseEppoClient {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
-  private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(EppoModule.eppoModule()); // TODO: is this the best place for this?
-
   protected final ConfigurationRequestor requestor;
-
   private final IConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
@@ -311,8 +303,8 @@ public class BaseEppoClient {
       case JSON:
         typeMatch =
             value.isString()
-                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse
-                && parseJsonString(value.stringValue()) != null;
+                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via unwrapping)
+                && value.unwrap(VariationType.JSON) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
@@ -435,7 +427,7 @@ public class BaseEppoClient {
               subjectAttributes,
               EppoValue.valueOf(defaultValue.toString()),
               VariationType.JSON);
-      return parseJsonString(value.stringValue());
+      return value.unwrap(VariationType.JSON);
     } catch (Exception e) {
       return throwIfNotGraceful(e, defaultValue);
     }
@@ -479,14 +471,6 @@ public class BaseEppoClient {
    */
   public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
     return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  private JsonNode parseJsonString(String jsonString) {
-    try {
-      return mapper.readTree(jsonString);
-    } catch (JsonProcessingException e) {
-      return null;
-    }
   }
 
   public BanditResult getBanditAction(
