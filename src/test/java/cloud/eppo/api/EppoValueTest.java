@@ -73,44 +73,44 @@ public class EppoValueTest {
   @Test
   public void testUnwrapBoolean() {
     EppoValue boolValue = EppoValue.valueOf(true);
-    Boolean result = EppoValue.unwrap(boolValue, VariationType.BOOLEAN);
+    Boolean result = boolValue.unwrap(VariationType.BOOLEAN);
     assertEquals(Boolean.TRUE, result);
 
     EppoValue falseValue = EppoValue.valueOf(false);
-    Boolean falseResult = EppoValue.unwrap(falseValue, VariationType.BOOLEAN);
+    Boolean falseResult = falseValue.unwrap(VariationType.BOOLEAN);
     assertEquals(Boolean.FALSE, falseResult);
   }
 
   @Test
   public void testUnwrapInteger() {
     EppoValue numValue = EppoValue.valueOf(42.0);
-    Integer result = EppoValue.unwrap(numValue, VariationType.INTEGER);
+    Integer result = numValue.unwrap(VariationType.INTEGER);
     assertEquals(Integer.valueOf(42), result);
 
     EppoValue negativeValue = EppoValue.valueOf(-17.0);
-    Integer negativeResult = EppoValue.unwrap(negativeValue, VariationType.INTEGER);
+    Integer negativeResult = negativeValue.unwrap(VariationType.INTEGER);
     assertEquals(Integer.valueOf(-17), negativeResult);
   }
 
   @Test
   public void testUnwrapNumeric() {
     EppoValue numValue = EppoValue.valueOf(123.456);
-    Double result = EppoValue.unwrap(numValue, VariationType.NUMERIC);
+    Double result = numValue.unwrap(VariationType.NUMERIC);
     assertEquals(Double.valueOf(123.456), result);
 
     EppoValue intValue = EppoValue.valueOf(100.0);
-    Double intResult = EppoValue.unwrap(intValue, VariationType.NUMERIC);
+    Double intResult = intValue.unwrap(VariationType.NUMERIC);
     assertEquals(Double.valueOf(100.0), intResult);
   }
 
   @Test
   public void testUnwrapString() {
     EppoValue strValue = EppoValue.valueOf("hello world");
-    String result = EppoValue.unwrap(strValue, VariationType.STRING);
+    String result = strValue.unwrap(VariationType.STRING);
     assertEquals("hello world", result);
 
     EppoValue emptyValue = EppoValue.valueOf("");
-    String emptyResult = EppoValue.unwrap(emptyValue, VariationType.STRING);
+    String emptyResult = emptyValue.unwrap(VariationType.STRING);
     assertEquals("", emptyResult);
   }
 
@@ -118,7 +118,7 @@ public class EppoValueTest {
   public void testUnwrapJsonValid() {
     String jsonString = "{\"foo\":\"bar\",\"count\":42}";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertTrue(result.isObject());
     assertEquals("bar", result.get("foo").asText());
@@ -129,7 +129,7 @@ public class EppoValueTest {
   public void testUnwrapJsonArray() {
     String jsonArrayString = "[1,2,3,4,5]";
     EppoValue jsonValue = EppoValue.valueOf(jsonArrayString);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertTrue(result.isArray());
     assertEquals(5, result.size());
@@ -141,7 +141,7 @@ public class EppoValueTest {
   public void testUnwrapJsonWithSpecialCharacters() {
     String jsonString = "{\"a\":\"kümmert\",\"b\":\"schön\"}";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertTrue(result.isObject());
     assertEquals("kümmert", result.get("a").asText());
@@ -152,7 +152,7 @@ public class EppoValueTest {
   public void testUnwrapJsonWithEmojis() {
     String jsonString = "{\"a\":\"🤗\",\"b\":\"🌸\"}";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertTrue(result.isObject());
     assertEquals("🤗", result.get("a").asText());
@@ -163,7 +163,7 @@ public class EppoValueTest {
   public void testUnwrapJsonWithWhitespace() {
     String jsonString = "{ \"key\": \"value\", \"number\": 123 }";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertTrue(result.isObject());
     assertEquals("value", result.get("key").asText());
@@ -174,7 +174,7 @@ public class EppoValueTest {
   public void testUnwrapJsonInvalid() {
     String invalidJson = "not valid json {";
     EppoValue jsonValue = EppoValue.valueOf(invalidJson);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertNull(result, "Invalid JSON should return null");
   }
@@ -183,7 +183,7 @@ public class EppoValueTest {
   public void testUnwrapJsonEmpty() {
     String emptyJson = "{}";
     EppoValue jsonValue = EppoValue.valueOf(emptyJson);
-    JsonNode result = EppoValue.unwrap(jsonValue, VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON);
 
     assertTrue(result.isObject());
     assertEquals(0, result.size());

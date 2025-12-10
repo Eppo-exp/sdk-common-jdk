@@ -100,26 +100,25 @@ public class EppoValue {
   }
 
   /**
-   * Unwraps an EppoValue to the appropriate Java type based on the variation type.
+   * Unwraps this EppoValue to the appropriate Java type based on the variation type.
    *
-   * @param value the EppoValue to unwrap
    * @param expectedType the expected variation type
-   * @param <T> the target type
+   * @param <T> the target type (Boolean, Integer, Double, String, or JsonNode)
    * @return the unwrapped value
    */
   @SuppressWarnings("unchecked")
-  public static <T> T unwrap(EppoValue value, VariationType expectedType) {
+  public <T> T unwrap(VariationType expectedType) {
     switch (expectedType) {
       case BOOLEAN:
-        return (T) Boolean.valueOf(value.booleanValue());
+        return (T) Boolean.valueOf(booleanValue());
       case INTEGER:
-        return (T) Integer.valueOf(Double.valueOf(value.doubleValue()).intValue());
+        return (T) Integer.valueOf(Double.valueOf(doubleValue()).intValue());
       case NUMERIC:
-        return (T) Double.valueOf(value.doubleValue());
+        return (T) Double.valueOf(doubleValue());
       case STRING:
-        return (T) value.stringValue();
+        return (T) stringValue();
       case JSON:
-        String jsonString = value.stringValue();
+        String jsonString = stringValue();
         try {
           ObjectMapper mapper = new ObjectMapper();
           return (T) mapper.readTree(jsonString);

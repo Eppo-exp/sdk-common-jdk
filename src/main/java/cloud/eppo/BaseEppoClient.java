@@ -206,7 +206,7 @@ public class BaseEppoClient {
 
     T resultValue =
         details.evaluationSuccessful()
-            ? EppoValue.unwrap(details.getVariationValue(), expectedType)
+            ? details.getVariationValue().unwrap(expectedType)
             : defaultValue;
     return new AssignmentDetails<>(resultValue, null, details);
   }
@@ -378,7 +378,7 @@ public class BaseEppoClient {
         typeMatch =
             value.isString()
                 // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse
-                && EppoValue.unwrap(value, VariationType.JSON) != null;
+                && value.unwrap(VariationType.JSON) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
