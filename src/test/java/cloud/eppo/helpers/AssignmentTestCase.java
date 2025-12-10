@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.api.AllocationDetails;
+import cloud.eppo.api.AssignmentDetails;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.EvaluationDetails;
@@ -107,45 +108,78 @@ public class AssignmentTestCase {
       String subjectKey = subjectAssignment.getSubjectKey();
       Attributes subjectAttributes = subjectAssignment.getSubjectAttributes();
 
-      // TODO: if validateDetails is true, call the get<type>AssignmentDetails() method
-      if (validateDetails) {
-        System.out.println("TODO: call and validate details method");
-      }
-
       // Depending on the variation type, call the appropriate assignment method
       switch (testCase.getVariationType()) {
         case BOOLEAN:
-          boolean boolAssignment =
-              eppoClient.getBooleanAssignment(
-                  flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
-          assertAssignment(flagKey, subjectAssignment, boolAssignment);
+          if (validateDetails) {
+            AssignmentDetails<Boolean> details =
+                eppoClient.getBooleanAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
+            assertAssignment(flagKey, subjectAssignment, details.getVariation());
+            assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
+          } else {
+            boolean boolAssignment =
+                eppoClient.getBooleanAssignment(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.booleanValue());
+            assertAssignment(flagKey, subjectAssignment, boolAssignment);
+          }
           break;
         case INTEGER:
-          int intAssignment =
-              eppoClient.getIntegerAssignment(
-                  flagKey,
-                  subjectKey,
-                  subjectAttributes,
-                  Double.valueOf(defaultValue.doubleValue()).intValue());
-          assertAssignment(flagKey, subjectAssignment, intAssignment);
+          int castedDefault = Double.valueOf(defaultValue.doubleValue()).intValue();
+          if (validateDetails) {
+            AssignmentDetails<Integer> details =
+                eppoClient.getIntegerAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, castedDefault);
+            assertAssignment(flagKey, subjectAssignment, details.getVariation());
+            assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
+          } else {
+            int intAssignment =
+                eppoClient.getIntegerAssignment(
+                    flagKey, subjectKey, subjectAttributes, castedDefault);
+            assertAssignment(flagKey, subjectAssignment, intAssignment);
+          }
           break;
         case NUMERIC:
-          double doubleAssignment =
-              eppoClient.getDoubleAssignment(
-                  flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
-          assertAssignment(flagKey, subjectAssignment, doubleAssignment);
+          if (validateDetails) {
+            AssignmentDetails<Double> details =
+                eppoClient.getDoubleAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
+            assertAssignment(flagKey, subjectAssignment, details.getVariation());
+            assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
+          } else {
+            double doubleAssignment =
+                eppoClient.getDoubleAssignment(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.doubleValue());
+            assertAssignment(flagKey, subjectAssignment, doubleAssignment);
+          }
           break;
         case STRING:
-          String stringAssignment =
-              eppoClient.getStringAssignment(
-                  flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
-          assertAssignment(flagKey, subjectAssignment, stringAssignment);
+          if (validateDetails) {
+            AssignmentDetails<String> details =
+                eppoClient.getStringAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
+            assertAssignment(flagKey, subjectAssignment, details.getVariation());
+            assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
+          } else {
+            String stringAssignment =
+                eppoClient.getStringAssignment(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
+            assertAssignment(flagKey, subjectAssignment, stringAssignment);
+          }
           break;
         case JSON:
-          JsonNode jsonAssignment =
-              eppoClient.getJSONAssignment(
-                  flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
-          assertAssignment(flagKey, subjectAssignment, jsonAssignment);
+          if (validateDetails) {
+            AssignmentDetails<JsonNode> details =
+                eppoClient.getJSONAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
+            assertAssignment(flagKey, subjectAssignment, details.getVariation());
+            assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
+          } else {
+            JsonNode jsonAssignment =
+                eppoClient.getJSONAssignment(
+                    flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
+            assertAssignment(flagKey, subjectAssignment, jsonAssignment);
+          }
           break;
         default:
           throw new UnsupportedOperationException(
