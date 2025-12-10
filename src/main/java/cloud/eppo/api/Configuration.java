@@ -320,9 +320,7 @@ public class Configuration {
         boolean isConfigObfuscated) {
       this.isConfigObfuscated = isConfigObfuscated;
       this.flagJson = flagJson;
-      if (flagConfigResponse == null
-          || flagConfigResponse.getFlags() == null
-          || flagConfigResponse.getFlags().isEmpty()) {
+      if (flagConfigResponse == null || flagConfigResponse.getFlags() == null) {
         log.warn("'flags' map missing in flag definition JSON");
         flags = Collections.emptyMap();
         banditReferences = Collections.emptyMap();
