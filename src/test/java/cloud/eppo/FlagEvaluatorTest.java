@@ -4,9 +4,12 @@ import static cloud.eppo.Utils.base64Encode;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.api.AllocationDetails;
+import cloud.eppo.api.AllocationEvaluationCode;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.EvaluationDetails;
+import cloud.eppo.api.FlagEvaluationCode;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
 import cloud.eppo.ufc.dto.FlagConfig;
@@ -68,6 +71,25 @@ public class FlagEvaluatorTest {
     assertEquals("Production", details.getEnvironmentName());
     assertEquals(testConfigFetchedAt, details.getConfigFetchedAt());
     assertEquals(testConfigPublishedAt, details.getConfigPublishedAt());
+
+    // Verify evaluation details for disabled flag
+    assertEquals(FlagEvaluationCode.FLAG_UNRECOGNIZED_OR_DISABLED, details.getFlagEvaluationCode());
+    assertEquals("Unrecognized or disabled flag: flag", details.getFlagEvaluationDescription());
+    assertNull(details.getVariationKey());
+    assertNull(details.getVariationValue());
+    assertNull(details.getBanditKey());
+    assertNull(details.getBanditAction());
+    assertNull(details.getMatchedRule());
+    assertNull(details.getMatchedAllocation());
+    assertTrue(details.getUnmatchedAllocations().isEmpty());
+
+    // Disabled flag should have all allocations as unevaluated
+    assertEquals(1, details.getUnevaluatedAllocations().size());
+    AllocationDetails unevaluatedAllocation = details.getUnevaluatedAllocations().get(0);
+    assertEquals("allocation", unevaluatedAllocation.getKey());
+    assertEquals(
+        AllocationEvaluationCode.UNEVALUATED, unevaluatedAllocation.getAllocationEvaluationCode());
+    assertEquals(1, unevaluatedAllocation.getOrderPosition());
   }
 
   @Test
@@ -76,7 +98,7 @@ public class FlagEvaluatorTest {
     FlagConfig flag = createFlag("flag", true, variations, null);
     DetailedFlagEvaluationResult result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subjectKey", new Attributes(), false, null, null, null);
+            flag, "flag", "subjectKey", new Attributes(), false, "Test", null, null);
 
     assertEquals(flag.getKey(), result.getFlagKey());
     assertEquals("subjectKey", result.getSubjectKey());
@@ -84,6 +106,21 @@ public class FlagEvaluatorTest {
     assertNull(result.getAllocationKey());
     assertNull(result.getVariation());
     assertFalse(result.doLog());
+
+    // Verify evaluation details for no allocations
+    EvaluationDetails details = result.getEvaluationDetails();
+    assertNotNull(details);
+    assertEquals("Test", details.getEnvironmentName());
+    assertEquals(FlagEvaluationCode.DEFAULT_ALLOCATION_NULL, details.getFlagEvaluationCode());
+    assertEquals(
+        "No allocations matched. Falling back to \"Default Allocation\", serving NULL",
+        details.getFlagEvaluationDescription());
+    assertNull(details.getVariationKey());
+    assertNull(details.getVariationValue());
+    assertNull(details.getMatchedRule());
+    assertNull(details.getMatchedAllocation());
+    assertTrue(details.getUnmatchedAllocations().isEmpty());
+    assertTrue(details.getUnevaluatedAllocations().isEmpty());
   }
 
   @Test
@@ -123,6 +160,27 @@ public class FlagEvaluatorTest {
     assertEquals("Staging", details.getEnvironmentName());
     assertEquals(testConfigFetchedAt, details.getConfigFetchedAt());
     assertEquals(testConfigPublishedAt, details.getConfigPublishedAt());
+
+    // Verify evaluation details for matched flag
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertTrue(details.getFlagEvaluationDescription().contains("allocation"));
+    assertEquals("a", details.getVariationKey());
+    assertEquals("A", details.getVariationValue().stringValue());
+    assertNull(details.getBanditKey());
+    assertNull(details.getBanditAction());
+    assertNull(details.getMatchedRule()); // No rules, just traffic split
+
+    // Verify matched allocation
+    assertNotNull(details.getMatchedAllocation());
+    assertEquals("allocation", details.getMatchedAllocation().getKey());
+    assertEquals(
+        AllocationEvaluationCode.MATCH,
+        details.getMatchedAllocation().getAllocationEvaluationCode());
+    assertEquals(1, details.getMatchedAllocation().getOrderPosition());
+
+    // No unmatched or unevaluated allocations for single allocation flag
+    assertTrue(details.getUnmatchedAllocations().isEmpty());
+    assertTrue(details.getUnevaluatedAllocations().isEmpty());
   }
 
   @Test
@@ -207,24 +265,79 @@ public class FlagEvaluatorTest {
     allocations.addAll(createAllocations("default", defaultSplits));
     FlagConfig flag = createFlag("key", true, variations, allocations);
 
+    // Test 1: Subject matches first allocation's rules
     Attributes matchingEmailAttributes = new Attributes();
     matchingEmailAttributes.put("email", "eppo@example.com");
     DetailedFlagEvaluationResult result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subjectKey", matchingEmailAttributes, false, null, null, null);
+            flag, "flag", "subjectKey", matchingEmailAttributes, false, "Test", null, null);
     assertEquals("B", result.getVariation().getValue().stringValue());
 
+    // Verify details when first allocation matches
+    EvaluationDetails details = result.getEvaluationDetails();
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertEquals("b", details.getVariationKey());
+    assertNotNull(details.getMatchedRule());
+    assertEquals(1, details.getMatchedRule().getConditions().size());
+
+    // Matched allocation should be "first" at position 1
+    assertNotNull(details.getMatchedAllocation());
+    assertEquals("first", details.getMatchedAllocation().getKey());
+    assertEquals(
+        AllocationEvaluationCode.MATCH,
+        details.getMatchedAllocation().getAllocationEvaluationCode());
+    assertEquals(1, details.getMatchedAllocation().getOrderPosition());
+
+    // "default" allocation should be unevaluated at position 2
+    assertTrue(details.getUnmatchedAllocations().isEmpty());
+    assertEquals(1, details.getUnevaluatedAllocations().size());
+    assertEquals("default", details.getUnevaluatedAllocations().get(0).getKey());
+    assertEquals(
+        AllocationEvaluationCode.UNEVALUATED,
+        details.getUnevaluatedAllocations().get(0).getAllocationEvaluationCode());
+    assertEquals(2, details.getUnevaluatedAllocations().get(0).getOrderPosition());
+
+    // Test 2: Subject doesn't match first allocation's rules, falls through to default
     Attributes unknownEmailAttributes = new Attributes();
     unknownEmailAttributes.put("email", "eppo@test.com");
     result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subjectKey", unknownEmailAttributes, false, null, null, null);
+            flag, "flag", "subjectKey", unknownEmailAttributes, false, "Test", null, null);
     assertEquals("A", result.getVariation().getValue().stringValue());
 
+    // Verify details when first allocation doesn't match
+    details = result.getEvaluationDetails();
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertEquals("a", details.getVariationKey());
+    assertNull(details.getMatchedRule()); // default has no rules
+
+    // Matched allocation should be "default" at position 2
+    assertNotNull(details.getMatchedAllocation());
+    assertEquals("default", details.getMatchedAllocation().getKey());
+    assertEquals(
+        AllocationEvaluationCode.MATCH,
+        details.getMatchedAllocation().getAllocationEvaluationCode());
+    assertEquals(2, details.getMatchedAllocation().getOrderPosition());
+
+    // "first" allocation should be unmatched (FAILING_RULE) at position 1
+    assertEquals(1, details.getUnmatchedAllocations().size());
+    assertEquals("first", details.getUnmatchedAllocations().get(0).getKey());
+    assertEquals(
+        AllocationEvaluationCode.FAILING_RULE,
+        details.getUnmatchedAllocations().get(0).getAllocationEvaluationCode());
+    assertEquals(1, details.getUnmatchedAllocations().get(0).getOrderPosition());
+    assertTrue(details.getUnevaluatedAllocations().isEmpty());
+
+    // Test 3: No attributes - also falls through to default
     result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subjectKey", new Attributes(), false, null, null, null);
+            flag, "flag", "subjectKey", new Attributes(), false, "Test", null, null);
     assertEquals("A", result.getVariation().getValue().stringValue());
+
+    details = result.getEvaluationDetails();
+    assertEquals("default", details.getMatchedAllocation().getKey());
+    assertEquals(1, details.getUnmatchedAllocations().size());
+    assertEquals("first", details.getUnmatchedAllocations().get(0).getKey());
   }
 
   @Test
@@ -285,32 +398,63 @@ public class FlagEvaluatorTest {
 
     DetailedFlagEvaluationResult result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subject", new Attributes(), false, null, null, null);
+            flag, "flag", "subject", new Attributes(), false, "Test", null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
     assertTrue(result.doLog());
 
-    // Make both start startAt and endAt in the future
+    // Verify details for active allocation
+    EvaluationDetails details = result.getEvaluationDetails();
+    assertEquals(FlagEvaluationCode.MATCH, details.getFlagEvaluationCode());
+    assertNotNull(details.getMatchedAllocation());
+    assertEquals("allocation", details.getMatchedAllocation().getKey());
+    assertEquals(
+        AllocationEvaluationCode.MATCH,
+        details.getMatchedAllocation().getAllocationEvaluationCode());
+
+    // Make both startAt and endAt in the future (allocation not yet active)
     allocation.setStartAt(new Date(now.getTime() + oneDayInMilliseconds));
     allocation.setEndAt(new Date(now.getTime() + 2 * oneDayInMilliseconds));
 
     result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subject", new Attributes(), false, null, null, null);
+            flag, "flag", "subject", new Attributes(), false, "Test", null, null);
 
     assertNull(result.getVariation());
     assertFalse(result.doLog());
 
-    // Make both startAt and endAt in the past
+    // Verify details for not-yet-active allocation
+    details = result.getEvaluationDetails();
+    assertEquals(FlagEvaluationCode.DEFAULT_ALLOCATION_NULL, details.getFlagEvaluationCode());
+    assertNull(details.getMatchedAllocation());
+    assertEquals(1, details.getUnmatchedAllocations().size());
+    assertEquals("allocation", details.getUnmatchedAllocations().get(0).getKey());
+    assertEquals(
+        AllocationEvaluationCode.BEFORE_START_TIME,
+        details.getUnmatchedAllocations().get(0).getAllocationEvaluationCode());
+    assertEquals(1, details.getUnmatchedAllocations().get(0).getOrderPosition());
+
+    // Make both startAt and endAt in the past (allocation expired)
     allocation.setStartAt(new Date(now.getTime() - 2 * oneDayInMilliseconds));
     allocation.setEndAt(new Date(now.getTime() - oneDayInMilliseconds));
 
     result =
         FlagEvaluator.evaluateFlagWithDetails(
-            flag, "flag", "subject", new Attributes(), false, null, null, null);
+            flag, "flag", "subject", new Attributes(), false, "Test", null, null);
 
     assertNull(result.getVariation());
     assertFalse(result.doLog());
+
+    // Verify details for expired allocation
+    details = result.getEvaluationDetails();
+    assertEquals(FlagEvaluationCode.DEFAULT_ALLOCATION_NULL, details.getFlagEvaluationCode());
+    assertNull(details.getMatchedAllocation());
+    assertEquals(1, details.getUnmatchedAllocations().size());
+    assertEquals("allocation", details.getUnmatchedAllocations().get(0).getKey());
+    assertEquals(
+        AllocationEvaluationCode.AFTER_END_TIME,
+        details.getUnmatchedAllocations().get(0).getAllocationEvaluationCode());
+    assertEquals(1, details.getUnmatchedAllocations().get(0).getOrderPosition());
   }
 
   @Test
