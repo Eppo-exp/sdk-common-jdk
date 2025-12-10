@@ -224,8 +224,8 @@ public class BaseEppoClient {
     }
 
     // Evaluate flag with details
-    DetailedFlagEvaluationResult detailedResult =
-        FlagEvaluator.evaluateFlagWithDetails(
+    FlagEvaluationResult detailedResult =
+        FlagEvaluator.evaluateFlag(
             flag,
             flagKey,
             subjectKey,
