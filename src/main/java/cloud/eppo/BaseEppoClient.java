@@ -11,6 +11,7 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.ufc.dto.*;
+import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
@@ -199,7 +200,7 @@ public class BaseEppoClient {
 
     T resultValue =
         details.evaluationSuccessful()
-            ? details.getVariationValue().unwrap(expectedType)
+            ? EppoValue.unwrap(details.getVariationValue(), expectedType)
             : defaultValue;
     return new AssignmentDetails<>(resultValue, null, details);
   }
@@ -272,7 +273,7 @@ public class BaseEppoClient {
             config.getEnvironmentName(),
             config.getConfigFetchedAt(),
             config.getConfigPublishedAt());
-    EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
+    EvaluationDetails evaluationDetails = detailedResult.getEvaluationDetails();
 
     EppoValue assignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
@@ -288,7 +289,7 @@ public class BaseEppoClient {
       // Update evaluation details with error code but keep the matched allocation and variation
       // info
       String variationKey =
-          evaluationResult.getVariation() != null ? evaluationResult.getVariation().getKey() : null;
+          detailedResult.getVariation() != null ? detailedResult.getVariation().getKey() : null;
       String errorDescription =
           String.format(
               "Variation (%s) is configured for type %s, but is set to incompatible value (%s)",
@@ -306,7 +307,7 @@ public class BaseEppoClient {
     }
 
     // Log assignment if applicable
-    if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
+    if (assignedValue != null && assignmentLogger != null && detailedResult.doLog()) {
       try {
         String allocationKey = evaluationResult.getAllocationKey();
         String experimentKey =
@@ -370,9 +371,8 @@ public class BaseEppoClient {
       case JSON:
         typeMatch =
             value.isString()
-                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
-                // unwrapping)
-                && value.unwrap(VariationType.JSON) != null;
+                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse
+                && EppoValue.unwrap(value, VariationType.JSON) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
