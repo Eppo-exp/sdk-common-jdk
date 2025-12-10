@@ -33,7 +33,7 @@ public class FlagEvaluator {
    * matched rules, and evaluation codes. This is useful for debugging and understanding why a
    * particular variation was assigned.
    */
-  public static DetailedFlagEvaluationResult evaluateFlagWithDetails(
+  public static FlagEvaluationResult evaluateFlag(
       FlagConfig flag,
       String flagKey,
       String subjectKey,
@@ -44,8 +44,8 @@ public class FlagEvaluator {
       Date configPublishedAt) {
     Date now = new Date();
 
-    DetailedFlagEvaluationResult.Builder builder =
-        new DetailedFlagEvaluationResult.Builder()
+    FlagEvaluationResult.Builder builder =
+        new FlagEvaluationResult.Builder()
             .flagKey(flagKey)
             .subjectKey(subjectKey)
             .subjectAttributes(subjectAttributes)

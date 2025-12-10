@@ -269,8 +269,8 @@ public class BaseEppoClient {
     }
 
     // Evaluate flag with details
-    DetailedFlagEvaluationResult detailedResult =
-        FlagEvaluator.evaluateFlagWithDetails(
+    FlagEvaluationResult evaluationResult =
+        FlagEvaluator.evaluateFlag(
             flag,
             flagKey,
             subjectKey,
@@ -279,10 +279,10 @@ public class BaseEppoClient {
             config.getEnvironmentName(),
             config.getConfigFetchedAt(),
             config.getConfigPublishedAt());
-    EvaluationDetails evaluationDetails = detailedResult.getEvaluationDetails();
+    EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
 
     EppoValue assignedValue =
-        detailedResult.getVariation() != null ? detailedResult.getVariation().getValue() : null;
+        evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
     // Check if value type matches expected
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
@@ -295,7 +295,7 @@ public class BaseEppoClient {
       // Update evaluation details with error code but keep the matched allocation and variation
       // info
       String variationKey =
-          detailedResult.getVariation() != null ? detailedResult.getVariation().getKey() : null;
+          evaluationResult.getVariation() != null ? evaluationResult.getVariation().getKey() : null;
       String errorDescription =
           String.format(
               "Variation (%s) is configured for type %s, but is set to incompatible value (%s)",
@@ -313,16 +313,16 @@ public class BaseEppoClient {
     }
 
     // Log assignment if applicable
-    if (assignedValue != null && assignmentLogger != null && detailedResult.doLog()) {
+    if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
       try {
-        String allocationKey = detailedResult.getAllocationKey();
+        String allocationKey = evaluationResult.getAllocationKey();
         String experimentKey =
             flagKey
                 + '-'
                 + allocationKey; // Our experiment key is derived by hyphenating the flag key and
         // allocation key
-        String variationKey = detailedResult.getVariation().getKey();
-        Map<String, String> extraLogging = detailedResult.getExtraLogging();
+        String variationKey = evaluationResult.getVariation().getKey();
+        Map<String, String> extraLogging = evaluationResult.getExtraLogging();
         Map<String, String> metaData = buildLogMetaData(config.isConfigObfuscated());
 
         Assignment assignment =
