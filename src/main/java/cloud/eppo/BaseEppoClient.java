@@ -200,7 +200,7 @@ public class BaseEppoClient {
 
     T resultValue =
         details.evaluationSuccessful()
-            ? EppoValue.unwrap(details.getVariationValue(), expectedType)
+            ? details.getVariationValue().unwrap(expectedType)
             : defaultValue;
     return new AssignmentDetails<>(resultValue, null, details);
   }
@@ -273,7 +273,7 @@ public class BaseEppoClient {
             config.getEnvironmentName(),
             config.getConfigFetchedAt(),
             config.getConfigPublishedAt());
-    EvaluationDetails evaluationDetails = detailedResult.getEvaluationDetails();
+    EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
 
     EppoValue assignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
@@ -289,7 +289,7 @@ public class BaseEppoClient {
       // Update evaluation details with error code but keep the matched allocation and variation
       // info
       String variationKey =
-          detailedResult.getVariation() != null ? detailedResult.getVariation().getKey() : null;
+          evaluationResult.getVariation() != null ? evaluationResult.getVariation().getKey() : null;
       String errorDescription =
           String.format(
               "Variation (%s) is configured for type %s, but is set to incompatible value (%s)",
@@ -307,7 +307,7 @@ public class BaseEppoClient {
     }
 
     // Log assignment if applicable
-    if (assignedValue != null && assignmentLogger != null && detailedResult.doLog()) {
+    if (assignedValue != null && assignmentLogger != null && evaluationResult.doLog()) {
       try {
         String allocationKey = evaluationResult.getAllocationKey();
         String experimentKey =
@@ -371,8 +371,9 @@ public class BaseEppoClient {
       case JSON:
         typeMatch =
             value.isString()
-                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse
-                && EppoValue.unwrap(value, VariationType.JSON) != null;
+                // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
+                // unwrapping)
+                && value.unwrap(VariationType.JSON) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
