@@ -59,7 +59,14 @@ spotless {
     endWithNewline()
   }
   java {
-    googleJavaFormat('1.17.0')
+    // Use different google-java-format versions based on Java version
+    // google-java-format 1.8+ requires Java 11+, so use 1.7 for Java 8-10
+    def javaVersion = JavaVersion.current()
+    if (javaVersion.isCompatibleWith(JavaVersion.VERSION_11)) {
+      googleJavaFormat('1.17.0')
+    } else {
+      googleJavaFormat('1.7')
+    }
     formatAnnotations()
   }
 }
