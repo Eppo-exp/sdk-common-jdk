@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -305,5 +306,77 @@ public class ConfigurationRequestorTest {
     saveFuture.complete(null);
     fetch.join();
     assertEquals(1, callCount.get()); // Callback should be called after save completes
+  }
+
+  @Test
+  public void testUnsubscribeFromConfigurationChangeByReference() throws IOException {
+    // Setup mock response
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
+    when(mockHttpClient.get(anyString())).thenReturn(flagConfig.getBytes());
+    when(mockConfigStore.saveConfiguration(any()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+
+    List<Configuration> receivedConfigs = new ArrayList<>();
+    Consumer<Configuration> callback = receivedConfigs::add;
+
+    // Subscribe to configuration changes
+    requestor.onConfigurationChange(callback);
+
+    // Initial fetch should trigger the callback
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, receivedConfigs.size());
+
+    // Unsubscribe using the callback reference
+    boolean removed = requestor.unsubscribeFromConfigurationChange(callback);
+    assertTrue(removed);
+
+    // Another fetch should not trigger the callback
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, receivedConfigs.size()); // Count should remain the same
+  }
+
+  @Test
+  public void testUnsubscribeNonExistentConfigurationChangeListener() {
+    Consumer<Configuration> callback = config -> {};
+
+    // Try to unsubscribe a callback that was never subscribed
+    boolean removed = requestor.unsubscribeFromConfigurationChange(callback);
+    assertFalse(removed);
+  }
+
+  @Test
+  public void testUnsubscribeOneOfMultipleConfigurationChangeListeners() {
+    // Setup mock response
+    when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+    when(mockConfigStore.saveConfiguration(any()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+
+    AtomicInteger callCount1 = new AtomicInteger(0);
+    AtomicInteger callCount2 = new AtomicInteger(0);
+    AtomicInteger callCount3 = new AtomicInteger(0);
+
+    Consumer<Configuration> callback1 = v -> callCount1.incrementAndGet();
+    Consumer<Configuration> callback2 = v -> callCount2.incrementAndGet();
+    Consumer<Configuration> callback3 = v -> callCount3.incrementAndGet();
+
+    // Subscribe multiple listeners
+    requestor.onConfigurationChange(callback1);
+    requestor.onConfigurationChange(callback2);
+    requestor.onConfigurationChange(callback3);
+
+    // Fetch should trigger all callbacks
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(1, callCount1.get());
+    assertEquals(1, callCount2.get());
+    assertEquals(1, callCount3.get());
+
+    // Unsubscribe middle listener
+    boolean removed = requestor.unsubscribeFromConfigurationChange(callback2);
+    assertTrue(removed);
+
+    requestor.fetchAndSaveFromRemote();
+    assertEquals(2, callCount1.get()); // Should increase
+    assertEquals(1, callCount2.get()); // Should not increase
+    assertEquals(2, callCount3.get()); // Should increase
   }
 }

@@ -156,4 +156,14 @@ public class ConfigurationRequestor {
   public Runnable onConfigurationChange(Consumer<Configuration> callback) {
     return configChangeManager.subscribe(callback);
   }
+
+  /**
+   * Unsubscribe from configuration change notifications.
+   *
+   * @param callback The callback to unsubscribe
+   * @return true if the callback was found and removed, false otherwise
+   */
+  public boolean unsubscribeFromConfigurationChange(Consumer<Configuration> callback) {
+    return configChangeManager.unsubscribe(callback);
+  }
 }
