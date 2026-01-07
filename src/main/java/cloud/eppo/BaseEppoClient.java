@@ -583,6 +583,16 @@ public class BaseEppoClient {
   }
 
   /**
+   * Unsubscribe from configuration change notifications.
+   *
+   * @param callback The callback to unsubscribe
+   * @return true if the callback was found and removed, false otherwise
+   */
+  public boolean unsubscribeFromConfigurationChange(Consumer<Configuration> callback) {
+    return requestor.unsubscribeFromConfigurationChange(callback);
+  }
+
+  /**
    * Returns the configuration object used by the EppoClient for assignment and bandit evaluation.
    *
    * <p>The configuration object is for debugging (inspect the loaded config) and other advanced use

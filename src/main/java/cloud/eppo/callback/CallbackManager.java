@@ -51,6 +51,16 @@ public class CallbackManager<T> {
             });
   }
 
+  /**
+   * Unsubscribe a specific callback if it is currently subscribed.
+   *
+   * @param callback The callback to unsubscribe
+   * @return true if the callback was found and removed, false otherwise
+   */
+  public boolean unsubscribe(Consumer<T> callback) {
+    return subscribers.entrySet().removeIf(entry -> entry.getValue() == callback);
+  }
+
   /** Remove all subscribers. */
   public void clear() {
     subscribers.clear();
