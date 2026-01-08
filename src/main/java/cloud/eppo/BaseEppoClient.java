@@ -223,9 +223,18 @@ public class BaseEppoClient {
       return defaultValue;
     }
 
+    // Evaluate flag with details
     FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
-            flag, flagKey, subjectKey, subjectAttributes, config.isConfigObfuscated());
+            flag,
+            flagKey,
+            subjectKey,
+            subjectAttributes,
+            config.isConfigObfuscated(),
+            config.getEnvironmentName(),
+            config.getConfigFetchedAt(),
+            config.getConfigPublishedAt());
+
     EppoValue assignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
 
