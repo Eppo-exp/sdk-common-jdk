@@ -67,7 +67,6 @@ public class Configuration {
   private final Date configFetchedAt;
   private final Date configPublishedAt;
 
-  @SuppressWarnings("unused")
   private final byte[] flagConfigJson;
 
   private final byte[] banditParamsJson;
@@ -91,7 +90,7 @@ public class Configuration {
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
 
-    // Graft the `forServer` boolean into the flagConfigJson'
+    // Graft the `format` field into the flagConfigJson'
     if (flagConfigJson != null && flagConfigJson.length != 0) {
       try {
         JsonNode jNode = mapper.readTree(flagConfigJson);
@@ -287,7 +286,6 @@ public class Configuration {
       }
     }
 
-    /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */
     public Builder(byte[] flagJson) {
       this(flagJson, parseFlagResponse(flagJson));
     }
