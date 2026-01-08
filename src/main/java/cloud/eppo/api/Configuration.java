@@ -259,10 +259,6 @@ public class Configuration {
     return new Builder(flagJson);
   }
 
-  @Deprecated // isConfigObfuscated is determined from the byte payload
-  public static Builder builder(byte[] flagJson, boolean isConfigObfuscated) {
-    return new Builder(flagJson, isConfigObfuscated);
-  }
   /**
    * Builder to create the immutable config object.
    *
@@ -284,7 +280,6 @@ public class Configuration {
         log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
         return null;
       }
-      FlagConfigResponse config;
       try {
         return mapper.readValue(flagJson, FlagConfigResponse.class);
       } catch (IOException e) {
@@ -292,14 +287,9 @@ public class Configuration {
       }
     }
 
-    @Deprecated // isConfigObfuscated is determined from the byte payload
-    public Builder(String flagJson, boolean isConfigObfuscated) {
-      this(flagJson.getBytes(), parseFlagResponse(flagJson.getBytes()), isConfigObfuscated);
-    }
-
-    @Deprecated // isConfigObfuscated is determined from the byte payload
-    public Builder(byte[] flagJson, boolean isConfigObfuscated) {
-      this(flagJson, parseFlagResponse(flagJson), isConfigObfuscated);
+    /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */
+    public Builder(byte[] flagJson) {
+      this(flagJson, parseFlagResponse(flagJson));
     }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
@@ -307,11 +297,6 @@ public class Configuration {
           flagJson,
           flagConfigResponse,
           flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
-    }
-
-    /** Use this constructor when the FlagConfigResponse has the `forServer` field populated. */
-    public Builder(byte[] flagJson) {
-      this(flagJson, parseFlagResponse(flagJson));
     }
 
     public Builder(

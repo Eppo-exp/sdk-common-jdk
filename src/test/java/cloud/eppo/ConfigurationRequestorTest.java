@@ -45,7 +45,7 @@ public class ConfigurationRequestorTest {
     assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
-    futureConfig.complete(Configuration.builder(flagConfig, false).build());
+    futureConfig.complete(Configuration.builder(flagConfig).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
     assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
@@ -84,7 +84,7 @@ public class ConfigurationRequestorTest {
 
     // Resolve the fetch and then the initialConfig
     configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
     assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
@@ -121,7 +121,7 @@ public class ConfigurationRequestorTest {
     requestor.fetchAndSaveFromRemoteAsync();
 
     // Resolve the initial config
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
 
     // Error out the fetch
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
@@ -163,7 +163,7 @@ public class ConfigurationRequestorTest {
     configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
     // Resolve the initial config after the fetch throws an error.
-    initialConfigFuture.complete(new Configuration.Builder(flagConfig, false).build());
+    initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
 
     // Verify that a configuration was saved by the requestor
     Mockito.verify(configStore, Mockito.times(1)).saveConfiguration(any());

@@ -14,7 +14,6 @@ public class ConfigurationRequestor {
 
   private final EppoHttpClient client;
   private final IConfigurationStore configurationStore;
-  private final boolean expectObfuscatedConfig;
   private final boolean supportBandits;
 
   private CompletableFuture<Void> remoteFetchFuture = null;
@@ -30,7 +29,6 @@ public class ConfigurationRequestor {
       boolean supportBandits) {
     this.configurationStore = configurationStore;
     this.client = client;
-    this.expectObfuscatedConfig = expectObfuscatedConfig;
     this.supportBandits = supportBandits;
   }
 
@@ -90,7 +88,7 @@ public class ConfigurationRequestor {
 
     byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
     Configuration.Builder configBuilder =
-        Configuration.builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
+        Configuration.builder(flagConfigurationJsonBytes)
             .banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
@@ -119,7 +117,7 @@ public class ConfigurationRequestor {
                 flagConfigJsonBytes -> {
                   synchronized (this) {
                     Configuration.Builder configBuilder =
-                        Configuration.builder(flagConfigJsonBytes, expectObfuscatedConfig)
+                        Configuration.builder(flagConfigJsonBytes)
                             .banditParametersFromConfig(
                                 lastConfig); // possibly reuse last bandit models loaded.
 

@@ -80,7 +80,6 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
@@ -101,7 +100,6 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
@@ -126,7 +124,6 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
@@ -149,7 +146,6 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
@@ -208,15 +204,15 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testBaseUrlBackwardsCompatibility() throws IOException, InterruptedException {
-    // Base client must be buildable with a HOST (i.e. no `/api` postfix)
+  public void testCustomBaseUrl() throws IOException, InterruptedException {
+    // Base client must be buildable with a custom apiBaseUrl
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     MockWebServer mockWebServer = new MockWebServer();
     URL mockServerBaseUrl = mockWebServer.url("").url(); // get base url of mockwebserver
 
-    // Remove trailing slash to mimic typical "host" parameter of "https://fscdn.eppo.cloud"
-    String testHost = mockServerBaseUrl.toString().replaceAll("/$", "");
+    // Remove trailing slash to mimic typical apiBaseUrl parameter
+    String testBaseUrl = mockServerBaseUrl.toString().replaceAll("/$", "");
 
     mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
 
@@ -225,8 +221,7 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
-            testHost,
-            null,
+            testBaseUrl,
             mockAssignmentLogger,
             null,
             null,
@@ -244,9 +239,9 @@ public class BaseEppoClientTest {
     assertNotNull(request);
     assertEquals("GET", request.getMethod());
 
-    // The "/api" part comes from appending it on to a "host" parameter but not a base URL param.
+    // The apiBaseUrl is used directly without appending "/api"
     assertEquals(
-        "/api/flag-config/v1/config?apiKey=dummy-flags-api-key&sdkName=java&sdkVersion=100.1.0",
+        "/flag-config/v1/config?apiKey=dummy-flags-api-key&sdkName=java&sdkVersion=100.1.0",
         request.getPath());
   }
 
@@ -360,7 +355,7 @@ public class BaseEppoClientTest {
   private CompletableFuture<Configuration> immediateConfigFuture(
       String config, boolean isObfuscated) {
     return CompletableFuture.completedFuture(
-        Configuration.builder(config.getBytes(), isObfuscated).build());
+        Configuration.builder(config.getBytes()).build());
   }
 
   @Test
@@ -465,7 +460,7 @@ public class BaseEppoClientTest {
     assertEquals(0, result);
 
     // Now, complete the initial config future and check the value.
-    futureConfig.complete(Configuration.builder(flagConfig, false).build());
+    futureConfig.complete(Configuration.builder(flagConfig).build());
 
     result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
     assertEquals(5, result);
@@ -726,7 +721,6 @@ public class BaseEppoClientTest {
                 DUMMY_FLAG_API_KEY,
                 "java",
                 "100.1.0",
-                null,
                 TEST_BASE_URL,
                 mockAssignmentLogger,
                 null,
@@ -841,7 +835,6 @@ public class BaseEppoClientTest {
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
-            null,
             TEST_BASE_URL,
             mockAssignmentLogger,
             null,
