@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 public class BaseEppoClient {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
+
   protected final ConfigurationRequestor requestor;
   private final IConfigurationStore configurationStore;
   private final AssignmentLogger assignmentLogger;
@@ -592,68 +593,149 @@ public class BaseEppoClient {
       DiscriminableAttributes subjectAttributes,
       Actions actions,
       String defaultValue) {
-    BanditResult result = new BanditResult(defaultValue, null);
+    try {
+      AssignmentDetails<String> details =
+          getBanditActionDetails(flagKey, subjectKey, subjectAttributes, actions, defaultValue);
+      return new BanditResult(details.getVariation(), details.getAction());
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, new BanditResult(defaultValue, null));
+    }
+  }
+
+  /**
+   * Returns bandit action assignment with detailed evaluation information including flag evaluation
+   * details and bandit action selection.
+   */
+  public AssignmentDetails<String> getBanditActionDetails(
+      String flagKey,
+      String subjectKey,
+      DiscriminableAttributes subjectAttributes,
+      Actions actions,
+      String defaultValue) {
     final Configuration config = getConfiguration();
     try {
-      String assignedVariation =
-          getStringAssignment(
+      // Get detailed flag assignment
+      AssignmentDetails<String> flagDetails =
+          getStringAssignmentDetails(
               flagKey, subjectKey, subjectAttributes.getAllAttributes(), defaultValue);
 
-      // Update result to reflect that we've been assigned a variation
-      result = new BanditResult(assignedVariation, null);
+      String assignedVariation = flagDetails.getVariation();
+      String assignedAction = null;
 
+      // If we got a variation, check for bandit
       String banditKey = config.banditKeyForVariation(flagKey, assignedVariation);
-      if (banditKey != null && !actions.isEmpty()) {
-        BanditParameters banditParameters = config.getBanditParameters(banditKey);
-        BanditEvaluationResult banditResult =
-            BanditEvaluator.evaluateBandit(
-                flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
 
-        // Update result to reflect that we've been assigned an action
-        result = new BanditResult(assignedVariation, banditResult.getActionKey());
+      // If variation is a bandit but no actions supplied, return variation with null action
+      // This matches Python/JS SDK behavior: "if no actions are given, return the variation with no
+      // action"
+      if (banditKey != null && actions.isEmpty()) {
+        EvaluationDetails noActionsDetails =
+            EvaluationDetails.builder(flagDetails.getEvaluationDetails())
+                .flagEvaluationCode(FlagEvaluationCode.NO_ACTIONS_SUPPLIED_FOR_BANDIT)
+                .flagEvaluationDescription("No actions supplied for bandit evaluation")
+                .banditKey(banditKey)
+                .banditAction(null)
+                .build();
+        return new AssignmentDetails<>(assignedVariation, null, noActionsDetails);
+      }
 
-        if (banditLogger != null) {
-          try {
-            BanditAssignment banditAssignment =
-                new BanditAssignment(
-                    flagKey,
-                    banditKey,
-                    subjectKey,
-                    banditResult.getActionKey(),
-                    banditResult.getActionWeight(),
-                    banditResult.getOptimalityGap(),
-                    banditParameters.getModelVersion(),
-                    subjectAttributes.getNumericAttributes(),
-                    subjectAttributes.getCategoricalAttributes(),
-                    banditResult.getActionAttributes().getNumericAttributes(),
-                    banditResult.getActionAttributes().getCategoricalAttributes(),
-                    buildLogMetaData(config.isConfigObfuscated()));
+      if (banditKey != null) {
+        try {
+          BanditParameters banditParameters = config.getBanditParameters(banditKey);
+          if (banditParameters == null) {
+            throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
+          }
+          BanditEvaluationResult banditResult =
+              BanditEvaluator.evaluateBandit(
+                  flagKey, subjectKey, subjectAttributes, actions, banditParameters.getModelData());
 
-            // Log, only if there is no cache hit.
-            boolean logBanditAssignment = true;
-            AssignmentCacheEntry cacheEntry =
-                AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
-            if (banditAssignmentCache != null) {
-              if (banditAssignmentCache.hasEntry(cacheEntry)) {
+          assignedAction = banditResult.getActionKey();
+
+          // Log bandit assignment if needed
+          if (banditLogger != null) {
+            try {
+              BanditAssignment banditAssignment =
+                  new BanditAssignment(
+                      flagKey,
+                      banditKey,
+                      subjectKey,
+                      banditResult.getActionKey(),
+                      banditResult.getActionWeight(),
+                      banditResult.getOptimalityGap(),
+                      banditParameters.getModelVersion(),
+                      subjectAttributes.getNumericAttributes(),
+                      subjectAttributes.getCategoricalAttributes(),
+                      banditResult.getActionAttributes().getNumericAttributes(),
+                      banditResult.getActionAttributes().getCategoricalAttributes(),
+                      buildLogMetaData(config.isConfigObfuscated()));
+
+              boolean logBanditAssignment = true;
+              AssignmentCacheEntry cacheEntry =
+                  AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
+              if (banditAssignmentCache != null && banditAssignmentCache.hasEntry(cacheEntry)) {
                 logBanditAssignment = false;
               }
-            }
 
-            if (logBanditAssignment) {
-              banditLogger.logBanditAssignment(banditAssignment);
-
-              if (banditAssignmentCache != null) {
-                banditAssignmentCache.put(cacheEntry);
+              if (logBanditAssignment) {
+                banditLogger.logBanditAssignment(banditAssignment);
+                if (banditAssignmentCache != null) {
+                  banditAssignmentCache.put(cacheEntry);
+                }
               }
+            } catch (Exception e) {
+              log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
             }
-          } catch (Exception e) {
-            log.warn("Error logging bandit assignment: {}", e.getMessage(), e);
           }
+
+          // Update evaluation details to include bandit information
+          EvaluationDetails updatedDetails =
+              EvaluationDetails.builder(flagDetails.getEvaluationDetails())
+                  .banditKey(banditKey)
+                  .banditAction(assignedAction)
+                  .build();
+
+          return new AssignmentDetails<>(assignedVariation, assignedAction, updatedDetails);
+        } catch (Exception banditError) {
+          // Bandit evaluation failed - respect graceful mode setting
+          log.warn(
+              "Bandit evaluation failed for flag {}: {}",
+              flagKey,
+              banditError.getMessage(),
+              banditError);
+
+          // If graceful mode is off, throw the exception
+          if (!isGracefulMode) {
+            throw new RuntimeException(banditError);
+          }
+
+          // In graceful mode, return flag details with BANDIT_ERROR code
+          EvaluationDetails banditErrorDetails =
+              EvaluationDetails.builder(flagDetails.getEvaluationDetails())
+                  .flagEvaluationCode(FlagEvaluationCode.BANDIT_ERROR)
+                  .flagEvaluationDescription(
+                      "Bandit evaluation failed: " + banditError.getMessage())
+                  .banditKey(banditKey)
+                  .banditAction(null)
+                  .build();
+          return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
         }
       }
-      return result;
+
+      // No bandit - return flag details as-is
+      return flagDetails;
     } catch (Exception e) {
-      return throwIfNotGraceful(e, result);
+      AssignmentDetails<String> errorDetails =
+          new AssignmentDetails<>(
+              defaultValue,
+              null,
+              EvaluationDetails.buildDefault(
+                  config.getEnvironmentName(),
+                  config.getConfigFetchedAt(),
+                  config.getConfigPublishedAt(),
+                  FlagEvaluationCode.ASSIGNMENT_ERROR,
+                  e.getMessage(),
+                  EppoValue.valueOf(defaultValue)));
+      return throwIfNotGraceful(e, errorDetails);
     }
   }
 
