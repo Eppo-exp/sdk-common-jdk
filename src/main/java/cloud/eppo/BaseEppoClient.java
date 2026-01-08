@@ -672,10 +672,8 @@ public class BaseEppoClient {
               boolean logBanditAssignment = true;
               AssignmentCacheEntry cacheEntry =
                   AssignmentCacheEntry.fromBanditAssignment(banditAssignment);
-              if (banditAssignmentCache != null) {
-                if (banditAssignmentCache.hasEntry(cacheEntry)) {
-                  logBanditAssignment = false;
-                }
+              if (banditAssignmentCache != null && banditAssignmentCache.hasEntry(cacheEntry)) {
+                logBanditAssignment = false;
               }
 
               if (logBanditAssignment) {
