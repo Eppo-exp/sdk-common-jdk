@@ -354,8 +354,7 @@ public class BaseEppoClientTest {
 
   private CompletableFuture<Configuration> immediateConfigFuture(
       String config, boolean isObfuscated) {
-    return CompletableFuture.completedFuture(
-        Configuration.builder(config.getBytes()).build());
+    return CompletableFuture.completedFuture(Configuration.builder(config.getBytes()).build());
   }
 
   @Test

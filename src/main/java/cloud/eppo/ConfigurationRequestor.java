@@ -88,8 +88,7 @@ public class ConfigurationRequestor {
 
     byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
     Configuration.Builder configBuilder =
-        Configuration.builder(flagConfigurationJsonBytes)
-            .banditParametersFromConfig(lastConfig);
+        Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = client.get(Constants.BANDIT_ENDPOINT);
