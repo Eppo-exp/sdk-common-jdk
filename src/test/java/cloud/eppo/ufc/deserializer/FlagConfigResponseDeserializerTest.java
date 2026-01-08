@@ -9,9 +9,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 
 public class FlagConfigResponseDeserializerTest {
@@ -113,5 +116,69 @@ public class FlagConfigResponseDeserializerTest {
     Split offForAllSplit = offForAll.getSplits().iterator().next();
     assertEquals("off", offForAllSplit.getVariationKey());
     assertEquals(0, offForAllSplit.getShards().size());
+  }
+
+  @Test
+  public void testDeserializeCreatedAt() throws Exception {
+    File testUfc = new File("src/test/resources/flags-v1.json");
+    FileReader fileReader = new FileReader(testUfc);
+    FlagConfigResponse configResponse = mapper.readValue(fileReader, FlagConfigResponse.class);
+
+    // Verify createdAt is parsed correctly
+    Date createdAt = configResponse.getCreatedAt();
+    assertNotNull(createdAt, "createdAt should be parsed from the JSON");
+
+    // The test file has "createdAt": "2024-04-17T19:40:53.716Z"
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+    Date expectedDate = sdf.parse("2024-04-17T19:40:53.716Z");
+    assertEquals(expectedDate, createdAt);
+  }
+
+  @Test
+  public void testDeserializeEnvironmentName() throws IOException {
+    // Test with environment.name present (nested structure)
+    String jsonWithEnv =
+        "{ \"flags\": {}, \"environment\": { \"name\": \"Production\" }, \"createdAt\": \"2024-01-01T00:00:00.000Z\" }";
+    FlagConfigResponse configWithEnv = mapper.readValue(jsonWithEnv, FlagConfigResponse.class);
+    assertEquals("Production", configWithEnv.getEnvironmentName());
+
+    // Test without environment (should be null)
+    String jsonWithoutEnv = "{ \"flags\": {} }";
+    FlagConfigResponse configWithoutEnv =
+        mapper.readValue(jsonWithoutEnv, FlagConfigResponse.class);
+    assertNull(configWithoutEnv.getEnvironmentName());
+
+    // Test with environment object but no name field
+    String jsonWithEmptyEnv = "{ \"flags\": {}, \"environment\": {} }";
+    FlagConfigResponse configWithEmptyEnv =
+        mapper.readValue(jsonWithEmptyEnv, FlagConfigResponse.class);
+    assertNull(configWithEmptyEnv.getEnvironmentName());
+  }
+
+  @Test
+  public void testDeserializeFormat() throws IOException {
+    // Test SERVER format
+    String serverJson = "{ \"flags\": {}, \"format\": \"SERVER\" }";
+    FlagConfigResponse serverConfig = mapper.readValue(serverJson, FlagConfigResponse.class);
+    assertEquals(FlagConfigResponse.Format.SERVER, serverConfig.getFormat());
+
+    // Test CLIENT format
+    String clientJson = "{ \"flags\": {}, \"format\": \"CLIENT\" }";
+    FlagConfigResponse clientConfig = mapper.readValue(clientJson, FlagConfigResponse.class);
+    assertEquals(FlagConfigResponse.Format.CLIENT, clientConfig.getFormat());
+
+    // Test default (no format specified) - should default to SERVER
+    String noFormatJson = "{ \"flags\": {} }";
+    FlagConfigResponse noFormatConfig = mapper.readValue(noFormatJson, FlagConfigResponse.class);
+    assertEquals(FlagConfigResponse.Format.SERVER, noFormatConfig.getFormat());
+  }
+
+  @Test
+  public void testDeserializeNullCreatedAt() throws IOException {
+    // Test without createdAt
+    String jsonWithoutCreatedAt = "{ \"flags\": {} }";
+    FlagConfigResponse config = mapper.readValue(jsonWithoutCreatedAt, FlagConfigResponse.class);
+    assertNull(config.getCreatedAt());
   }
 }
