@@ -1,9 +1,26 @@
+// Apply Spotless conditionally - 8.x requires Java 17+, use 6.x for older Java
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      classpath "com.diffplug.spotless:spotless-plugin-gradle:8.1.0"
+    } else {
+      classpath "com.diffplug.spotless:spotless-plugin-gradle:6.13.0"
+    }
+  }
+}
+
 plugins {
   id 'java-library'
   id 'maven-publish'
   id 'org.jreleaser' version '1.18.0' // Stay at 1.18. Version 1.20.0 fails to publish.
-  id "com.diffplug.spotless" version "6.13.0"
 }
+
+apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
 version = '4.0.0-SNAPSHOT'
@@ -56,11 +73,21 @@ spotless {
     target '*.gradle', '.gitattributes', '.gitignore'
 
     trimTrailingWhitespace()
-    indentWithSpaces(2)
+    // Use the appropriate method based on Spotless version
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      leadingTabsToSpaces(2)  // Spotless 8.x
+    } else {
+      indentWithSpaces(2)     // Spotless 6.x
+    }
     endWithNewline()
   }
   java {
-    googleJavaFormat('1.7')
+    // Use google-java-format versions compatible with the Java runtime
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      googleJavaFormat('1.17.0')  // For Java 17+ with Spotless 8.x
+    } else {
+      googleJavaFormat('1.7')     // For Java 8-16 with Spotless 6.x
+    }
     formatAnnotations()
   }
 }
