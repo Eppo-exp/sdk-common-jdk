@@ -50,12 +50,10 @@ public class BaseEppoClient {
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
-  /** @param host To be removed in v4. use `apiBaseUrl` instead. */
   protected BaseEppoClient(
       @NotNull String apiKey,
       @NotNull String sdkName,
       @NotNull String sdkVersion,
-      @Deprecated @Nullable String host,
       @Nullable String apiBaseUrl,
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
@@ -68,7 +66,7 @@ public class BaseEppoClient {
       @Nullable IAssignmentCache banditAssignmentCache) {
 
     if (apiBaseUrl == null) {
-      apiBaseUrl = host != null ? Constants.appendApiPathToHost(host) : Constants.DEFAULT_BASE_URL;
+      apiBaseUrl = Constants.DEFAULT_BASE_URL;
     }
 
     this.assignmentCache = assignmentCache;

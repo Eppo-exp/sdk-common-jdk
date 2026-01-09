@@ -8,10 +8,6 @@ public class Constants {
   public static final String FLAG_CONFIG_ENDPOINT = "/flag-config/v1/config";
   public static final String DEFAULT_BASE_URL = "https://fscdn.eppo.cloud/api";
 
-  static String appendApiPathToHost(String host) {
-    return host + "/api";
-  }
-
   /** Poller Settings */
   private static final long MILLISECOND_IN_ONE_SECOND = 1000;
 
