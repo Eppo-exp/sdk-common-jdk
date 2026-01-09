@@ -36,9 +36,9 @@ public class ConfigurationBuilderTest {
   }
 
   @Test
-  public void testBuildConfigAddsForServer_true() throws IOException {
-    byte[] jsonBytes = "{ \"flags\":{} }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes, false).build();
+  public void testBuildConfigAutoDetectsServerFormat() throws IOException {
+    byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"SERVER\" }".getBytes();
+    Configuration config = Configuration.builder(jsonBytes).build();
     assertFalse(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
@@ -49,9 +49,9 @@ public class ConfigurationBuilderTest {
   }
 
   @Test
-  public void testBuildConfigAddsForServer_false() throws IOException {
-    byte[] jsonBytes = "{ \"flags\":{} }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes, true).build();
+  public void testBuildConfigAutoDetectsClientFormat() throws IOException {
+    byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"CLIENT\" }".getBytes();
+    Configuration config = Configuration.builder(jsonBytes).build();
     assertTrue(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
