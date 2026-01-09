@@ -1,12 +1,11 @@
 package cloud.eppo;
 
-import cloud.eppo.api.IHttpClient;
-
 import static cloud.eppo.Constants.DEFAULT_JITTER_INTERVAL_RATIO;
 import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.IHttpClient;
 import cloud.eppo.cache.AssignmentCacheEntry;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -281,8 +280,9 @@ public class BaseEppoClient {
             config.getConfigPublishedAt());
     EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
 
-    EppoValue assignedValue =
+    IEppoValue iAssignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
+    EppoValue assignedValue = iAssignedValue != null ? (EppoValue) iAssignedValue : null;
 
     // Check if value type matches expected
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
@@ -379,7 +379,7 @@ public class BaseEppoClient {
             value.isString()
                 // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
                 // unwrapping)
-                && value.unwrap(VariationType.JSON) != null;
+                && ((EppoValue) value).unwrap(VariationType.JSON) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);

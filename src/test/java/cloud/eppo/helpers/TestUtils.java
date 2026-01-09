@@ -29,7 +29,8 @@ public class TestUtils {
           @Override
           public byte[] fetch(String endpoint, java.util.Map<String, String> queryParams)
               throws FetchException {
-            throw new FetchException("Intentional Error", new RuntimeException("Intentional Error"));
+            throw new FetchException(
+                "Intentional Error", new RuntimeException("Intentional Error"));
           }
 
           @Override

@@ -5,8 +5,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Test helper for callback-based tests.
- * Provides methods to wait for callback completion and access results.
+ * Test helper for callback-based tests. Provides methods to wait for callback completion and access
+ * results.
  *
  * @param <T> The result type
  */
@@ -28,8 +28,8 @@ public class TestCallback<T> implements Callback<T> {
   }
 
   /**
-   * Wait for the callback to be invoked and return the result.
-   * Throws RuntimeException if the callback received an error.
+   * Wait for the callback to be invoked and return the result. Throws RuntimeException if the
+   * callback received an error.
    *
    * @return The result
    * @throws InterruptedException If the wait is interrupted

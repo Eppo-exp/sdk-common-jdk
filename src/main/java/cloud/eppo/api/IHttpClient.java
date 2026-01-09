@@ -4,12 +4,12 @@ import cloud.eppo.exception.FetchException;
 import java.util.Map;
 
 /**
- * Interface for making HTTP requests to fetch Eppo configuration data.
- * Downstream SDKs can provide custom implementations using their preferred
- * HTTP library (OkHttp, Ktor, URLSession, Fetch API, etc.).
+ * Interface for making HTTP requests to fetch Eppo configuration data. Downstream SDKs can provide
+ * custom implementations using their preferred HTTP library (OkHttp, Ktor, URLSession, Fetch API,
+ * etc.).
  *
- * <p>Threading: Implementations control when and on which thread callbacks are invoked.
- * No thread guarantees are made by this interface.
+ * <p>Threading: Implementations control when and on which thread callbacks are invoked. No thread
+ * guarantees are made by this interface.
  */
 public interface IHttpClient {
   /**

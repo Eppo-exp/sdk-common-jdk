@@ -126,7 +126,7 @@ public class FlagEvaluationResult {
     private String subjectKey;
     private Attributes subjectAttributes;
     private String allocationKey;
-    private Variation variation;
+    private IVariation variation;
     private Map<String, String> extraLogging;
     private boolean doLog;
 
@@ -153,7 +153,7 @@ public class FlagEvaluationResult {
       return this;
     }
 
-    public Builder variation(Variation variation) {
+    public Builder variation(IVariation variation) {
       this.variation = variation;
       return this;
     }
@@ -227,7 +227,7 @@ public class FlagEvaluationResult {
       // Set variation details before building
       if (variation != null) {
         detailsBuilder.variationKey(variation.getKey());
-        detailsBuilder.variationValue(variation.getValue());
+        detailsBuilder.variationValue((EppoValue) variation.getValue());
       }
 
       return new FlagEvaluationResult(

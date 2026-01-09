@@ -314,8 +314,16 @@ public class Configuration {
         banditReferences = Collections.unmodifiableMap(flagConfigResponse.getBanditReferences());
 
         // Extract environment name and published at timestamp from the response
-        environmentName = flagConfigResponse.getEnvironmentName();
-        configPublishedAt = flagConfigResponse.getCreatedAt();
+        // These fields are specific to FlagConfigResponse implementation
+        if (flagConfigResponse instanceof cloud.eppo.ufc.dto.FlagConfigResponse) {
+          cloud.eppo.ufc.dto.FlagConfigResponse fcr =
+              (cloud.eppo.ufc.dto.FlagConfigResponse) flagConfigResponse;
+          environmentName = fcr.getEnvironmentName();
+          configPublishedAt = fcr.getCreatedAt();
+        } else {
+          environmentName = null;
+          configPublishedAt = null;
+        }
 
         log.debug("Loaded {} flag definitions from flag definition JSON", flags.size());
       }

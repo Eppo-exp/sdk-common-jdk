@@ -39,7 +39,12 @@ public class FlagConfigResponse implements IFlagConfigResponse {
   }
 
   public FlagConfigResponse() {
-    this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), IFlagConfigResponse.Format.SERVER, null, null);
+    this(
+        new ConcurrentHashMap<>(),
+        new ConcurrentHashMap<>(),
+        IFlagConfigResponse.Format.SERVER,
+        null,
+        null);
   }
 
   @Override

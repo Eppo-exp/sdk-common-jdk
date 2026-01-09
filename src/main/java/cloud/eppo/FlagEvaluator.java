@@ -14,10 +14,10 @@ import cloud.eppo.api.IFlagConfig;
 import cloud.eppo.api.IShard;
 import cloud.eppo.api.IShardRange;
 import cloud.eppo.api.ISplit;
+import cloud.eppo.api.ITargetingRule;
 import cloud.eppo.api.IVariation;
 import cloud.eppo.api.MatchedRule;
 import cloud.eppo.api.RuleCondition;
-import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.HashMap;
@@ -133,7 +133,7 @@ public class FlagEvaluator {
       }
 
       // This allocation has matched rules; find variation in splits
-      Variation variation = null;
+      IVariation variation = null;
       Map<String, String> extraLogging = new HashMap<>();
       ISplit matchedSplit = null;
 
@@ -227,7 +227,8 @@ public class FlagEvaluator {
 
                       // Condition values are already handled by RuleEvaluator during evaluation
                       // For display purposes, we keep the raw value
-                      return new RuleCondition(attribute, tc.getOperator().value, tc.getValue());
+                      return new RuleCondition(
+                          attribute, tc.getOperator().value, (EppoValue) tc.getValue());
                     })
                 .collect(Collectors.toSet());
         matchedRule = new MatchedRule(conditions);
@@ -275,7 +276,7 @@ public class FlagEvaluator {
 
       // Mark remaining allocations as unevaluated
       for (int i = allocationPosition; i < allocationsToConsider.size(); i++) {
-        Allocation unevaluatedAllocation = allocationsToConsider.get(i);
+        IAllocation unevaluatedAllocation = allocationsToConsider.get(i);
         String unevaluatedKey =
             isConfigObfuscated
                 ? base64Decode(unevaluatedAllocation.getKey())

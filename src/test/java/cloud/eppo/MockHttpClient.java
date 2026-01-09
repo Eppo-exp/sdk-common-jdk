@@ -8,10 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Mock HTTP client for testing.
- * Allows setting up mock responses and recording requests.
- */
+/** Mock HTTP client for testing. Allows setting up mock responses and recording requests. */
 public class MockHttpClient implements IHttpClient {
   private final Map<String, byte[]> responses = new HashMap<>();
   private final List<MockRequest> requestLog = new ArrayList<>();
@@ -81,16 +78,12 @@ public class MockHttpClient implements IHttpClient {
     return new ArrayList<>(requestLog);
   }
 
-  /**
-   * Clear the request log.
-   */
+  /** Clear the request log. */
   public void clearRequestLog() {
     requestLog.clear();
   }
 
-  /**
-   * Represents a recorded request.
-   */
+  /** Represents a recorded request. */
   public static class MockRequest {
     private final String endpoint;
     private final Map<String, String> queryParams;

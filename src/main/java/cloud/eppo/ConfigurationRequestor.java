@@ -105,9 +105,9 @@ public class ConfigurationRequestor {
 
       byte[] flagConfigurationJsonBytes =
           httpClient.fetch(Constants.FLAG_CONFIG_ENDPOINT, queryParams);
+      // Builder will auto-detect obfuscation from the format field in the response
       Configuration.Builder configBuilder =
-          Configuration.builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
-              .banditParametersFromConfig(lastConfig);
+          Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
 
       if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
         byte[] banditParametersJsonBytes = httpClient.fetch(Constants.BANDIT_ENDPOINT, queryParams);

@@ -238,10 +238,10 @@ public class BaseEppoClientTest {
     assertNotNull(request);
     assertEquals("GET", request.getMethod());
 
-    // The "/api" part comes from appending it on to a "host" parameter but not a base URL param.
+    // When using apiBaseUrl, the path is used directly without appending "/api"
     // Check that all required query parameters are present (order may vary with HashMap)
     String path = request.getPath();
-    assertTrue(path.startsWith("/api/flag-config/v1/config"));
+    assertTrue(path.startsWith("/flag-config/v1/config"));
     assertTrue(path.contains("apiKey=dummy-flags-api-key"));
     assertTrue(path.contains("sdkName=java"));
     assertTrue(path.contains("sdkVersion=100.1.0"));

@@ -3,8 +3,8 @@ package cloud.eppo.api;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Utility class for converting between Callback and CompletableFuture patterns.
- * This allows users who prefer CompletableFuture to easily adapt callback-based APIs.
+ * Utility class for converting between Callback and CompletableFuture patterns. This allows users
+ * who prefer CompletableFuture to easily adapt callback-based APIs.
  */
 public final class CallbackAdapter {
 

@@ -16,8 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default HTTP client implementation using OkHttp3.
- * This is the standard implementation provided by the SDK.
+ * Default HTTP client implementation using OkHttp3. This is the standard implementation provided by
+ * the SDK.
  */
 public class DefaultHttpClient implements IHttpClient {
   private static final Logger log = LoggerFactory.getLogger(DefaultHttpClient.class);

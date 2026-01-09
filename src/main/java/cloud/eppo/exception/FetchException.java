@@ -1,8 +1,6 @@
 package cloud.eppo.exception;
 
-/**
- * Exception thrown when an HTTP fetch operation fails.
- */
+/** Exception thrown when an HTTP fetch operation fails. */
 public class FetchException extends Exception {
   private final int statusCode;
   private final String endpoint;
