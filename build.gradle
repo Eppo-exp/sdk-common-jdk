@@ -23,7 +23,7 @@ plugins {
 apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
-version = '4.0.0-SNAPSHOT'
+version = '4.0.0'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 java {
