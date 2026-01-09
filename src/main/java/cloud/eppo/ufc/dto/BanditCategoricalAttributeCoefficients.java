@@ -1,13 +1,13 @@
 package cloud.eppo.ufc.dto;
 
-import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IBanditCategoricalAttributeCoefficients;
 import java.util.Map;
 import java.util.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BanditCategoricalAttributeCoefficients implements BanditAttributeCoefficients {
+public class BanditCategoricalAttributeCoefficients
+    implements BanditAttributeCoefficients, IBanditCategoricalAttributeCoefficients {
   private final Logger logger =
       LoggerFactory.getLogger(BanditCategoricalAttributeCoefficients.class);
   private final String attributeKey;
@@ -23,11 +23,15 @@ public class BanditCategoricalAttributeCoefficients implements BanditAttributeCo
 
   @Override
   public String toString() {
-    return "BanditCategoricalAttributeCoefficients{" +
-      "attributeKey='" + attributeKey + '\'' +
-      ", missingValueCoefficient=" + missingValueCoefficient +
-      ", valueCoefficients=" + valueCoefficients +
-      '}';
+    return "BanditCategoricalAttributeCoefficients{"
+        + "attributeKey='"
+        + attributeKey
+        + '\''
+        + ", missingValueCoefficient="
+        + missingValueCoefficient
+        + ", valueCoefficients="
+        + valueCoefficients
+        + '}';
   }
 
   @Override
@@ -35,9 +39,9 @@ public class BanditCategoricalAttributeCoefficients implements BanditAttributeCo
     if (o == null || getClass() != o.getClass()) return false;
     BanditCategoricalAttributeCoefficients that = (BanditCategoricalAttributeCoefficients) o;
     return Objects.equals(logger, that.logger)
-            && Objects.equals(attributeKey, that.attributeKey)
-            && Objects.equals(missingValueCoefficient, that.missingValueCoefficient)
-            && Objects.equals(valueCoefficients, that.valueCoefficients);
+        && Objects.equals(attributeKey, that.attributeKey)
+        && Objects.equals(missingValueCoefficient, that.missingValueCoefficient)
+        && Objects.equals(valueCoefficients, that.valueCoefficients);
   }
 
   @Override
@@ -50,7 +54,7 @@ public class BanditCategoricalAttributeCoefficients implements BanditAttributeCo
     return attributeKey;
   }
 
-  public double scoreForAttributeValue(EppoValue attributeValue) {
+  public double scoreForAttributeValue(cloud.eppo.api.IEppoValue attributeValue) {
     if (attributeValue == null || attributeValue.isNull()) {
       return missingValueCoefficient;
     }

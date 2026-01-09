@@ -1,9 +1,13 @@
 package cloud.eppo;
 
+import cloud.eppo.api.CallbackAdapter;
 import cloud.eppo.api.Configuration;
+import cloud.eppo.api.IHttpClient;
 import cloud.eppo.callback.CallbackManager;
+import cloud.eppo.exception.FetchException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -12,8 +16,12 @@ import org.slf4j.LoggerFactory;
 public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
-  private final EppoHttpClient client;
+  private final IHttpClient httpClient;
+  private final String apiKey;
+  private final String sdkName;
+  private final String sdkVersion;
   private final IConfigurationStore configurationStore;
+  private final boolean expectObfuscatedConfig;
   private final boolean supportBandits;
 
   private CompletableFuture<Void> remoteFetchFuture = null;
@@ -24,11 +32,18 @@ public class ConfigurationRequestor {
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
-      @NotNull EppoHttpClient client,
+      @NotNull IHttpClient httpClient,
+      @NotNull String apiKey,
+      @NotNull String sdkName,
+      @NotNull String sdkVersion,
       boolean expectObfuscatedConfig,
       boolean supportBandits) {
     this.configurationStore = configurationStore;
-    this.client = client;
+    this.httpClient = httpClient;
+    this.apiKey = apiKey;
+    this.sdkName = sdkName;
+    this.sdkVersion = sdkVersion;
+    this.expectObfuscatedConfig = expectObfuscatedConfig;
     this.supportBandits = supportBandits;
   }
 
@@ -83,25 +98,34 @@ public class ConfigurationRequestor {
   void fetchAndSaveFromRemote() {
     log.debug("Fetching configuration");
 
-    // Reuse the `lastConfig` as its bandits may be useful
-    Configuration lastConfig = configurationStore.getConfiguration();
+    try {
+      // Reuse the `lastConfig` as its bandits may be useful
+      Configuration lastConfig = configurationStore.getConfiguration();
+      Map<String, String> queryParams = buildQueryParams();
 
-    byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
-    Configuration.Builder configBuilder =
-        Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
+      byte[] flagConfigurationJsonBytes =
+          httpClient.fetch(Constants.FLAG_CONFIG_ENDPOINT, queryParams);
+      Configuration.Builder configBuilder =
+          Configuration.builder(flagConfigurationJsonBytes, expectObfuscatedConfig)
+              .banditParametersFromConfig(lastConfig);
 
-    if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-      byte[] banditParametersJsonBytes = client.get(Constants.BANDIT_ENDPOINT);
-      configBuilder.banditParameters(banditParametersJsonBytes);
+      if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
+        byte[] banditParametersJsonBytes = httpClient.fetch(Constants.BANDIT_ENDPOINT, queryParams);
+        configBuilder.banditParameters(banditParametersJsonBytes);
+      }
+
+      saveConfigurationAndNotify(configBuilder.build()).join();
+    } catch (FetchException e) {
+      log.error("Failed to fetch configuration", e);
+      throw new RuntimeException("Configuration fetch failed", e);
     }
-
-    saveConfigurationAndNotify(configBuilder.build()).join();
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
   CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
     log.debug("Fetching configuration from API server");
     final Configuration lastConfig = configurationStore.getConfiguration();
+    final Map<String, String> queryParams = buildQueryParams();
 
     if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
       log.debug("Remote fetch is active. Cancelling and restarting");
@@ -110,8 +134,9 @@ public class ConfigurationRequestor {
     }
 
     remoteFetchFuture =
-        client
-            .getAsync(Constants.FLAG_CONFIG_ENDPOINT)
+        CallbackAdapter.<byte[]>toFuture(
+                callback ->
+                    httpClient.fetchAsync(Constants.FLAG_CONFIG_ENDPOINT, queryParams, callback))
             .thenCompose(
                 flagConfigJsonBytes -> {
                   synchronized (this) {
@@ -121,23 +146,37 @@ public class ConfigurationRequestor {
                                 lastConfig); // possibly reuse last bandit models loaded.
 
                     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-                      byte[] banditParametersJsonBytes;
-                      try {
-                        banditParametersJsonBytes =
-                            client.getAsync(Constants.BANDIT_ENDPOINT).get();
-                      } catch (InterruptedException | ExecutionException e) {
-                        log.error("Error fetching from remote: " + e.getMessage());
-                        throw new RuntimeException(e);
-                      }
-                      if (banditParametersJsonBytes != null) {
-                        configBuilder.banditParameters(banditParametersJsonBytes);
-                      }
+                      return fetchBanditParameters(queryParams)
+                          .thenApply(
+                              banditParametersJsonBytes -> {
+                                if (banditParametersJsonBytes != null) {
+                                  configBuilder.banditParameters(banditParametersJsonBytes);
+                                }
+                                return configBuilder;
+                              });
+                    } else {
+                      return CompletableFuture.completedFuture(configBuilder);
                     }
-
-                    return saveConfigurationAndNotify(configBuilder.build());
                   }
+                })
+            .thenCompose(
+                configBuilder -> {
+                  return saveConfigurationAndNotify(configBuilder.build());
                 });
     return remoteFetchFuture;
+  }
+
+  private CompletableFuture<byte[]> fetchBanditParameters(Map<String, String> queryParams) {
+    return CallbackAdapter.<byte[]>toFuture(
+        callback -> httpClient.fetchAsync(Constants.BANDIT_ENDPOINT, queryParams, callback));
+  }
+
+  private Map<String, String> buildQueryParams() {
+    Map<String, String> params = new HashMap<>();
+    params.put("apiKey", apiKey);
+    params.put("sdkName", sdkName);
+    params.put("sdkVersion", sdkVersion);
+    return params;
   }
 
   private CompletableFuture<Void> saveConfigurationAndNotify(Configuration configuration) {
