@@ -1,8 +1,9 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditFlagVariation;
 import java.util.Objects;
 
-public class BanditFlagVariation {
+public class BanditFlagVariation implements IBanditFlagVariation {
   private final String banditKey;
   private final String flagKey;
   private final String allocationKey;
@@ -24,13 +25,23 @@ public class BanditFlagVariation {
 
   @Override
   public String toString() {
-    return "BanditFlagVariation{" +
-      "banditKey='" + banditKey + '\'' +
-      ", flagKey='" + flagKey + '\'' +
-      ", allocationKey='" + allocationKey + '\'' +
-      ", variationKey='" + variationKey + '\'' +
-      ", variationValue='" + variationValue + '\'' +
-      '}';
+    return "BanditFlagVariation{"
+        + "banditKey='"
+        + banditKey
+        + '\''
+        + ", flagKey='"
+        + flagKey
+        + '\''
+        + ", allocationKey='"
+        + allocationKey
+        + '\''
+        + ", variationKey='"
+        + variationKey
+        + '\''
+        + ", variationValue='"
+        + variationValue
+        + '\''
+        + '}';
   }
 
   @Override
@@ -38,10 +49,10 @@ public class BanditFlagVariation {
     if (o == null || getClass() != o.getClass()) return false;
     BanditFlagVariation that = (BanditFlagVariation) o;
     return Objects.equals(banditKey, that.banditKey)
-            && Objects.equals(flagKey, that.flagKey)
-            && Objects.equals(allocationKey, that.allocationKey)
-            && Objects.equals(variationKey, that.variationKey)
-            && Objects.equals(variationValue, that.variationValue);
+        && Objects.equals(flagKey, that.flagKey)
+        && Objects.equals(allocationKey, that.allocationKey)
+        && Objects.equals(variationKey, that.variationKey)
+        && Objects.equals(variationValue, that.variationValue);
   }
 
   @Override

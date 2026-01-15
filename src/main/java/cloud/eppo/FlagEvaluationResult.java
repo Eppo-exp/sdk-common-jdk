@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.api.*;
-import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
@@ -13,7 +12,7 @@ public class FlagEvaluationResult {
   private final String subjectKey;
   private final Attributes subjectAttributes;
   private final String allocationKey;
-  private final Variation variation;
+  private final IVariation variation;
   private final Map<String, String> extraLogging;
   private final boolean doLog;
   private final EvaluationDetails evaluationDetails;
@@ -23,7 +22,7 @@ public class FlagEvaluationResult {
       String subjectKey,
       Attributes subjectAttributes,
       String allocationKey,
-      Variation variation,
+      IVariation variation,
       Map<String, String> extraLogging,
       boolean doLog,
       EvaluationDetails evaluationDetails) {
@@ -105,7 +104,7 @@ public class FlagEvaluationResult {
     return allocationKey;
   }
 
-  public Variation getVariation() {
+  public IVariation getVariation() {
     return variation;
   }
 
@@ -127,7 +126,7 @@ public class FlagEvaluationResult {
     private String subjectKey;
     private Attributes subjectAttributes;
     private String allocationKey;
-    private Variation variation;
+    private IVariation variation;
     private Map<String, String> extraLogging;
     private boolean doLog;
 
@@ -154,7 +153,7 @@ public class FlagEvaluationResult {
       return this;
     }
 
-    public Builder variation(Variation variation) {
+    public Builder variation(IVariation variation) {
       this.variation = variation;
       return this;
     }
@@ -228,7 +227,7 @@ public class FlagEvaluationResult {
       // Set variation details before building
       if (variation != null) {
         detailsBuilder.variationKey(variation.getKey());
-        detailsBuilder.variationValue(variation.getValue());
+        detailsBuilder.variationValue((EppoValue) variation.getValue());
       }
 
       return new FlagEvaluationResult(

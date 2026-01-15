@@ -5,6 +5,7 @@ import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.IHttpClient;
 import cloud.eppo.cache.AssignmentCacheEntry;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
@@ -45,7 +46,7 @@ public class BaseEppoClient {
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
   /** @noinspection FieldMayBeFinal */
-  private static EppoHttpClient httpClientOverride = null;
+  private static IHttpClient httpClientOverride = null;
 
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
@@ -72,15 +73,21 @@ public class BaseEppoClient {
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
+    SDKKey sdkKeyObj = new SDKKey(apiKey);
+    IHttpClient httpClient = buildHttpClient(apiBaseUrl, sdkKeyObj, sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
     // For now, the configuration is only obfuscated for Android clients
     requestor =
         new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+            this.configurationStore,
+            httpClient,
+            sdkKeyObj.getToken(),
+            sdkName,
+            sdkVersion,
+            expectObfuscatedConfig,
+            supportBandits);
     initialConfigFuture =
         initialConfiguration != null
             ? requestor.setInitialConfiguration(initialConfiguration)
@@ -94,13 +101,13 @@ public class BaseEppoClient {
     this.sdkVersion = sdkVersion;
   }
 
-  private EppoHttpClient buildHttpClient(
+  private IHttpClient buildHttpClient(
       String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
     ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
 
     return httpClientOverride != null
         ? httpClientOverride
-        : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
+        : new DefaultHttpClient(endpointHelper.getBaseUrl());
   }
 
   protected void loadConfiguration() {
@@ -217,7 +224,7 @@ public class BaseEppoClient {
     Configuration config = getConfiguration();
 
     // Check if flag exists
-    FlagConfig flag = config.getFlag(flagKey);
+    IFlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return EvaluationDetails.buildDefault(
@@ -273,8 +280,9 @@ public class BaseEppoClient {
             config.getConfigPublishedAt());
     EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
 
-    EppoValue assignedValue =
+    IEppoValue iAssignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
+    EppoValue assignedValue = iAssignedValue != null ? (EppoValue) iAssignedValue : null;
 
     // Check if value type matches expected
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
@@ -348,7 +356,7 @@ public class BaseEppoClient {
     return evaluationDetails;
   }
 
-  private boolean valueTypeMatchesExpected(VariationType expectedType, EppoValue value) {
+  private boolean valueTypeMatchesExpected(VariationType expectedType, IEppoValue value) {
     boolean typeMatch;
     switch (expectedType) {
       case BOOLEAN:
@@ -371,7 +379,7 @@ public class BaseEppoClient {
             value.isString()
                 // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
                 // unwrapping)
-                && value.unwrap(VariationType.JSON) != null;
+                && ((EppoValue) value).unwrap(VariationType.JSON) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
@@ -639,7 +647,7 @@ public class BaseEppoClient {
 
       if (banditKey != null) {
         try {
-          BanditParameters banditParameters = config.getBanditParameters(banditKey);
+          IBanditParameters banditParameters = config.getBanditParameters(banditKey);
           if (banditParameters == null) {
             throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
           }

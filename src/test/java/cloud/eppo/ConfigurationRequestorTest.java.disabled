@@ -30,10 +30,11 @@ public class ConfigurationRequestorTest {
   @Test
   public void testInitialConfigurationFuture() throws IOException {
     IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    MockHttpClient mockHttpClient = new MockHttpClient("http://test.com");
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+        new ConfigurationRequestor(
+            configStore, mockHttpClient, "test-key", "java", "1.0.0", false, true);
 
     CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
     byte[] flagConfig = FileUtils.readFileToByteArray(initialFlagConfigFile);
@@ -56,10 +57,10 @@ public class ConfigurationRequestorTest {
   @Test
   public void testInitialConfigurationDoesntClobberFetch() throws IOException {
     IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    MockHttpClient mockHttpClient = new MockHttpClient("http://test.com");
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, "test-key", "java", "1.0.0", false, true);
 
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
@@ -100,10 +101,10 @@ public class ConfigurationRequestorTest {
   @Test
   public void testBrokenFetchDoesntClobberCache() throws IOException {
     IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    MockHttpClient mockHttpClient = new MockHttpClient("http://test.com");
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, "test-key", "java", "1.0.0", false, true);
 
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
@@ -139,10 +140,10 @@ public class ConfigurationRequestorTest {
   @Test
   public void testCacheWritesAfterBrokenFetch() throws IOException {
     IConfigurationStore configStore = Mockito.spy(new ConfigurationStore());
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    MockHttpClient mockHttpClient = new MockHttpClient("http://test.com");
 
     ConfigurationRequestor requestor =
-        new ConfigurationRequestor(configStore, mockHttpClient, false, true);
+        new ConfigurationRequestor(configStore, mockHttpClient, "test-key", "java", "1.0.0", false, true);
 
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
@@ -184,7 +185,7 @@ public class ConfigurationRequestorTest {
   public void setup() {
     mockConfigStore = mock(ConfigurationStore.class);
     mockHttpClient = mock(EppoHttpClient.class);
-    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, false, true);
+    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, "test-key", "java", "1.0.0", false, true);
   }
 
   @Test

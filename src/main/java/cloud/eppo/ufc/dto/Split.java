@@ -1,10 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.ISplit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class Split {
+public class Split implements ISplit {
   private final String variationKey;
   private final Set<Shard> shards;
   private final Map<String, String> extraLogging;
@@ -17,11 +18,15 @@ public class Split {
 
   @Override
   public String toString() {
-    return "Split{" +
-      "variationKey='" + variationKey + '\'' +
-      ", shards=" + shards +
-      ", extraLogging=" + extraLogging +
-      '}';
+    return "Split{"
+        + "variationKey='"
+        + variationKey
+        + '\''
+        + ", shards="
+        + shards
+        + ", extraLogging="
+        + extraLogging
+        + '}';
   }
 
   @Override
@@ -29,8 +34,8 @@ public class Split {
     if (o == null || getClass() != o.getClass()) return false;
     Split split = (Split) o;
     return Objects.equals(variationKey, split.variationKey)
-            && Objects.equals(shards, split.shards)
-            && Objects.equals(extraLogging, split.extraLogging);
+        && Objects.equals(shards, split.shards)
+        && Objects.equals(extraLogging, split.extraLogging);
   }
 
   @Override
