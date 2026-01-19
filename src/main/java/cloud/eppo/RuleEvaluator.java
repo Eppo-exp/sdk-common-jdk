@@ -5,9 +5,9 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.ITargetingCondition;
+import cloud.eppo.api.ITargetingRule;
 import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.TargetingCondition;
-import cloud.eppo.ufc.dto.TargetingRule;
 import com.github.zafarkhaja.semver.Version;
 import java.util.Collections;
 import java.util.Map;
@@ -16,9 +16,9 @@ import java.util.regex.Pattern;
 
 public class RuleEvaluator {
 
-  public static TargetingRule findMatchingRule(
-      Attributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {
-    for (TargetingRule rule : rules) {
+  public static ITargetingRule findMatchingRule(
+      Attributes subjectAttributes, Set<? extends ITargetingRule> rules, boolean isObfuscated) {
+    for (ITargetingRule rule : rules) {
       if (allConditionsMatch(subjectAttributes, rule.getConditions(), isObfuscated)) {
         return rule;
       }
@@ -27,8 +27,8 @@ public class RuleEvaluator {
   }
 
   private static boolean allConditionsMatch(
-      Attributes subjectAttributes, Set<TargetingCondition> conditions, boolean isObfuscated) {
-    for (TargetingCondition condition : conditions) {
+      Attributes subjectAttributes, Set<? extends ITargetingCondition> conditions, boolean isObfuscated) {
+    for (ITargetingCondition condition : conditions) {
       if (!evaluateCondition(subjectAttributes, condition, isObfuscated)) {
         return false;
       }
@@ -37,8 +37,8 @@ public class RuleEvaluator {
   }
 
   private static boolean evaluateCondition(
-      Attributes subjectAttributes, TargetingCondition condition, boolean isObfuscated) {
-    EppoValue conditionValue = condition.getValue();
+      Attributes subjectAttributes, ITargetingCondition condition, boolean isObfuscated) {
+    EppoValue conditionValue = (EppoValue) condition.getValue();
     String attributeKey = condition.getAttribute();
     EppoValue attributeValue = null;
     if (isObfuscated) {

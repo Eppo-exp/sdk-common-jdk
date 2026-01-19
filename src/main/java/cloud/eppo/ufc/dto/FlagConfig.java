@@ -1,10 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IFlagConfig;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class FlagConfig {
+public class FlagConfig implements IFlagConfig {
   private final String key;
   private final boolean enabled;
   private final int totalShards;

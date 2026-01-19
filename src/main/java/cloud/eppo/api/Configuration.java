@@ -59,9 +59,9 @@ public class Configuration {
       "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
 
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
-  private final Map<String, BanditReference> banditReferences;
-  private final Map<String, FlagConfig> flags;
-  private final Map<String, BanditParameters> bandits;
+  private final Map<String, ? extends IBanditReference> banditReferences;
+  private final Map<String, ? extends IFlagConfig> flags;
+  private final Map<String, ? extends IBanditParameters> bandits;
   private final boolean isConfigObfuscated;
   private final String environmentName;
   private final Date configFetchedAt;
@@ -73,9 +73,9 @@ public class Configuration {
 
   /** Default visibility for tests. */
   Configuration(
-      Map<String, FlagConfig> flags,
-      Map<String, BanditReference> banditReferences,
-      Map<String, BanditParameters> bandits,
+      Map<String, ? extends IFlagConfig> flags,
+      Map<String, ? extends IBanditReference> banditReferences,
+      Map<String, ? extends IBanditParameters> bandits,
       boolean isConfigObfuscated,
       String environmentName,
       Date configFetchedAt,
@@ -94,10 +94,10 @@ public class Configuration {
     if (flagConfigJson != null && flagConfigJson.length != 0) {
       try {
         JsonNode jNode = mapper.readTree(flagConfigJson);
-        FlagConfigResponse.Format format =
+        IFlagConfigResponse.Format format =
             isConfigObfuscated
-                ? FlagConfigResponse.Format.CLIENT
-                : FlagConfigResponse.Format.SERVER;
+                ? IFlagConfigResponse.Format.CLIENT
+                : IFlagConfigResponse.Format.SERVER;
         ((ObjectNode) jNode).put("format", format.toString());
         flagConfigJson = mapper.writeValueAsBytes(jNode);
       } catch (IOException e) {
@@ -175,7 +175,7 @@ public class Configuration {
         Arrays.hashCode(banditParamsJson));
   }
 
-  public FlagConfig getFlag(String flagKey) {
+  public IFlagConfig getFlag(String flagKey) {
     String flagKeyForLookup = flagKey;
     if (isConfigObfuscated()) {
       flagKeyForLookup = getMD5Hex(flagKey);
@@ -196,7 +196,7 @@ public class Configuration {
    * @return The flag's variation type or null.
    */
   public @Nullable VariationType getFlagType(String flagKey) {
-    FlagConfig flag = getFlag(flagKey);
+    IFlagConfig flag = getFlag(flagKey);
     if (flag == null) {
       return null;
     }
@@ -206,9 +206,9 @@ public class Configuration {
   public String banditKeyForVariation(String flagKey, String variationValue) {
     // Note: In practice this double loop should be quite quick as the number of bandits and bandit
     // variations will be small. Should this ever change, we can optimize things.
-    for (Map.Entry<String, BanditReference> banditEntry : banditReferences.entrySet()) {
-      BanditReference banditReference = banditEntry.getValue();
-      for (BanditFlagVariation banditFlagVariation : banditReference.getFlagVariations()) {
+    for (Map.Entry<String, ? extends IBanditReference> banditEntry : banditReferences.entrySet()) {
+      IBanditReference banditReference = banditEntry.getValue();
+      for (IBanditFlagVariation banditFlagVariation : banditReference.getFlagVariations()) {
         if (banditFlagVariation.getFlagKey().equals(flagKey)
             && banditFlagVariation.getVariationValue().equals(variationValue)) {
           return banditEntry.getKey();
@@ -218,7 +218,7 @@ public class Configuration {
     return null;
   }
 
-  public BanditParameters getBanditParameters(String banditKey) {
+  public IBanditParameters getBanditParameters(String banditKey) {
     return bandits.get(banditKey);
   }
 
@@ -266,15 +266,15 @@ public class Configuration {
   public static class Builder {
 
     private final boolean isConfigObfuscated;
-    private final Map<String, FlagConfig> flags;
-    private final Map<String, BanditReference> banditReferences;
-    private Map<String, BanditParameters> bandits = Collections.emptyMap();
+    private final Map<String, ? extends IFlagConfig> flags;
+    private final Map<String, ? extends IBanditReference> banditReferences;
+    private Map<String, ? extends IBanditParameters> bandits = Collections.emptyMap();
     private final byte[] flagJson;
     private byte[] banditParamsJson;
     private final String environmentName;
     private final Date configPublishedAt;
 
-    private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
+    private static IFlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
         log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
         return null;
@@ -290,16 +290,16 @@ public class Configuration {
       this(flagJson, parseFlagResponse(flagJson));
     }
 
-    public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
+    public Builder(byte[] flagJson, IFlagConfigResponse flagConfigResponse) {
       this(
           flagJson,
           flagConfigResponse,
-          flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
+          flagConfigResponse.getFormat() == IFlagConfigResponse.Format.CLIENT);
     }
 
     public Builder(
         byte[] flagJson,
-        @Nullable FlagConfigResponse flagConfigResponse,
+        @Nullable IFlagConfigResponse flagConfigResponse,
         boolean isConfigObfuscated) {
       this.isConfigObfuscated = isConfigObfuscated;
       this.flagJson = flagJson;
@@ -328,13 +328,13 @@ public class Configuration {
 
     public Set<String> loadedBanditModelVersions() {
       return bandits.values().stream()
-          .map(BanditParameters::getModelVersion)
+          .map(IBanditParameters::getModelVersion)
           .collect(Collectors.toSet());
     }
 
     public Set<String> referencedBanditModelVersion() {
       return banditReferences.values().stream()
-          .map(BanditReference::getModelVersion)
+          .map(IBanditReference::getModelVersion)
           .collect(Collectors.toSet());
     }
 

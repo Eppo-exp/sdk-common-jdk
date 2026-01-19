@@ -217,7 +217,7 @@ public class BaseEppoClient {
     Configuration config = getConfiguration();
 
     // Check if flag exists
-    FlagConfig flag = config.getFlag(flagKey);
+    IFlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return EvaluationDetails.buildDefault(
@@ -639,7 +639,7 @@ public class BaseEppoClient {
 
       if (banditKey != null) {
         try {
-          BanditParameters banditParameters = config.getBanditParameters(banditKey);
+          IBanditParameters banditParameters = config.getBanditParameters(banditKey);
           if (banditParameters == null) {
             throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
           }

@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.ITargetingRule;
 import java.util.Objects;
 import java.util.Set;
 
-public class TargetingRule {
+public class TargetingRule implements ITargetingRule {
   private final Set<TargetingCondition> conditions;
 
   public TargetingRule(Set<TargetingCondition> conditions) {

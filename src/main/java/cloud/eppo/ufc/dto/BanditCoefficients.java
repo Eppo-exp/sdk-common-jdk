@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditCoefficients;
 import java.util.Map;
 import java.util.Objects;
 
-public class BanditCoefficients {
+public class BanditCoefficients implements IBanditCoefficients {
   private final String actionKey;
   private final Double intercept;
   private final Map<String, BanditNumericAttributeCoefficients> subjectNumericCoefficients;

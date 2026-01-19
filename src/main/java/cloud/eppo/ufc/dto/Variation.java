@@ -3,8 +3,9 @@ package cloud.eppo.ufc.dto;
 import java.util.Objects;
 
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IVariation;
 
-public class Variation {
+public class Variation implements IVariation {
   private final String key;
   private final EppoValue value;
 

@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-public class EppoValue {
+public class EppoValue implements IEppoValue {
   protected final EppoValueType type;
   protected Boolean boolValue;
   protected Double doubleValue;

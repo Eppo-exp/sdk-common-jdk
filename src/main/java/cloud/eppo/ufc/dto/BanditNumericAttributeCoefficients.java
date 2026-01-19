@@ -1,12 +1,14 @@
 package cloud.eppo.ufc.dto;
 
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.IEppoValue;
+import cloud.eppo.api.IBanditNumericAttributeCoefficients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
-public class BanditNumericAttributeCoefficients implements BanditAttributeCoefficients {
+public class BanditNumericAttributeCoefficients implements IBanditNumericAttributeCoefficients, BanditAttributeCoefficients {
   private final Logger logger = LoggerFactory.getLogger(BanditNumericAttributeCoefficients.class);
   private final String attributeKey;
   private final Double coefficient;
@@ -49,7 +51,7 @@ public class BanditNumericAttributeCoefficients implements BanditAttributeCoeffi
   }
 
   @Override
-  public double scoreForAttributeValue(EppoValue attributeValue) {
+  public double scoreForAttributeValue(IEppoValue attributeValue) {
     if (attributeValue == null || attributeValue.isNull()) {
       return missingValueCoefficient;
     }
@@ -59,10 +61,17 @@ public class BanditNumericAttributeCoefficients implements BanditAttributeCoeffi
     return coefficient * attributeValue.doubleValue();
   }
 
+  // For backward compatibility with BanditAttributeCoefficients interface
+  public double scoreForAttributeValue(EppoValue attributeValue) {
+    return scoreForAttributeValue((IEppoValue) attributeValue);
+  }
+
+  @Override
   public Double getCoefficient() {
     return coefficient;
   }
 
+  @Override
   public Double getMissingValueCoefficient() {
     return missingValueCoefficient;
   }

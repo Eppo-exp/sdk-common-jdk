@@ -2,10 +2,7 @@ package cloud.eppo;
 
 import static cloud.eppo.Utils.getShard;
 
-import cloud.eppo.api.Actions;
-import cloud.eppo.api.Attributes;
-import cloud.eppo.api.DiscriminableAttributes;
-import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.*;
 import cloud.eppo.ufc.dto.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,7 +16,7 @@ public class BanditEvaluator {
       String subjectKey,
       DiscriminableAttributes subjectAttributes,
       Actions actions,
-      BanditModelData modelData) {
+      IBanditModelData modelData) {
     Map<String, Double> actionScores = scoreActions(subjectAttributes, actions, modelData);
     Map<String, Double> actionWeights =
         weighActions(actionScores, modelData.getGamma(), modelData.getActionProbabilityFloor());
@@ -43,7 +40,7 @@ public class BanditEvaluator {
   }
 
   private static Map<String, Double> scoreActions(
-      DiscriminableAttributes subjectAttributes, Actions actions, BanditModelData modelData) {
+      DiscriminableAttributes subjectAttributes, Actions actions, IBanditModelData modelData) {
     return actions.entrySet().stream()
         .collect(
             Collectors.toMap(
@@ -53,7 +50,7 @@ public class BanditEvaluator {
                   DiscriminableAttributes actionAttributes = e.getValue();
 
                   // get all coefficients known to the model for this action
-                  BanditCoefficients banditCoefficients =
+                  IBanditCoefficients banditCoefficients =
                       modelData.getCoefficients().get(actionName);
 
                   if (banditCoefficients == null) {
@@ -85,11 +82,11 @@ public class BanditEvaluator {
   }
 
   private static double scoreContextForCoefficients(
-      Attributes attributes, Map<String, ? extends BanditAttributeCoefficients> coefficients) {
+      Attributes attributes, Map<String, ? extends IBanditAttributeCoefficients> coefficients) {
 
     double totalScore = 0.0;
 
-    for (BanditAttributeCoefficients attributeCoefficients : coefficients.values()) {
+    for (IBanditAttributeCoefficients attributeCoefficients : coefficients.values()) {
       EppoValue contextValue = attributes.get(attributeCoefficients.getAttributeKey());
       // The coefficient implementation knows how to score
       double attributeScore = attributeCoefficients.scoreForAttributeValue(contextValue);

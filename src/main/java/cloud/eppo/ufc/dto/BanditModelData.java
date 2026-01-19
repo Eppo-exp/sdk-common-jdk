@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditModelData;
 import java.util.Map;
 import java.util.Objects;
 
-public class BanditModelData {
+public class BanditModelData implements IBanditModelData {
   private final Double gamma;
   private final Double defaultActionScore;
   private final Double actionProbabilityFloor;

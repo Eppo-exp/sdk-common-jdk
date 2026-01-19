@@ -1,11 +1,12 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IAllocation;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class Allocation {
+public class Allocation implements IAllocation {
   private String key;
   private Set<TargetingRule> rules;
   private Date startAt;
