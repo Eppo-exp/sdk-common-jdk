@@ -734,14 +734,14 @@ public class BaseEppoClientTest {
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(httpClient, times(1)).get(anyString());
+    verify(httpClient, times(1)).get(anyString(), any());
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(httpClient, times(2)).get(anyString());
+    verify(httpClient, times(2)).get(anyString(), any());
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -749,10 +749,13 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(httpClient, times(2)).get(anyString());
+    verify(httpClient, times(2)).get(anyString(), any());
 
     // Set up a different config to be served
-    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    when(httpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse(DISABLED_BOOL_FLAG_CONFIG.getBytes(), 200, null));
+    when(httpClient.get(anyString(), any()))
+        .thenReturn(new EppoHttpResponse(DISABLED_BOOL_FLAG_CONFIG.getBytes(), 200, null));
     client.startPolling(20);
 
     // True until the next config is fetched.

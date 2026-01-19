@@ -66,6 +66,7 @@ public class Configuration {
   private final String environmentName;
   private final Date configFetchedAt;
   private final Date configPublishedAt;
+  private final String flagsETag;
 
   private final byte[] flagConfigJson;
 
@@ -80,6 +81,7 @@ public class Configuration {
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt,
+      String flagsETag,
       byte[] flagConfigJson,
       byte[] banditParamsJson) {
     this.flags = flags;
@@ -89,6 +91,7 @@ public class Configuration {
     this.environmentName = environmentName;
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
+    this.flagsETag = flagsETag;
 
     // Graft the `format` field into the flagConfigJson'
     if (flagConfigJson != null && flagConfigJson.length != 0) {
@@ -114,6 +117,7 @@ public class Configuration {
         Collections.emptyMap(),
         Collections.emptyMap(),
         false,
+        null,
         null,
         null,
         null,
@@ -157,6 +161,7 @@ public class Configuration {
         && Objects.equals(environmentName, that.environmentName)
         && Objects.equals(configFetchedAt, that.configFetchedAt)
         && Objects.equals(configPublishedAt, that.configPublishedAt)
+        && Objects.equals(flagsETag, that.flagsETag)
         && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
         && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
   }
@@ -171,6 +176,7 @@ public class Configuration {
         environmentName,
         configFetchedAt,
         configPublishedAt,
+        flagsETag,
         Arrays.hashCode(flagConfigJson),
         Arrays.hashCode(banditParamsJson));
   }
@@ -254,6 +260,16 @@ public class Configuration {
     return configPublishedAt;
   }
 
+  /**
+   * Get the ETag for the flags configuration. Used for HTTP caching via If-None-Match headers.
+   *
+   * @return ETag value or null if not set
+   */
+  @Nullable
+  public String getFlagsETag() {
+    return flagsETag;
+  }
+
   public static Builder builder(byte[] flagJson) {
     return new Builder(flagJson);
   }
@@ -273,6 +289,7 @@ public class Configuration {
     private byte[] banditParamsJson;
     private final String environmentName;
     private final Date configPublishedAt;
+    private String flagsETag;
 
     private static IFlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
@@ -387,8 +404,20 @@ public class Configuration {
           environmentName,
           configFetchedAt,
           configPublishedAt,
+          flagsETag,
           flagJson,
           banditParamsJson);
+    }
+
+    /**
+     * Set the ETag for the flags configuration. Used for HTTP caching via If-None-Match headers.
+     *
+     * @param flagsETag ETag value from HTTP response
+     * @return this Builder for chaining
+     */
+    public Builder flagsETag(String flagsETag) {
+      this.flagsETag = flagsETag;
+      return this;
     }
   }
 }

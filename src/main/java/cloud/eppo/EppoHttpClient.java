@@ -13,6 +13,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,46 +45,66 @@ public class EppoHttpClient {
     return builder.build();
   }
 
-  public byte[] get(String path) {
+  public EppoHttpResponse get(String path) {
+    return get(path, null);
+  }
+
+  public EppoHttpResponse get(String path, @Nullable String ifNoneMatch) {
     try {
       // Wait and return the async get.
-      return getAsync(path).get();
+      return getAsync(path, ifNoneMatch).get();
     } catch (InterruptedException | ExecutionException e) {
       log.error("Config fetch interrupted", e);
       throw new RuntimeException(e);
     }
   }
 
-  public CompletableFuture<byte[]> getAsync(String path) {
-    CompletableFuture<byte[]> future = new CompletableFuture<>();
-    Request request = buildRequest(path);
+  public CompletableFuture<EppoHttpResponse> getAsync(String path) {
+    return getAsync(path, null);
+  }
+
+  public CompletableFuture<EppoHttpResponse> getAsync(String path, @Nullable String ifNoneMatch) {
+    CompletableFuture<EppoHttpResponse> future = new CompletableFuture<>();
+    Request request = buildRequest(path, ifNoneMatch);
     client
         .newCall(request)
         .enqueue(
             new Callback() {
               @Override
               public void onResponse(@NotNull Call call, @NotNull Response response) {
-                if (response.isSuccessful() && response.body() != null) {
-                  log.debug("Fetch successful");
-                  try {
-                    future.complete(response.body().bytes());
-                  } catch (IOException ex) {
-                    future.completeExceptionally(
-                        new RuntimeException(
-                            "Failed to read response from URL {}" + redactApiKey(request.url()),
-                            ex));
+                try {
+                  int statusCode = response.code();
+                  String eTag = response.header("ETag");
+
+                  // Handle 304 Not Modified
+                  if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                    log.debug("Configuration not modified (304)");
+                    future.complete(new EppoHttpResponse(new byte[0], statusCode, eTag));
+                    return;
                   }
-                } else {
-                  if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+
+                  // Handle 2xx success
+                  if (response.isSuccessful() && response.body() != null) {
+                    log.debug("Fetch successful");
+                    try {
+                      byte[] bytes = response.body().bytes();
+                      future.complete(new EppoHttpResponse(bytes, statusCode, eTag));
+                    } catch (IOException ex) {
+                      future.completeExceptionally(
+                          new RuntimeException(
+                              "Failed to read response from URL " + redactApiKey(request.url()),
+                              ex));
+                    }
+                  } else if (statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
                     future.completeExceptionally(new RuntimeException("Invalid API key"));
                   } else {
-                    log.debug("Fetch failed with status code: {}", response.code());
+                    log.debug("Fetch failed with status code: {}", statusCode);
                     future.completeExceptionally(
-                        new RuntimeException(
-                            "Bad response from URL " + redactApiKey(request.url())));
+                        new RuntimeException("Bad response from URL " + redactApiKey(request.url())));
                   }
+                } finally {
+                  response.close();
                 }
-                response.close();
               }
 
               @Override
@@ -101,7 +122,7 @@ public class EppoHttpClient {
     return future;
   }
 
-  private Request buildRequest(String path) {
+  private Request buildRequest(String path, @Nullable String ifNoneMatch) {
     HttpUrl httpUrl =
         HttpUrl.parse(baseUrl + path)
             .newBuilder()
@@ -110,7 +131,14 @@ public class EppoHttpClient {
             .addQueryParameter("sdkVersion", sdkVersion)
             .build();
 
-    return new Request.Builder().url(httpUrl).build();
+    Request.Builder requestBuilder = new Request.Builder().url(httpUrl);
+
+    // Add If-None-Match header for ETag-based caching
+    if (ifNoneMatch != null) {
+      requestBuilder.header("If-None-Match", ifNoneMatch);
+    }
+
+    return requestBuilder.build();
   }
 
   private String redactApiKey(HttpUrl url) {
