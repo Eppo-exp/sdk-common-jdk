@@ -41,7 +41,7 @@ public class EppoHttpClientTest {
             .setBody("test")
             .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY));
 
-    CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
+    CompletableFuture<EppoHttpResponse> future = httpClient.getAsync("/test-path");
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     Throwable cause = exception.getCause();
@@ -66,7 +66,7 @@ public class EppoHttpClientTest {
     // Return a 500 error to trigger the "Bad response" error path
     mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("Internal Server Error"));
 
-    CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
+    CompletableFuture<EppoHttpResponse> future = httpClient.getAsync("/test-path");
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     Throwable cause = exception.getCause();
@@ -93,7 +93,7 @@ public class EppoHttpClientTest {
     // Shut down the server to simulate connection failure
     mockWebServer.shutdown();
 
-    CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
+    CompletableFuture<EppoHttpResponse> future = httpClient.getAsync("/test-path");
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     Throwable cause = exception.getCause();
@@ -122,12 +122,13 @@ public class EppoHttpClientTest {
     String responseBody = "success response";
     mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(responseBody));
 
-    CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
-    byte[] result = future.get();
+    CompletableFuture<EppoHttpResponse> future = httpClient.getAsync("/test-path");
+    EppoHttpResponse response = future.get();
 
     // Verify the request was successful
-    assertNotNull(result);
-    assertEquals(responseBody, new String(result));
+    assertNotNull(response);
+    assertEquals(200, response.getStatusCode());
+    assertEquals(responseBody, new String(response.getBody()));
   }
 
   @Test
@@ -135,7 +136,7 @@ public class EppoHttpClientTest {
     // Return a 403 error to trigger the "Invalid API key" error path
     mockWebServer.enqueue(new MockResponse().setResponseCode(403).setBody("Forbidden"));
 
-    CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
+    CompletableFuture<EppoHttpResponse> future = httpClient.getAsync("/test-path");
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     Throwable cause = exception.getCause();
@@ -154,7 +155,7 @@ public class EppoHttpClientTest {
     // Return a 500 error to trigger error path
     mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("Error"));
 
-    CompletableFuture<byte[]> future = httpClient.getAsync("/test-path");
+    CompletableFuture<EppoHttpResponse> future = httpClient.getAsync("/test-path");
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     Throwable cause = exception.getCause();

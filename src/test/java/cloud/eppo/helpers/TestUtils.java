@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import cloud.eppo.BaseEppoClient;
 import cloud.eppo.EppoHttpClient;
+import cloud.eppo.EppoHttpResponse;
 import java.lang.reflect.Field;
 import java.util.concurrent.CompletableFuture;
 import okhttp3.*;
@@ -14,15 +15,17 @@ public class TestUtils {
   @SuppressWarnings("SameParameterValue")
   public static EppoHttpClient mockHttpResponse(String responseBody) {
     // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class, withSettings().lenient());
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
+    // Mock sync get - return EppoHttpResponse
+    EppoHttpResponse response = new EppoHttpResponse(responseBody.getBytes(), 200, null);
+    when(mockHttpClient.get(anyString())).thenReturn(response);
+    when(mockHttpClient.get(anyString(), any())).thenReturn(response);
 
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
+    // Mock async get - return CompletableFuture<EppoHttpResponse>
+    CompletableFuture<EppoHttpResponse> mockAsyncResponse = CompletableFuture.completedFuture(response);
     when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.complete(responseBody.getBytes());
+    when(mockHttpClient.getAsync(anyString(), any())).thenReturn(mockAsyncResponse);
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
     return mockHttpClient;
@@ -30,15 +33,17 @@ public class TestUtils {
 
   public static void mockHttpError() {
     // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class, withSettings().lenient());
 
     // Mock sync get
     when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
+    when(mockHttpClient.get(anyString(), any())).thenThrow(new RuntimeException("Intentional Error"));
 
     // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
+    CompletableFuture<EppoHttpResponse> mockAsyncResponse = new CompletableFuture<>();
     mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
+    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
+    when(mockHttpClient.getAsync(anyString(), any())).thenReturn(mockAsyncResponse);
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
   }
