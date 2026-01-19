@@ -7,15 +7,38 @@ This is the common SDK for the Eppo JVM SDKs. It provides a set of classes and i
 interact with the Eppo API. You should probably not use this library directly and instead use the [Android](https://github.com/Eppo-exp/android-sdk)
 or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 
+## Dependencies
+
+### Required (v4.0+)
+- **Java 1.8+**
+- **OkHttp 4.12+ or 5.x** (peer dependency - you must provide it)
+- Jackson (bundled)
+- SLF4J (bundled)
+
+**Note:** In v3.x, OkHttp was bundled. In v4.0+, OkHttp is a peer dependency that your application must provide.
+
 ## Usage
 
 ### build.gradle:
 
 ```groovy
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:3.13.1'
+  implementation 'cloud.eppo:sdk-common-jvm:4.0.0'
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'  // Required for v4.0+
 }
 ```
+
+**Using OkHttp 5.x (also supported):**
+```groovy
+dependencies {
+  implementation 'cloud.eppo:sdk-common-jvm:4.0.0'
+  implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.14'
+}
+```
+
+### Migrating from v3.x
+
+See [MIGRATION_V3_TO_V4.md](MIGRATION_V3_TO_V4.md) for detailed instructions.
 
 ## Releasing a new version
 
