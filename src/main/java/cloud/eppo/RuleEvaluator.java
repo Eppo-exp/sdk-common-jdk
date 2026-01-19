@@ -27,7 +27,9 @@ public class RuleEvaluator {
   }
 
   private static boolean allConditionsMatch(
-      Attributes subjectAttributes, Set<? extends ITargetingCondition> conditions, boolean isObfuscated) {
+      Attributes subjectAttributes,
+      Set<? extends ITargetingCondition> conditions,
+      boolean isObfuscated) {
     for (ITargetingCondition condition : conditions) {
       if (!evaluateCondition(subjectAttributes, condition, isObfuscated)) {
         return false;

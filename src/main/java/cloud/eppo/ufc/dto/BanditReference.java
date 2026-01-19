@@ -15,10 +15,13 @@ public class BanditReference implements IBanditReference {
 
   @Override
   public String toString() {
-    return "BanditReference{" +
-      "modelVersion='" + modelVersion + '\'' +
-      ", flagVariations=" + flagVariations +
-      '}';
+    return "BanditReference{"
+        + "modelVersion='"
+        + modelVersion
+        + '\''
+        + ", flagVariations="
+        + flagVariations
+        + '}';
   }
 
   @Override
@@ -26,7 +29,7 @@ public class BanditReference implements IBanditReference {
     if (o == null || getClass() != o.getClass()) return false;
     BanditReference that = (BanditReference) o;
     return Objects.equals(modelVersion, that.modelVersion)
-            && Objects.equals(flagVariations, that.flagVariations);
+        && Objects.equals(flagVariations, that.flagVariations);
   }
 
   @Override

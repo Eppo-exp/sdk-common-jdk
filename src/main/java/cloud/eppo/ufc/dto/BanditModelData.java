@@ -23,12 +23,16 @@ public class BanditModelData implements IBanditModelData {
 
   @Override
   public String toString() {
-    return "BanditModelData{" +
-      "gamma=" + gamma +
-      ", defaultActionScore=" + defaultActionScore +
-      ", actionProbabilityFloor=" + actionProbabilityFloor +
-      ", coefficients=" + coefficients +
-      '}';
+    return "BanditModelData{"
+        + "gamma="
+        + gamma
+        + ", defaultActionScore="
+        + defaultActionScore
+        + ", actionProbabilityFloor="
+        + actionProbabilityFloor
+        + ", coefficients="
+        + coefficients
+        + '}';
   }
 
   @Override
@@ -36,9 +40,9 @@ public class BanditModelData implements IBanditModelData {
     if (o == null || getClass() != o.getClass()) return false;
     BanditModelData that = (BanditModelData) o;
     return Objects.equals(gamma, that.gamma)
-            && Objects.equals(defaultActionScore, that.defaultActionScore)
-            && Objects.equals(actionProbabilityFloor, that.actionProbabilityFloor)
-            && Objects.equals(coefficients, that.coefficients);
+        && Objects.equals(defaultActionScore, that.defaultActionScore)
+        && Objects.equals(actionProbabilityFloor, that.actionProbabilityFloor)
+        && Objects.equals(coefficients, that.coefficients);
   }
 
   @Override

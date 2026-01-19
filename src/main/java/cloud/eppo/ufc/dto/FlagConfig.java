@@ -30,14 +30,21 @@ public class FlagConfig implements IFlagConfig {
 
   @Override
   public String toString() {
-    return "FlagConfig{" +
-      "key='" + key + '\'' +
-      ", enabled=" + enabled +
-      ", totalShards=" + totalShards +
-      ", variationType=" + variationType +
-      ", variations=" + variations +
-      ", allocations=" + allocations +
-      '}';
+    return "FlagConfig{"
+        + "key='"
+        + key
+        + '\''
+        + ", enabled="
+        + enabled
+        + ", totalShards="
+        + totalShards
+        + ", variationType="
+        + variationType
+        + ", variations="
+        + variations
+        + ", allocations="
+        + allocations
+        + '}';
   }
 
   @Override
@@ -45,11 +52,11 @@ public class FlagConfig implements IFlagConfig {
     if (o == null || getClass() != o.getClass()) return false;
     FlagConfig that = (FlagConfig) o;
     return enabled == that.enabled
-            && totalShards == that.totalShards
-            && Objects.equals(key, that.key)
-            && variationType == that.variationType
-            && Objects.equals(variations, that.variations)
-            && Objects.equals(allocations, that.allocations);
+        && totalShards == that.totalShards
+        && Objects.equals(key, that.key)
+        && variationType == that.variationType
+        && Objects.equals(variations, that.variations)
+        && Objects.equals(allocations, that.allocations);
   }
 
   @Override

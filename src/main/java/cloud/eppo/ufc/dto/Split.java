@@ -18,11 +18,15 @@ public class Split implements ISplit {
 
   @Override
   public String toString() {
-    return "Split{" +
-      "variationKey='" + variationKey + '\'' +
-      ", shards=" + shards +
-      ", extraLogging=" + extraLogging +
-      '}';
+    return "Split{"
+        + "variationKey='"
+        + variationKey
+        + '\''
+        + ", shards="
+        + shards
+        + ", extraLogging="
+        + extraLogging
+        + '}';
   }
 
   @Override
@@ -30,8 +34,8 @@ public class Split implements ISplit {
     if (o == null || getClass() != o.getClass()) return false;
     Split split = (Split) o;
     return Objects.equals(variationKey, split.variationKey)
-            && Objects.equals(shards, split.shards)
-            && Objects.equals(extraLogging, split.extraLogging);
+        && Objects.equals(shards, split.shards)
+        && Objects.equals(extraLogging, split.extraLogging);
   }
 
   @Override

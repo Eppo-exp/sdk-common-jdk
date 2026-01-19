@@ -2,9 +2,7 @@ package cloud.eppo.api;
 
 import java.util.Map;
 
-/**
- * Interface for BanditCoefficients allowing downstream SDKs to provide custom implementations.
- */
+/** Interface for BanditCoefficients allowing downstream SDKs to provide custom implementations. */
 public interface IBanditCoefficients {
   String getActionKey();
 
@@ -17,6 +15,5 @@ public interface IBanditCoefficients {
 
   Map<String, ? extends IBanditNumericAttributeCoefficients> getActionNumericCoefficients();
 
-  Map<String, ? extends IBanditCategoricalAttributeCoefficients>
-      getActionCategoricalCoefficients();
+  Map<String, ? extends IBanditCategoricalAttributeCoefficients> getActionCategoricalCoefficients();
 }

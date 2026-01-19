@@ -1,14 +1,14 @@
 package cloud.eppo.ufc.dto;
 
 import cloud.eppo.api.EppoValue;
-import cloud.eppo.api.IEppoValue;
 import cloud.eppo.api.IBanditNumericAttributeCoefficients;
+import cloud.eppo.api.IEppoValue;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-
-public class BanditNumericAttributeCoefficients implements IBanditNumericAttributeCoefficients, BanditAttributeCoefficients {
+public class BanditNumericAttributeCoefficients
+    implements IBanditNumericAttributeCoefficients, BanditAttributeCoefficients {
   private final Logger logger = LoggerFactory.getLogger(BanditNumericAttributeCoefficients.class);
   private final String attributeKey;
   private final Double coefficient;
@@ -23,11 +23,15 @@ public class BanditNumericAttributeCoefficients implements IBanditNumericAttribu
 
   @Override
   public String toString() {
-    return "BanditNumericAttributeCoefficients{" +
-      "attributeKey='" + attributeKey + '\'' +
-      ", coefficient=" + coefficient +
-      ", missingValueCoefficient=" + missingValueCoefficient +
-      '}';
+    return "BanditNumericAttributeCoefficients{"
+        + "attributeKey='"
+        + attributeKey
+        + '\''
+        + ", coefficient="
+        + coefficient
+        + ", missingValueCoefficient="
+        + missingValueCoefficient
+        + '}';
   }
 
   @Override
@@ -35,9 +39,9 @@ public class BanditNumericAttributeCoefficients implements IBanditNumericAttribu
     if (o == null || getClass() != o.getClass()) return false;
     BanditNumericAttributeCoefficients that = (BanditNumericAttributeCoefficients) o;
     return Objects.equals(logger, that.logger)
-            && Objects.equals(attributeKey, that.attributeKey)
-            && Objects.equals(coefficient, that.coefficient)
-            && Objects.equals(missingValueCoefficient, that.missingValueCoefficient);
+        && Objects.equals(attributeKey, that.attributeKey)
+        && Objects.equals(coefficient, that.coefficient)
+        && Objects.equals(missingValueCoefficient, that.missingValueCoefficient);
   }
 
   @Override

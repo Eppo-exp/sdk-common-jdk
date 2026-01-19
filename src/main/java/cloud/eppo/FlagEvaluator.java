@@ -5,7 +5,6 @@ import static cloud.eppo.Utils.getMD5Hex;
 import static cloud.eppo.Utils.getShard;
 
 import cloud.eppo.api.*;
-import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Variation;
 import java.util.Date;
 import java.util.HashMap;
@@ -215,7 +214,8 @@ public class FlagEvaluator {
 
                       // Condition values are already handled by RuleEvaluator during evaluation
                       // For display purposes, we keep the raw value
-                      return new RuleCondition(attribute, tc.getOperator().value, (EppoValue) tc.getValue());
+                      return new RuleCondition(
+                          attribute, tc.getOperator().value, (EppoValue) tc.getValue());
                     })
                 .collect(Collectors.toSet());
         matchedRule = new MatchedRule(conditions);

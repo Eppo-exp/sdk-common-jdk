@@ -26,13 +26,21 @@ public class BanditParameters implements IBanditParameters {
 
   @Override
   public String toString() {
-    return "BanditParameters{" +
-      "banditKey='" + banditKey + '\'' +
-      ", updatedAt=" + updatedAt +
-      ", modelName='" + modelName + '\'' +
-      ", modelVersion='" + modelVersion + '\'' +
-      ", modelData=" + modelData +
-      '}';
+    return "BanditParameters{"
+        + "banditKey='"
+        + banditKey
+        + '\''
+        + ", updatedAt="
+        + updatedAt
+        + ", modelName='"
+        + modelName
+        + '\''
+        + ", modelVersion='"
+        + modelVersion
+        + '\''
+        + ", modelData="
+        + modelData
+        + '}';
   }
 
   @Override
@@ -40,10 +48,10 @@ public class BanditParameters implements IBanditParameters {
     if (o == null || getClass() != o.getClass()) return false;
     BanditParameters that = (BanditParameters) o;
     return Objects.equals(banditKey, that.banditKey)
-            && Objects.equals(updatedAt, that.updatedAt)
-            && Objects.equals(modelName, that.modelName)
-            && Objects.equals(modelVersion, that.modelVersion)
-            && Objects.equals(modelData, that.modelData);
+        && Objects.equals(updatedAt, that.updatedAt)
+        && Objects.equals(modelName, that.modelName)
+        && Objects.equals(modelVersion, that.modelVersion)
+        && Objects.equals(modelData, that.modelData);
   }
 
   @Override

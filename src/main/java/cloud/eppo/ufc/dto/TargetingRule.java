@@ -17,9 +17,7 @@ public class TargetingRule implements ITargetingRule {
 
   @Override
   public String toString() {
-    return "TargetingRule{" +
-      "conditions=" + conditions +
-      '}';
+    return "TargetingRule{" + "conditions=" + conditions + '}';
   }
 
   @Override
