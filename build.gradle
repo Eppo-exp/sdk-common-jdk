@@ -9,7 +9,7 @@ buildscript {
     if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
       classpath "com.diffplug.spotless:spotless-plugin-gradle:8.1.0"
     } else {
-      classpath "com.diffplug.spotless:spotless-plugin-gradle:6.13.0"
+      classpath "com.diffplug.spotless:spotless-plugin-gradle:8.1.0"
     }
   }
 }
