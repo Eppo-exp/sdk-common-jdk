@@ -68,7 +68,8 @@ public class ConfigurationRequestorTest {
     String fetchedFlagConfig =
         FileUtils.readFileToString(differentFlagConfigFile, StandardCharsets.UTF_8);
 
-    when(mockHttpClient.getAsync(eq("/flag-config/v1/config"), any())).thenReturn(configFetchFuture);
+    when(mockHttpClient.getAsync(eq("/flag-config/v1/config"), any()))
+        .thenReturn(configFetchFuture);
 
     // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
@@ -111,7 +112,8 @@ public class ConfigurationRequestorTest {
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     CompletableFuture<EppoHttpResponse> configFetchFuture = new CompletableFuture<>();
 
-    when(mockHttpClient.getAsync(eq("/flag-config/v1/config"), any())).thenReturn(configFetchFuture);
+    when(mockHttpClient.getAsync(eq("/flag-config/v1/config"), any()))
+        .thenReturn(configFetchFuture);
 
     // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
@@ -150,7 +152,8 @@ public class ConfigurationRequestorTest {
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
     CompletableFuture<EppoHttpResponse> configFetchFuture = new CompletableFuture<>();
 
-    when(mockHttpClient.getAsync(eq("/flag-config/v1/config"), any())).thenReturn(configFetchFuture);
+    when(mockHttpClient.getAsync(eq("/flag-config/v1/config"), any()))
+        .thenReturn(configFetchFuture);
 
     // Set initial config and verify that no config has been set yet.
     requestor.setInitialConfiguration(initialConfigFuture);
@@ -193,8 +196,10 @@ public class ConfigurationRequestorTest {
   public void testConfigurationChangeListener() throws IOException {
     // Setup mock response
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
-    when(mockHttpClient.get(anyString())).thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
-    when(mockHttpClient.get(anyString(), any())).thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
+    when(mockHttpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
+    when(mockHttpClient.get(anyString(), any()))
+        .thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
     when(mockConfigStore.saveConfiguration(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -220,8 +225,10 @@ public class ConfigurationRequestorTest {
   @Test
   public void testMultipleConfigurationChangeListeners() {
     // Setup mock response
-    when(mockHttpClient.get(anyString())).thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
-    when(mockHttpClient.get(anyString(), any())).thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
+    when(mockHttpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
+    when(mockHttpClient.get(anyString(), any()))
+        .thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
     when(mockConfigStore.saveConfiguration(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -271,8 +278,10 @@ public class ConfigurationRequestorTest {
   @Test
   public void testConfigurationChangeListenerIgnoresFailedSave() {
     // Setup mock responses
-    when(mockHttpClient.get(anyString())).thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
-    when(mockHttpClient.get(anyString(), any())).thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
+    when(mockHttpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
+    when(mockHttpClient.get(anyString(), any()))
+        .thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
     when(mockConfigStore.saveConfiguration(any()))
         .thenReturn(
             CompletableFuture.supplyAsync(
@@ -296,8 +305,9 @@ public class ConfigurationRequestorTest {
   public void testConfigurationChangeListenerAsyncSave() {
     // Setup mock responses
     when(mockHttpClient.getAsync(anyString(), any()))
-        .thenReturn(CompletableFuture.completedFuture(
-            new EppoHttpResponse("{\"flags\":{}}".getBytes(), 200, null)));
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new EppoHttpResponse("{\"flags\":{}}".getBytes(), 200, null)));
 
     CompletableFuture<Void> saveFuture = new CompletableFuture<>();
     when(mockConfigStore.saveConfiguration(any())).thenReturn(saveFuture);
@@ -319,8 +329,10 @@ public class ConfigurationRequestorTest {
   public void testUnsubscribeFromConfigurationChangeByReference() throws IOException {
     // Setup mock response
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
-    when(mockHttpClient.get(anyString())).thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
-    when(mockHttpClient.get(anyString(), any())).thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
+    when(mockHttpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
+    when(mockHttpClient.get(anyString(), any()))
+        .thenReturn(new EppoHttpResponse(flagConfig.getBytes(), 200, null));
     when(mockConfigStore.saveConfiguration(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -355,8 +367,10 @@ public class ConfigurationRequestorTest {
   @Test
   public void testUnsubscribeOneOfMultipleConfigurationChangeListeners() {
     // Setup mock response
-    when(mockHttpClient.get(anyString())).thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
-    when(mockHttpClient.get(anyString(), any())).thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
+    when(mockHttpClient.get(anyString()))
+        .thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
+    when(mockHttpClient.get(anyString(), any()))
+        .thenReturn(new EppoHttpResponse("{}".getBytes(), 200, null));
     when(mockConfigStore.saveConfiguration(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
 

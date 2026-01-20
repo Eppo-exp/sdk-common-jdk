@@ -23,7 +23,8 @@ public class TestUtils {
     when(mockHttpClient.get(anyString(), any())).thenReturn(response);
 
     // Mock async get - return CompletableFuture<EppoHttpResponse>
-    CompletableFuture<EppoHttpResponse> mockAsyncResponse = CompletableFuture.completedFuture(response);
+    CompletableFuture<EppoHttpResponse> mockAsyncResponse =
+        CompletableFuture.completedFuture(response);
     when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
     when(mockHttpClient.getAsync(anyString(), any())).thenReturn(mockAsyncResponse);
 
@@ -37,7 +38,8 @@ public class TestUtils {
 
     // Mock sync get
     when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
-    when(mockHttpClient.get(anyString(), any())).thenThrow(new RuntimeException("Intentional Error"));
+    when(mockHttpClient.get(anyString(), any()))
+        .thenThrow(new RuntimeException("Intentional Error"));
 
     // Mock async get
     CompletableFuture<EppoHttpResponse> mockAsyncResponse = new CompletableFuture<>();
