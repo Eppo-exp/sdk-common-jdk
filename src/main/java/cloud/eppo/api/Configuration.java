@@ -265,8 +265,7 @@ public class Configuration {
    *
    * @return ETag value or null if not set
    */
-  @Nullable
-  public String getFlagsETag() {
+  @Nullable public String getFlagsETag() {
     return flagsETag;
   }
 

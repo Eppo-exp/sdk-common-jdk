@@ -100,7 +100,8 @@ public class EppoHttpClient {
                   } else {
                     log.debug("Fetch failed with status code: {}", statusCode);
                     future.completeExceptionally(
-                        new RuntimeException("Bad response from URL " + redactApiKey(request.url())));
+                        new RuntimeException(
+                            "Bad response from URL " + redactApiKey(request.url())));
                   }
                 } finally {
                   response.close();

@@ -5,9 +5,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Wrapper for HTTP responses containing status code, body, and ETag for caching.
  *
- * <p>This class enables HTTP caching via ETags:
- * - 200 OK: Contains response body and new ETag
- * - 304 Not Modified: Empty body, current ETag retained
+ * <p>This class enables HTTP caching via ETags: - 200 OK: Contains response body and new ETag - 304
+ * Not Modified: Empty body, current ETag retained
  */
 public class EppoHttpResponse {
   private final byte[] body;
@@ -43,8 +42,7 @@ public class EppoHttpResponse {
    *
    * @return ETag value or null if not present
    */
-  @Nullable
-  public String getETag() {
+  @Nullable public String getETag() {
     return eTag;
   }
 
