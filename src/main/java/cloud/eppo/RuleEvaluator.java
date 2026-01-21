@@ -7,7 +7,7 @@ import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.ITargetingCondition;
 import cloud.eppo.api.ITargetingRule;
-import cloud.eppo.ufc.dto.OperatorType;
+import cloud.eppo.api.OperatorType;
 import com.github.zafarkhaja.semver.Version;
 import java.util.Collections;
 import java.util.Map;

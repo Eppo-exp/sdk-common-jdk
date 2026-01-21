@@ -2,6 +2,7 @@ package cloud.eppo.ufc.dto;
 
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.ITargetingCondition;
+import cloud.eppo.api.OperatorType;
 import java.util.Objects;
 
 public class TargetingCondition implements ITargetingCondition {

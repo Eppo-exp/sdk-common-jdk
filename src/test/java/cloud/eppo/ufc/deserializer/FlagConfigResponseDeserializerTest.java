@@ -2,6 +2,8 @@ package cloud.eppo.ufc.deserializer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.api.OperatorType;
+import cloud.eppo.api.VariationType;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;

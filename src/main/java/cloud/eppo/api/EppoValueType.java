@@ -1,4 +1,4 @@
-package cloud.eppo.ufc.dto;
+package cloud.eppo.api;
 
 public enum EppoValueType {
   NULL,

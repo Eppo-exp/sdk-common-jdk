@@ -1,6 +1,7 @@
 package cloud.eppo.ufc.dto;
 
 import cloud.eppo.api.IFlagConfig;
+import cloud.eppo.api.VariationType;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
