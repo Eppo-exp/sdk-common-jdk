@@ -251,7 +251,7 @@ public class FlagEvaluator {
 
       builder
           .allocationKey(allocationKey)
-          .variation((Variation) variation)
+          .variation(variation)
           .extraLogging(extraLogging)
           .doLog(allocation.doLog())
           .flagEvaluationCode(FlagEvaluationCode.MATCH)
