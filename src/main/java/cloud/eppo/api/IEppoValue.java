@@ -1,7 +1,5 @@
 package cloud.eppo.api;
 
-import cloud.eppo.api.EppoValueType;
-import cloud.eppo.api.VariationType;
 import java.util.List;
 
 /** Interface for EppoValue allowing downstream SDKs to provide custom implementations. */
