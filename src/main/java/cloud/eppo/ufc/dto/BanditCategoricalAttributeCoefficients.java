@@ -74,11 +74,6 @@ public class BanditCategoricalAttributeCoefficients
     return coefficient != null ? coefficient : missingValueCoefficient;
   }
 
-  // For backward compatibility with BanditAttributeCoefficients interface
-  public double scoreForAttributeValue(EppoValue attributeValue) {
-    return scoreForAttributeValue((IEppoValue) attributeValue);
-  }
-
   @Override
   public Double getMissingValueCoefficient() {
     return missingValueCoefficient;

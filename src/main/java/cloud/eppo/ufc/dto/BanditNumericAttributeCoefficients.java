@@ -65,11 +65,6 @@ public class BanditNumericAttributeCoefficients
     return coefficient * attributeValue.doubleValue();
   }
 
-  // For backward compatibility with BanditAttributeCoefficients interface
-  public double scoreForAttributeValue(EppoValue attributeValue) {
-    return scoreForAttributeValue((IEppoValue) attributeValue);
-  }
-
   @Override
   public Double getCoefficient() {
     return coefficient;
