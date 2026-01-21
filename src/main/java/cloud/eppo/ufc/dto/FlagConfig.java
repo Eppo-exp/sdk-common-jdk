@@ -1,10 +1,12 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IFlagConfig;
+import cloud.eppo.api.VariationType;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class FlagConfig {
+public class FlagConfig implements IFlagConfig {
   private final String key;
   private final boolean enabled;
   private final int totalShards;
@@ -29,14 +31,21 @@ public class FlagConfig {
 
   @Override
   public String toString() {
-    return "FlagConfig{" +
-      "key='" + key + '\'' +
-      ", enabled=" + enabled +
-      ", totalShards=" + totalShards +
-      ", variationType=" + variationType +
-      ", variations=" + variations +
-      ", allocations=" + allocations +
-      '}';
+    return "FlagConfig{"
+        + "key='"
+        + key
+        + '\''
+        + ", enabled="
+        + enabled
+        + ", totalShards="
+        + totalShards
+        + ", variationType="
+        + variationType
+        + ", variations="
+        + variations
+        + ", allocations="
+        + allocations
+        + '}';
   }
 
   @Override
@@ -44,11 +53,11 @@ public class FlagConfig {
     if (o == null || getClass() != o.getClass()) return false;
     FlagConfig that = (FlagConfig) o;
     return enabled == that.enabled
-            && totalShards == that.totalShards
-            && Objects.equals(key, that.key)
-            && variationType == that.variationType
-            && Objects.equals(variations, that.variations)
-            && Objects.equals(allocations, that.allocations);
+        && totalShards == that.totalShards
+        && Objects.equals(key, that.key)
+        && variationType == that.variationType
+        && Objects.equals(variations, that.variations)
+        && Objects.equals(allocations, that.allocations);
   }
 
   @Override

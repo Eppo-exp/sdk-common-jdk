@@ -1,11 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IShard;
 import cloud.eppo.model.ShardRange;
-
 import java.util.Objects;
 import java.util.Set;
 
-public class Shard {
+public class Shard implements IShard {
   private final String salt;
   private final Set<ShardRange> ranges;
 
@@ -16,18 +16,14 @@ public class Shard {
 
   @Override
   public String toString() {
-    return "Shard{" +
-      "salt='" + salt + '\'' +
-      ", ranges=" + ranges +
-      '}';
+    return "Shard{" + "salt='" + salt + '\'' + ", ranges=" + ranges + '}';
   }
 
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     Shard shard = (Shard) o;
-    return Objects.equals(salt, shard.salt)
-            && Objects.equals(ranges, shard.ranges);
+    return Objects.equals(salt, shard.salt) && Objects.equals(ranges, shard.ranges);
   }
 
   @Override

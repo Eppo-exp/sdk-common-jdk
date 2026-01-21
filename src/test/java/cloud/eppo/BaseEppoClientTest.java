@@ -8,12 +8,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.VariationType;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
@@ -801,7 +800,7 @@ public class BaseEppoClientTest {
       assertNotNull(config);
 
       // Verify known flag from initial configuration
-      FlagConfig numericFlag = config.getFlag("numeric_flag");
+      IFlagConfig numericFlag = config.getFlag("numeric_flag");
       assertNotNull(numericFlag);
       assertEquals(VariationType.NUMERIC, numericFlag.getVariationType());
 

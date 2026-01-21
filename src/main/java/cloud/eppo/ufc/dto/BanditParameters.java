@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditParameters;
 import java.util.Date;
 import java.util.Objects;
 
-public class BanditParameters {
+public class BanditParameters implements IBanditParameters {
   private final String banditKey;
   private final Date updatedAt;
   private final String modelName;
@@ -25,13 +26,21 @@ public class BanditParameters {
 
   @Override
   public String toString() {
-    return "BanditParameters{" +
-      "banditKey='" + banditKey + '\'' +
-      ", updatedAt=" + updatedAt +
-      ", modelName='" + modelName + '\'' +
-      ", modelVersion='" + modelVersion + '\'' +
-      ", modelData=" + modelData +
-      '}';
+    return "BanditParameters{"
+        + "banditKey='"
+        + banditKey
+        + '\''
+        + ", updatedAt="
+        + updatedAt
+        + ", modelName='"
+        + modelName
+        + '\''
+        + ", modelVersion='"
+        + modelVersion
+        + '\''
+        + ", modelData="
+        + modelData
+        + '}';
   }
 
   @Override
@@ -39,10 +48,10 @@ public class BanditParameters {
     if (o == null || getClass() != o.getClass()) return false;
     BanditParameters that = (BanditParameters) o;
     return Objects.equals(banditKey, that.banditKey)
-            && Objects.equals(updatedAt, that.updatedAt)
-            && Objects.equals(modelName, that.modelName)
-            && Objects.equals(modelVersion, that.modelVersion)
-            && Objects.equals(modelData, that.modelData);
+        && Objects.equals(updatedAt, that.updatedAt)
+        && Objects.equals(modelName, that.modelName)
+        && Objects.equals(modelVersion, that.modelVersion)
+        && Objects.equals(modelData, that.modelData);
   }
 
   @Override

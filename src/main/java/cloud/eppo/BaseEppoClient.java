@@ -5,12 +5,12 @@ import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.VariationType;
 import cloud.eppo.cache.AssignmentCacheEntry;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
-import cloud.eppo.ufc.dto.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
@@ -217,7 +217,7 @@ public class BaseEppoClient {
     Configuration config = getConfiguration();
 
     // Check if flag exists
-    FlagConfig flag = config.getFlag(flagKey);
+    IFlagConfig flag = config.getFlag(flagKey);
     if (flag == null) {
       log.warn("no configuration found for key: {}", flagKey);
       return EvaluationDetails.buildDefault(
@@ -273,8 +273,9 @@ public class BaseEppoClient {
             config.getConfigPublishedAt());
     EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
 
-    EppoValue assignedValue =
+    IEppoValue iAssignedValue =
         evaluationResult.getVariation() != null ? evaluationResult.getVariation().getValue() : null;
+    EppoValue assignedValue = iAssignedValue != null ? (EppoValue) iAssignedValue : null;
 
     // Check if value type matches expected
     if (assignedValue != null && !valueTypeMatchesExpected(expectedType, assignedValue)) {
@@ -639,7 +640,7 @@ public class BaseEppoClient {
 
       if (banditKey != null) {
         try {
-          BanditParameters banditParameters = config.getBanditParameters(banditKey);
+          IBanditParameters banditParameters = config.getBanditParameters(banditKey);
           if (banditParameters == null) {
             throw new RuntimeException("Bandit parameters not found for bandit key: " + banditKey);
           }
