@@ -1,11 +1,12 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IAllocation;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class Allocation {
+public class Allocation implements IAllocation {
   private String key;
   private Set<TargetingRule> rules;
   private Date startAt;
@@ -30,14 +31,21 @@ public class Allocation {
 
   @Override
   public String toString() {
-    return "Allocation{" +
-      "key='" + key + '\'' +
-      ", rules=" + rules +
-      ", startAt=" + startAt +
-      ", endAt=" + endAt +
-      ", splits=" + splits +
-      ", doLog=" + doLog +
-      '}';
+    return "Allocation{"
+        + "key='"
+        + key
+        + '\''
+        + ", rules="
+        + rules
+        + ", startAt="
+        + startAt
+        + ", endAt="
+        + endAt
+        + ", splits="
+        + splits
+        + ", doLog="
+        + doLog
+        + '}';
   }
 
   @Override
@@ -45,11 +53,11 @@ public class Allocation {
     if (o == null || getClass() != o.getClass()) return false;
     Allocation that = (Allocation) o;
     return doLog == that.doLog
-            && Objects.equals(key, that.key)
-            && Objects.equals(rules, that.rules)
-            && Objects.equals(startAt, that.startAt)
-            && Objects.equals(endAt, that.endAt)
-            && Objects.equals(splits, that.splits);
+        && Objects.equals(key, that.key)
+        && Objects.equals(rules, that.rules)
+        && Objects.equals(startAt, that.startAt)
+        && Objects.equals(endAt, that.endAt)
+        && Objects.equals(splits, that.splits);
   }
 
   @Override

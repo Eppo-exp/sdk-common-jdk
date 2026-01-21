@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditModelData;
 import java.util.Map;
 import java.util.Objects;
 
-public class BanditModelData {
+public class BanditModelData implements IBanditModelData {
   private final Double gamma;
   private final Double defaultActionScore;
   private final Double actionProbabilityFloor;
@@ -22,12 +23,16 @@ public class BanditModelData {
 
   @Override
   public String toString() {
-    return "BanditModelData{" +
-      "gamma=" + gamma +
-      ", defaultActionScore=" + defaultActionScore +
-      ", actionProbabilityFloor=" + actionProbabilityFloor +
-      ", coefficients=" + coefficients +
-      '}';
+    return "BanditModelData{"
+        + "gamma="
+        + gamma
+        + ", defaultActionScore="
+        + defaultActionScore
+        + ", actionProbabilityFloor="
+        + actionProbabilityFloor
+        + ", coefficients="
+        + coefficients
+        + '}';
   }
 
   @Override
@@ -35,9 +40,9 @@ public class BanditModelData {
     if (o == null || getClass() != o.getClass()) return false;
     BanditModelData that = (BanditModelData) o;
     return Objects.equals(gamma, that.gamma)
-            && Objects.equals(defaultActionScore, that.defaultActionScore)
-            && Objects.equals(actionProbabilityFloor, that.actionProbabilityFloor)
-            && Objects.equals(coefficients, that.coefficients);
+        && Objects.equals(defaultActionScore, that.defaultActionScore)
+        && Objects.equals(actionProbabilityFloor, that.actionProbabilityFloor)
+        && Objects.equals(coefficients, that.coefficients);
   }
 
   @Override

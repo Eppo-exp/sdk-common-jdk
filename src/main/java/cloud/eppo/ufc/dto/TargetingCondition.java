@@ -1,10 +1,11 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.ITargetingCondition;
+import cloud.eppo.api.OperatorType;
 import java.util.Objects;
 
-import cloud.eppo.api.EppoValue;
-
-public class TargetingCondition {
+public class TargetingCondition implements ITargetingCondition {
   private final OperatorType operator;
   private final String attribute;
   private final EppoValue value;
@@ -17,11 +18,15 @@ public class TargetingCondition {
 
   @Override
   public String toString() {
-    return "TargetingCondition{" +
-      "operator=" + operator +
-      ", attribute='" + attribute + '\'' +
-      ", value=" + value +
-      '}';
+    return "TargetingCondition{"
+        + "operator="
+        + operator
+        + ", attribute='"
+        + attribute
+        + '\''
+        + ", value="
+        + value
+        + '}';
   }
 
   @Override
@@ -29,8 +34,8 @@ public class TargetingCondition {
     if (o == null || getClass() != o.getClass()) return false;
     TargetingCondition that = (TargetingCondition) o;
     return operator == that.operator
-            && Objects.equals(attribute, that.attribute)
-            && Objects.equals(value, that.value);
+        && Objects.equals(attribute, that.attribute)
+        && Objects.equals(value, that.value);
   }
 
   @Override

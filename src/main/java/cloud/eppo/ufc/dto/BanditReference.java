@@ -1,9 +1,10 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.IBanditReference;
 import java.util.List;
 import java.util.Objects;
 
-public class BanditReference {
+public class BanditReference implements IBanditReference {
   private final String modelVersion;
   private final List<BanditFlagVariation> flagVariations;
 
@@ -14,10 +15,13 @@ public class BanditReference {
 
   @Override
   public String toString() {
-    return "BanditReference{" +
-      "modelVersion='" + modelVersion + '\'' +
-      ", flagVariations=" + flagVariations +
-      '}';
+    return "BanditReference{"
+        + "modelVersion='"
+        + modelVersion
+        + '\''
+        + ", flagVariations="
+        + flagVariations
+        + '}';
   }
 
   @Override
@@ -25,7 +29,7 @@ public class BanditReference {
     if (o == null || getClass() != o.getClass()) return false;
     BanditReference that = (BanditReference) o;
     return Objects.equals(modelVersion, that.modelVersion)
-            && Objects.equals(flagVariations, that.flagVariations);
+        && Objects.equals(flagVariations, that.flagVariations);
   }
 
   @Override

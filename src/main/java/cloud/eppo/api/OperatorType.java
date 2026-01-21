@@ -1,4 +1,4 @@
-package cloud.eppo.ufc.dto;
+package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 

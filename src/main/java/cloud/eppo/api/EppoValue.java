@@ -1,14 +1,12 @@
 package cloud.eppo.api;
 
-import cloud.eppo.ufc.dto.EppoValueType;
-import cloud.eppo.ufc.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-public class EppoValue {
+public class EppoValue implements IEppoValue {
   protected final EppoValueType type;
   protected Boolean boolValue;
   protected Double doubleValue;
