@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BanditCategoricalAttributeCoefficients
-    implements IBanditCategoricalAttributeCoefficients, BanditAttributeCoefficients {
+    implements IBanditCategoricalAttributeCoefficients {
   private final Logger logger =
       LoggerFactory.getLogger(BanditCategoricalAttributeCoefficients.class);
   private final String attributeKey;

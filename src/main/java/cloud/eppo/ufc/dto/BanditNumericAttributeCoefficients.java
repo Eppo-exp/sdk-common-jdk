@@ -6,8 +6,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BanditNumericAttributeCoefficients
-    implements IBanditNumericAttributeCoefficients, BanditAttributeCoefficients {
+public class BanditNumericAttributeCoefficients implements IBanditNumericAttributeCoefficients {
   private final Logger logger = LoggerFactory.getLogger(BanditNumericAttributeCoefficients.class);
   private final String attributeKey;
   private final Double coefficient;
