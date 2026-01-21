@@ -1,6 +1,5 @@
 package cloud.eppo.ufc.dto;
 
-import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.IBanditCategoricalAttributeCoefficients;
 import cloud.eppo.api.IEppoValue;
 import java.util.Map;
