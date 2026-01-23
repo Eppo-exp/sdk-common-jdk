@@ -88,6 +88,7 @@ public class BaseEppoClientTest {
             true,
             initialFlagConfiguration,
             null,
+            null,
             null);
   }
 
@@ -106,6 +107,7 @@ public class BaseEppoClientTest {
             isGracefulMode,
             isConfigObfuscated,
             true,
+            null,
             null,
             null,
             null);
@@ -132,6 +134,7 @@ public class BaseEppoClientTest {
             true,
             null,
             null,
+            null,
             null);
 
     return eppoClient.loadConfigurationAsync();
@@ -154,6 +157,7 @@ public class BaseEppoClientTest {
             true,
             null,
             cache,
+            null,
             null);
 
     eppoClient.loadConfiguration();
@@ -227,6 +231,7 @@ public class BaseEppoClientTest {
             false,
             false,
             true,
+            null,
             null,
             null,
             null);
@@ -731,6 +736,7 @@ public class BaseEppoClientTest {
                 true,
                 null,
                 null,
+                null,
                 null);
 
     client.loadConfiguration();
@@ -851,6 +857,7 @@ public class BaseEppoClientTest {
             false,
             false,
             true,
+            null,
             null,
             null,
             null);
