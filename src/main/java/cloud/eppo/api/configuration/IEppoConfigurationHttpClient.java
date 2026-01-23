@@ -48,9 +48,8 @@ public interface IEppoConfigurationHttpClient {
    *           errorMessage} is set
    *     </ul>
    */
-  <T extends IFlagConfigResponse>
-      CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfigurationAsync(
-          ConfigurationRequest request);
+  CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfiguration(
+      ConfigurationRequest request);
 
   /**
    * Asynchronously fetches bandit configuration from Eppo's servers.
@@ -69,7 +68,6 @@ public interface IEppoConfigurationHttpClient {
    *           errorMessage} is set
    *     </ul>
    */
-  <T extends IBanditParametersResponse>
-      CompletableFuture<ConfigurationResponse<IBanditParametersResponse>>
-          fetchBanditConfigurationAsync(ConfigurationRequest request);
+  CompletableFuture<ConfigurationResponse<IBanditParametersResponse>> fetchBanditConfiguration(
+      ConfigurationRequest request);
 }
