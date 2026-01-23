@@ -37,6 +37,9 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
 
+      - name: Download test data
+        run: make test-data
+
       - name: Test with OkHttp ${{ matrix.okhttp-version }}
         run: ./gradlew test -PokhttpVersion=${{ matrix.okhttp-version }}
 
