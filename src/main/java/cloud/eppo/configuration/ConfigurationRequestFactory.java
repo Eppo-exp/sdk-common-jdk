@@ -1,6 +1,6 @@
 package cloud.eppo.configuration;
 
-import static cloud.eppo.api.configuration.IEppoConfigurationHttpClient.ConfigurationRequest;
+import cloud.eppo.api.configuration.ConfigurationRequest;
 
 public class ConfigurationRequestFactory {
   private String url;
