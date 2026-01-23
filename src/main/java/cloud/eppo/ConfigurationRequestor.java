@@ -105,7 +105,7 @@ public class ConfigurationRequestor {
 
     if (flagResponse.isError()) {
       throw new RuntimeException(
-          "Failed to fetch flag configuration: " + flagResponse.errorMessage);
+          "Failed to fetch flag configuration: " + flagResponse.getErrorMessage());
     }
 
     if (flagResponse.isNotModified()) {
@@ -114,7 +114,8 @@ public class ConfigurationRequestor {
     }
 
     Configuration.Builder configBuilder =
-        Configuration.builder(flagResponse.payload).banditParametersFromConfig(lastConfig);
+        Configuration.builder(flagResponse.getPayload(), flagResponse.getETag())
+            .banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       ConfigurationRequest banditRequest = requestFactory.createBanditConfigurationRequest(null);
@@ -122,7 +123,7 @@ public class ConfigurationRequestor {
         ConfigurationResponse<IBanditParametersResponse> banditResponse =
             configurationClient.fetchBanditConfiguration(banditRequest).get();
         if (banditResponse.isSuccess()) {
-          configBuilder.banditParameters(banditResponse.payload);
+          configBuilder.banditParameters(banditResponse.getPayload());
         }
       } catch (Exception e) {
         log.warn("Failed to fetch bandit configuration, continuing without bandits", e);
@@ -153,7 +154,7 @@ public class ConfigurationRequestor {
                 flagResponse -> {
                   if (flagResponse.isError()) {
                     throw new RuntimeException(
-                        "Failed to fetch flag configuration: " + flagResponse.errorMessage);
+                        "Failed to fetch flag configuration: " + flagResponse.getErrorMessage());
                   }
 
                   if (flagResponse.isNotModified()) {
@@ -163,7 +164,7 @@ public class ConfigurationRequestor {
 
                   synchronized (this) {
                     Configuration.Builder configBuilder =
-                        Configuration.builder(flagResponse.payload)
+                        Configuration.builder(flagResponse.getPayload(), flagResponse.getETag())
                             .banditParametersFromConfig(lastConfig);
 
                     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
@@ -174,7 +175,7 @@ public class ConfigurationRequestor {
                           .thenCompose(
                               banditResponse -> {
                                 if (banditResponse.isSuccess()) {
-                                  configBuilder.banditParameters(banditResponse.payload);
+                                  configBuilder.banditParameters(banditResponse.getPayload());
                                 }
                                 return saveConfigurationAndNotify(configBuilder.build());
                               });
@@ -211,8 +212,9 @@ public class ConfigurationRequestor {
   }
 
   private String extractETagFromConfig(Configuration config) {
-    // TODO: Extract ETag if Configuration is updated to store it
-    // For now, return null
-    return null;
+    if (config == null) {
+      return null;
+    }
+    return config.getFlagsSnapshotId();
   }
 }

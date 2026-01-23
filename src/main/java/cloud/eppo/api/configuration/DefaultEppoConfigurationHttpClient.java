@@ -96,7 +96,7 @@ public class DefaultEppoConfigurationHttpClient implements IEppoConfigurationHtt
             return handleResponse(
                 response, responseClass, successFactory, notModifiedFactory, errorFactory);
           } catch (IOException e) {
-            String redactedUrl = redactApiKey(configRequest.url, configRequest.apiKey);
+            String redactedUrl = redactApiKey(configRequest.getUrl(), configRequest.getApiKey());
             log.error("Network error fetching configuration from {}", redactedUrl, e);
             return errorFactory.create(500, "Network error: " + e.getMessage());
           }
@@ -104,15 +104,15 @@ public class DefaultEppoConfigurationHttpClient implements IEppoConfigurationHtt
   }
 
   private Request buildOkHttpRequest(ConfigurationRequest configRequest) {
-    HttpUrl.Builder urlBuilder = HttpUrl.parse(configRequest.url).newBuilder();
-    urlBuilder.addQueryParameter("apiKey", configRequest.apiKey);
-    urlBuilder.addQueryParameter("sdkName", configRequest.sdkName);
-    urlBuilder.addQueryParameter("sdkVersion", configRequest.sdkVersion);
+    HttpUrl.Builder urlBuilder = HttpUrl.parse(configRequest.getUrl()).newBuilder();
+    urlBuilder.addQueryParameter("apiKey", configRequest.getApiKey());
+    urlBuilder.addQueryParameter("sdkName", configRequest.getSdkName());
+    urlBuilder.addQueryParameter("sdkVersion", configRequest.getSdkVersion());
 
     Request.Builder requestBuilder = new Request.Builder().url(urlBuilder.build()).get();
 
-    if (configRequest.previousETag != null && !configRequest.previousETag.isEmpty()) {
-      requestBuilder.addHeader("If-None-Match", configRequest.previousETag);
+    if (configRequest.getPreviousETag() != null && !configRequest.getPreviousETag().isEmpty()) {
+      requestBuilder.addHeader("If-None-Match", configRequest.getPreviousETag());
     }
 
     return requestBuilder.build();

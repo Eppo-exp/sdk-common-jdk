@@ -51,10 +51,10 @@ public class DefaultEppoConfigurationHttpClientTest {
     assertTrue(response.isSuccess());
     assertFalse(response.isError());
     assertFalse(response.isNotModified());
-    assertEquals(200, response.statusCode);
-    assertEquals("test-etag", response.eTag);
-    assertNotNull(response.payload);
-    assertNotNull(response.payload.getFlags());
+    assertEquals(200, response.getStatusCode());
+    assertEquals("test-etag", response.getETag());
+    assertNotNull(response.getPayload());
+    assertNotNull(response.getPayload().getFlags());
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertTrue(recordedRequest.getPath().contains("apiKey=test-key"));
@@ -77,9 +77,9 @@ public class DefaultEppoConfigurationHttpClientTest {
     assertTrue(response.isNotModified());
     assertFalse(response.isError());
     assertFalse(response.isSuccess());
-    assertEquals(304, response.statusCode);
-    assertEquals("cached-etag", response.eTag);
-    assertNull(response.payload);
+    assertEquals(304, response.getStatusCode());
+    assertEquals("cached-etag", response.getETag());
+    assertNull(response.getPayload());
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertEquals("cached-etag", recordedRequest.getHeader("If-None-Match"));
@@ -100,9 +100,9 @@ public class DefaultEppoConfigurationHttpClientTest {
     assertTrue(response.isError());
     assertFalse(response.isSuccess());
     assertFalse(response.isNotModified());
-    assertEquals(403, response.statusCode);
-    assertEquals("Invalid API key", response.errorMessage);
-    assertNull(response.payload);
+    assertEquals(403, response.getStatusCode());
+    assertEquals("Invalid API key", response.getErrorMessage());
+    assertNull(response.getPayload());
   }
 
   @Test
@@ -117,9 +117,9 @@ public class DefaultEppoConfigurationHttpClientTest {
     ConfigurationResponse<IFlagConfigResponse> response = future.get();
 
     assertTrue(response.isError());
-    assertEquals(500, response.statusCode);
-    assertTrue(response.errorMessage.contains("500"));
-    assertNull(response.payload);
+    assertEquals(500, response.getStatusCode());
+    assertTrue(response.getErrorMessage().contains("500"));
+    assertNull(response.getPayload());
   }
 
   @Test
@@ -138,9 +138,9 @@ public class DefaultEppoConfigurationHttpClientTest {
     ConfigurationResponse<IFlagConfigResponse> response = future.get();
 
     assertTrue(response.isError());
-    assertEquals(500, response.statusCode);
-    assertTrue(response.errorMessage.contains("JSON parsing error"));
-    assertNull(response.payload);
+    assertEquals(500, response.getStatusCode());
+    assertTrue(response.getErrorMessage().contains("JSON parsing error"));
+    assertNull(response.getPayload());
   }
 
   @Test
@@ -164,10 +164,10 @@ public class DefaultEppoConfigurationHttpClientTest {
     assertTrue(response.isSuccess());
     assertFalse(response.isError());
     assertFalse(response.isNotModified());
-    assertEquals(200, response.statusCode);
-    assertEquals("bandit-etag", response.eTag);
-    assertNotNull(response.payload);
-    assertNotNull(response.payload.getBandits());
+    assertEquals(200, response.getStatusCode());
+    assertEquals("bandit-etag", response.getETag());
+    assertNotNull(response.getPayload());
+    assertNotNull(response.getPayload().getBandits());
   }
 
   @Test
@@ -186,9 +186,9 @@ public class DefaultEppoConfigurationHttpClientTest {
     assertTrue(response.isNotModified());
     assertFalse(response.isError());
     assertFalse(response.isSuccess());
-    assertEquals(304, response.statusCode);
-    assertEquals("cached-bandit-etag", response.eTag);
-    assertNull(response.payload);
+    assertEquals(304, response.getStatusCode());
+    assertEquals("cached-bandit-etag", response.getETag());
+    assertNull(response.getPayload());
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertEquals("cached-bandit-etag", recordedRequest.getHeader("If-None-Match"));
@@ -208,7 +208,7 @@ public class DefaultEppoConfigurationHttpClientTest {
     ConfigurationResponse<IFlagConfigResponse> response = future.get();
 
     assertTrue(response.isSuccess());
-    assertNull(response.eTag);
+    assertNull(response.getETag());
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertNull(recordedRequest.getHeader("If-None-Match"));
@@ -229,9 +229,9 @@ public class DefaultEppoConfigurationHttpClientTest {
     ConfigurationResponse<IFlagConfigResponse> response = future.get();
 
     assertTrue(response.isError());
-    assertEquals(500, response.statusCode);
+    assertEquals(500, response.getStatusCode());
     // Error message should not contain the actual API key
-    assertFalse(response.errorMessage.contains("secret-api-key"));
+    assertFalse(response.getErrorMessage().contains("secret-api-key"));
   }
 
   @Test
@@ -246,6 +246,6 @@ public class DefaultEppoConfigurationHttpClientTest {
     ConfigurationResponse<IFlagConfigResponse> response = future.get();
 
     assertTrue(response.isError());
-    assertEquals(500, response.statusCode);
+    assertEquals(500, response.getStatusCode());
   }
 }

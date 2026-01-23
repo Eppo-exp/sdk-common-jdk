@@ -4,9 +4,7 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,6 +64,7 @@ public class Configuration {
   private final String environmentName;
   private final Date configFetchedAt;
   private final Date configPublishedAt;
+  private final String flagsSnapshotId;
 
   private final byte[] flagConfigJson;
 
@@ -80,6 +79,7 @@ public class Configuration {
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt,
+      @Nullable String flagsSnapshotId,
       byte[] flagConfigJson,
       byte[] banditParamsJson) {
     this.flags = flags;
@@ -89,21 +89,8 @@ public class Configuration {
     this.environmentName = environmentName;
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
+    this.flagsSnapshotId = flagsSnapshotId;
 
-    // Graft the `format` field into the flagConfigJson'
-    if (flagConfigJson != null && flagConfigJson.length != 0) {
-      try {
-        JsonNode jNode = mapper.readTree(flagConfigJson);
-        IFlagConfigResponse.Format format =
-            isConfigObfuscated
-                ? IFlagConfigResponse.Format.CLIENT
-                : IFlagConfigResponse.Format.SERVER;
-        ((ObjectNode) jNode).put("format", format.toString());
-        flagConfigJson = mapper.writeValueAsBytes(jNode);
-      } catch (IOException e) {
-        log.error("Error adding `format` field to FlagConfigResponse JSON");
-      }
-    }
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }
@@ -114,6 +101,7 @@ public class Configuration {
         Collections.emptyMap(),
         Collections.emptyMap(),
         false,
+        null,
         null,
         null,
         null,
@@ -139,6 +127,8 @@ public class Configuration {
         + configFetchedAt
         + ", configPublishedAt="
         + configPublishedAt
+        + ", snapshotId="
+        + flagsSnapshotId
         + ", flagConfigJson="
         + Arrays.toString(flagConfigJson)
         + ", banditParamsJson="
@@ -157,6 +147,7 @@ public class Configuration {
         && Objects.equals(environmentName, that.environmentName)
         && Objects.equals(configFetchedAt, that.configFetchedAt)
         && Objects.equals(configPublishedAt, that.configPublishedAt)
+        && Objects.equals(flagsSnapshotId, that.flagsSnapshotId)
         && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
         && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
   }
@@ -171,6 +162,7 @@ public class Configuration {
         environmentName,
         configFetchedAt,
         configPublishedAt,
+        flagsSnapshotId,
         Arrays.hashCode(flagConfigJson),
         Arrays.hashCode(banditParamsJson));
   }
@@ -254,12 +246,29 @@ public class Configuration {
     return configPublishedAt;
   }
 
-  public static Builder builder(byte[] flagJson) {
-    return new Builder(flagJson);
+  /**
+   * Returns the snapshot ID for the flags configuration.
+   *
+   * <p>The snapshot ID is an opaque identifier (typically an HTTP ETag value) that represents a
+   * specific version of the flag configuration. This value can be used for caching and conditional
+   * requests to avoid re-fetching unchanged configuration data.
+   *
+   * <p><strong>Note:</strong> This value is currently not populated from HTTP responses and will
+   * typically be null. Full ETag-based HTTP caching support will be implemented in future updates.
+   *
+   * @return the snapshot ID, or null if not available
+   */
+  @Nullable public String getFlagsSnapshotId() {
+    return flagsSnapshotId;
   }
 
-  public static Builder builder(IFlagConfigResponse flagConfigResponse) {
-    return new Builder(flagConfigResponse);
+  public static Builder builder(byte[] flagJson, @Nullable String flagsSnapshotId) {
+    return new Builder(flagJson, flagsSnapshotId);
+  }
+
+  public static Builder builder(
+      IFlagConfigResponse flagConfigResponse, @Nullable String flagsSnapshotId) {
+    return new Builder(flagConfigResponse, flagsSnapshotId);
   }
 
   /**
@@ -277,6 +286,7 @@ public class Configuration {
     private byte[] banditParamsJson;
     private final String environmentName;
     private final Date configPublishedAt;
+    private final String flagsSnapshotId;
 
     private static IFlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
@@ -291,26 +301,30 @@ public class Configuration {
     }
 
     public Builder(byte[] flagJson) {
-      this(flagJson, parseFlagResponse(flagJson));
+      this(flagJson, null);
     }
 
-    public Builder(IFlagConfigResponse flagConfigResponse) {
-      this(
-          null,
-          flagConfigResponse,
-          flagConfigResponse.getFormat() == IFlagConfigResponse.Format.CLIENT);
+    public Builder(byte[] flagJson, @Nullable String flagsSnapshotId) {
+      this(flagJson, parseFlagResponse(flagJson), flagsSnapshotId);
     }
 
-    public Builder(byte[] flagJson, IFlagConfigResponse flagConfigResponse) {
+    public Builder(IFlagConfigResponse flagConfigResponse, @Nullable String flagsSnapshotId) {
+      this(null, flagConfigResponse, flagsSnapshotId);
+    }
+
+    public Builder(
+        byte[] flagJson, IFlagConfigResponse flagConfigResponse, @Nullable String flagsSnapshotId) {
       this(
           flagJson,
           flagConfigResponse,
+          flagsSnapshotId,
           flagConfigResponse.getFormat() == IFlagConfigResponse.Format.CLIENT);
     }
 
     public Builder(
         byte[] flagJson,
         @Nullable IFlagConfigResponse flagConfigResponse,
+        @Nullable String flagsSnapshotId,
         boolean isConfigObfuscated) {
       this.isConfigObfuscated = isConfigObfuscated;
       this.flagJson = flagJson;
@@ -320,6 +334,7 @@ public class Configuration {
         banditReferences = Collections.emptyMap();
         environmentName = null;
         configPublishedAt = null;
+        this.flagsSnapshotId = null;
       } else {
         flags = Collections.unmodifiableMap(flagConfigResponse.getFlags());
         banditReferences = Collections.unmodifiableMap(flagConfigResponse.getBanditReferences());
@@ -327,6 +342,7 @@ public class Configuration {
         // Extract environment name and published at timestamp from the response
         environmentName = flagConfigResponse.getEnvironmentName();
         configPublishedAt = flagConfigResponse.getCreatedAt();
+        this.flagsSnapshotId = flagsSnapshotId;
 
         log.debug("Loaded {} flag definitions from flag definition JSON", flags.size());
       }
@@ -408,6 +424,7 @@ public class Configuration {
           environmentName,
           configFetchedAt,
           configPublishedAt,
+          flagsSnapshotId,
           flagJson,
           banditParamsJson);
     }
