@@ -1,0 +1,61 @@
+name: OkHttp Version Compatibility
+
+on:
+  push:
+    branches: [main, feature/v4, 'release/**']
+  pull_request:
+    branches: [main, feature/v4]
+    paths:
+      - '**/*'
+
+jobs:
+  test-okhttp-versions:
+    name: Test with OkHttp ${{ matrix.okhttp-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # Continue testing other versions even if one fails
+      matrix:
+        okhttp-version:
+          - '4.12.0' # Latest 4.x stable
+          - '5.3.2' # Latest 5.x stable as of writing.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Download test data
+        run: make test-data
+
+      - name: Test with OkHttp ${{ matrix.okhttp-version }}
+        run: ./gradlew test -PokhttpVersion=${{ matrix.okhttp-version }}
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-okhttp-${{ matrix.okhttp-version }}
+          path: build/reports/tests/test/
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Test Results for OkHttp ${{ matrix.okhttp-version }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ All tests passed with OkHttp ${{ matrix.okhttp-version }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some tests failed with OkHttp ${{ matrix.okhttp-version }}" >> $GITHUB_STEP_SUMMARY
+          fi

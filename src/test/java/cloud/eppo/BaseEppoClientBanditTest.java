@@ -78,7 +78,8 @@ public class BaseEppoClientBanditTest {
             null,
             new AbstractAssignmentCache(assignmentCache) {},
             new ExpiringInMemoryAssignmentCache(
-                banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {});
+                banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {},
+            null);
 
     eppoClient.loadConfiguration();
 
@@ -106,6 +107,7 @@ public class BaseEppoClientBanditTest {
         false,
         true,
         initialConfig,
+        null,
         null,
         null);
   }

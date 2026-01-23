@@ -66,7 +66,8 @@ public class BaseEppoClient {
       boolean supportBandits,
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
-      @Nullable IAssignmentCache banditAssignmentCache) {
+      @Nullable IAssignmentCache banditAssignmentCache,
+      @Nullable IEppoConfigurationHttpClient configurationHttpClient) {
 
     if (apiBaseUrl == null) {
       apiBaseUrl = Constants.DEFAULT_BASE_URL;
@@ -76,7 +77,11 @@ public class BaseEppoClient {
     this.banditAssignmentCache = banditAssignmentCache;
 
     IEppoConfigurationHttpClient configClient =
-        httpClientOverride != null ? httpClientOverride : new DefaultEppoConfigurationHttpClient();
+        configurationHttpClient != null
+            ? configurationHttpClient
+            : (httpClientOverride != null
+                ? httpClientOverride
+                : new DefaultEppoConfigurationHttpClient());
 
     ConfigurationRequestFactory requestFactory =
         new ConfigurationRequestFactory(apiBaseUrl, apiKey, sdkName, sdkVersion);

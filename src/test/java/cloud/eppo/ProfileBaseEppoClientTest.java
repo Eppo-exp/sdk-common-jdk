@@ -48,6 +48,7 @@ public class ProfileBaseEppoClientTest {
             true,
             null,
             null,
+            null,
             null);
 
     eppoClient.loadConfiguration();
