@@ -32,13 +32,10 @@ dependencies {
 ```groovy
 dependencies {
   implementation 'cloud.eppo:sdk-common-jvm:4.0.0'
-  implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.14'
+  implementation 'com.squareup.okhttp3:okhttp:5.3.2'
 }
 ```
 
-### Migrating from v3.x
-
-See [MIGRATION_V3_TO_V4.md](MIGRATION_V3_TO_V4.md) for detailed instructions.
 
 ## Releasing a new version
 
