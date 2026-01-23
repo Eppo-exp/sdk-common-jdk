@@ -32,25 +32,6 @@ import java.util.concurrent.CompletableFuture;
 public interface IEppoConfigurationHttpClient {
 
   /**
-   * Synchronously fetches flag configuration from Eppo's servers.
-   *
-   * @param request the configuration request containing URL, API key, SDK metadata, and optional
-   *     previous ETag for conditional requests
-   * @return a {@link ConfigurationResponse} containing the parsed flag configuration (on success),
-   *     ETag for caching, and HTTP status code. The response can be in one of three states:
-   *     <ul>
-   *       <li><strong>Success (200):</strong> {@code payload} contains parsed flags, {@code eTag}
-   *           is set
-   *       <li><strong>Not Modified (304):</strong> {@code payload} is null (use cached data),
-   *           {@code eTag} is set
-   *       <li><strong>Error (4xx/5xx):</strong> {@code payload} and {@code eTag} are null, {@code
-   *           errorMessage} is set
-   *     </ul>
-   */
-  <T extends IFlagConfigResponse> ConfigurationResponse<IFlagConfigResponse> fetchFlagConfiguration(
-      ConfigurationRequest request);
-
-  /**
    * Asynchronously fetches flag configuration from Eppo's servers.
    *
    * @param request the configuration request containing URL, API key, SDK metadata, and optional
@@ -69,26 +50,6 @@ public interface IEppoConfigurationHttpClient {
    */
   <T extends IFlagConfigResponse>
       CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfigurationAsync(
-          ConfigurationRequest request);
-
-  /**
-   * Synchronously fetches bandit configuration from Eppo's servers.
-   *
-   * @param request the configuration request containing URL, API key, SDK metadata, and optional
-   *     previous ETag for conditional requests
-   * @return a {@link ConfigurationResponse} containing the parsed bandit parameters (on success),
-   *     ETag for caching, and HTTP status code. The response can be in one of three states:
-   *     <ul>
-   *       <li><strong>Success (200):</strong> {@code payload} contains parsed bandit parameters,
-   *           {@code eTag} is set
-   *       <li><strong>Not Modified (304):</strong> {@code payload} is null (use cached data),
-   *           {@code eTag} is set
-   *       <li><strong>Error (4xx/5xx):</strong> {@code payload} and {@code eTag} are null, {@code
-   *           errorMessage} is set
-   *     </ul>
-   */
-  <T extends IBanditParametersResponse>
-      ConfigurationResponse<IBanditParametersResponse> fetchBanditConfiguration(
           ConfigurationRequest request);
 
   /**
