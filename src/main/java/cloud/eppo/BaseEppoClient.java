@@ -6,7 +6,10 @@ import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
 import cloud.eppo.api.VariationType;
+import cloud.eppo.api.configuration.DefaultEppoConfigurationHttpClient;
+import cloud.eppo.api.configuration.IEppoConfigurationHttpClient;
 import cloud.eppo.cache.AssignmentCacheEntry;
+import cloud.eppo.configuration.ConfigurationRequestFactory;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
@@ -45,7 +48,7 @@ public class BaseEppoClient {
   // Fields useful for testing in situations where we want to mock the http client or configuration
   // store (accessed via reflection)
   /** @noinspection FieldMayBeFinal */
-  private static EppoHttpClient httpClientOverride = null;
+  private static IEppoConfigurationHttpClient httpClientOverride = null;
 
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
@@ -72,15 +75,18 @@ public class BaseEppoClient {
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
+    IEppoConfigurationHttpClient configClient =
+        httpClientOverride != null ? httpClientOverride : new DefaultEppoConfigurationHttpClient();
+
+    ConfigurationRequestFactory requestFactory =
+        new ConfigurationRequestFactory(apiBaseUrl, apiKey, sdkName, sdkVersion);
+
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
-    // For now, the configuration is only obfuscated for Android clients
     requestor =
         new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+            this.configurationStore, configClient, requestFactory, supportBandits);
     initialConfigFuture =
         initialConfiguration != null
             ? requestor.setInitialConfiguration(initialConfiguration)
@@ -92,15 +98,6 @@ public class BaseEppoClient {
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-  }
-
-  private EppoHttpClient buildHttpClient(
-      String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
-    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
-
-    return httpClientOverride != null
-        ? httpClientOverride
-        : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {
