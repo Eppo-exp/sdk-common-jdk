@@ -36,7 +36,10 @@ public class DefaultEppoConfigurationHttpClientTest {
         "{\"flags\":{\"test-flag\":{\"key\":\"test-flag\",\"enabled\":true,\"variationType\":\"STRING\",\"variations\":{\"control\":{\"key\":\"control\",\"value\":\"control\"}},\"allocations\":[],\"totalShards\":10000}},\"banditReferences\":{},\"format\":\"SERVER\"}";
 
     mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setHeader("ETag", "test-etag").setBody(responseJson));
+        new MockResponse()
+            .setResponseCode(200)
+            .setHeader("ETag", "test-etag")
+            .setBody(responseJson));
 
     String url = mockWebServer.url("/test").toString();
     ConfigurationRequest request = new ConfigurationRequest(url, "test-key", "java", "1.0.0", null);
@@ -61,8 +64,7 @@ public class DefaultEppoConfigurationHttpClientTest {
 
   @Test
   public void testFetchFlagConfiguration_NotModified() throws Exception {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(304).setHeader("ETag", "cached-etag"));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(304).setHeader("ETag", "cached-etag"));
 
     String url = mockWebServer.url("/test").toString();
     ConfigurationRequest request =
@@ -88,7 +90,8 @@ public class DefaultEppoConfigurationHttpClientTest {
     mockWebServer.enqueue(new MockResponse().setResponseCode(403));
 
     String url = mockWebServer.url("/test").toString();
-    ConfigurationRequest request = new ConfigurationRequest(url, "invalid-key", "java", "1.0.0", null);
+    ConfigurationRequest request =
+        new ConfigurationRequest(url, "invalid-key", "java", "1.0.0", null);
 
     CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> future =
         client.fetchFlagConfiguration(request);
@@ -104,8 +107,7 @@ public class DefaultEppoConfigurationHttpClientTest {
 
   @Test
   public void testFetchFlagConfiguration_ServerError() throws Exception {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(500).setBody("Internal server error"));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("Internal server error"));
 
     String url = mockWebServer.url("/test").toString();
     ConfigurationRequest request = new ConfigurationRequest(url, "test-key", "java", "1.0.0", null);
@@ -123,7 +125,10 @@ public class DefaultEppoConfigurationHttpClientTest {
   @Test
   public void testFetchFlagConfiguration_JsonParsingError() throws Exception {
     mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setHeader("ETag", "test-etag").setBody("invalid json"));
+        new MockResponse()
+            .setResponseCode(200)
+            .setHeader("ETag", "test-etag")
+            .setBody("invalid json"));
 
     String url = mockWebServer.url("/test").toString();
     ConfigurationRequest request = new ConfigurationRequest(url, "test-key", "java", "1.0.0", null);
@@ -144,7 +149,10 @@ public class DefaultEppoConfigurationHttpClientTest {
         "{\"bandits\":{\"test-bandit\":{\"banditKey\":\"test-bandit\",\"modelName\":\"test-model\",\"modelVersion\":\"v1\",\"updatedAt\":\"2023-01-01T00:00:00.000Z\",\"modelData\":{\"gamma\":1.0,\"defaultActionScore\":0.0,\"actionProbabilityFloor\":0.0,\"coefficients\":{}}}}}";
 
     mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setHeader("ETag", "bandit-etag").setBody(responseJson));
+        new MockResponse()
+            .setResponseCode(200)
+            .setHeader("ETag", "bandit-etag")
+            .setBody(responseJson));
 
     String url = mockWebServer.url("/test").toString();
     ConfigurationRequest request = new ConfigurationRequest(url, "test-key", "java", "1.0.0", null);
@@ -188,11 +196,9 @@ public class DefaultEppoConfigurationHttpClientTest {
 
   @Test
   public void testFetchConfiguration_WithoutETag() throws Exception {
-    String responseJson =
-        "{\"flags\":{},\"banditReferences\":{},\"format\":\"SERVER\"}";
+    String responseJson = "{\"flags\":{},\"banditReferences\":{},\"format\":\"SERVER\"}";
 
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setBody(responseJson));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(responseJson));
 
     String url = mockWebServer.url("/test").toString();
     ConfigurationRequest request = new ConfigurationRequest(url, "test-key", "java", "1.0.0", null);
