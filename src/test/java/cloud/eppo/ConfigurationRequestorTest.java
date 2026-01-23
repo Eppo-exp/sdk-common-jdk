@@ -77,7 +77,8 @@ public class ConfigurationRequestorTest {
     String fetchedFlagConfig =
         FileUtils.readFileToString(differentFlagConfigFile, StandardCharsets.UTF_8);
 
-    ConfigurationRequest flagRequest = new ConfigurationRequest("http://test", "key", "java", "1.0", null);
+    ConfigurationRequest flagRequest =
+        new ConfigurationRequest("http://test", "key", "java", "1.0", null);
     when(requestFactory.createFlagConfigurationRequest(null)).thenReturn(flagRequest);
 
     CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> configFetchFuture =
@@ -126,7 +127,8 @@ public class ConfigurationRequestorTest {
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
 
-    ConfigurationRequest flagRequest = new ConfigurationRequest("http://test", "key", "java", "1.0", null);
+    ConfigurationRequest flagRequest =
+        new ConfigurationRequest("http://test", "key", "java", "1.0", null);
     when(requestFactory.createFlagConfigurationRequest(null)).thenReturn(flagRequest);
 
     CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> configFetchFuture =
@@ -170,7 +172,8 @@ public class ConfigurationRequestorTest {
     CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
     String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, StandardCharsets.UTF_8);
 
-    ConfigurationRequest flagRequest = new ConfigurationRequest("http://test", "key", "java", "1.0", null);
+    ConfigurationRequest flagRequest =
+        new ConfigurationRequest("http://test", "key", "java", "1.0", null);
     when(requestFactory.createFlagConfigurationRequest(null)).thenReturn(flagRequest);
 
     CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> configFetchFuture =
@@ -215,10 +218,12 @@ public class ConfigurationRequestorTest {
     mockRequestFactory = mock(ConfigurationRequestFactory.class);
 
     // Setup default mocks
-    ConfigurationRequest flagRequest = new ConfigurationRequest("http://test", "key", "java", "1.0", null);
+    ConfigurationRequest flagRequest =
+        new ConfigurationRequest("http://test", "key", "java", "1.0", null);
     when(mockRequestFactory.createFlagConfigurationRequest(any())).thenReturn(flagRequest);
 
-    requestor = new ConfigurationRequestor(mockConfigStore, mockHttpClient, mockRequestFactory, true);
+    requestor =
+        new ConfigurationRequestor(mockConfigStore, mockHttpClient, mockRequestFactory, true);
   }
 
   @Test

@@ -49,8 +49,7 @@ public class TestUtils {
     setBaseClientHttpClientOverrideField(mockHttpClient);
   }
 
-  public static void setBaseClientHttpClientOverrideField(
-      IEppoConfigurationHttpClient httpClient) {
+  public static void setBaseClientHttpClientOverrideField(IEppoConfigurationHttpClient httpClient) {
     setBaseClientOverrideField("httpClientOverride", httpClient);
   }
 

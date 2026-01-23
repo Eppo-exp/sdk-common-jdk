@@ -20,8 +20,7 @@ import org.slf4j.LoggerFactory;
  * Default implementation of an HTTP client for fetching Eppo configuration.
  *
  * <p>This client uses OkHttp for HTTP requests and Jackson (with EppoModule) for JSON parsing. It
- * provides async-only methods that return CompletableFuture for non-blocking configuration
- * fetches.
+ * provides async-only methods that return CompletableFuture for non-blocking configuration fetches.
  *
  * <p>Features:
  *
