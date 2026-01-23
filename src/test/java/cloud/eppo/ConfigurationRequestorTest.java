@@ -45,7 +45,7 @@ public class ConfigurationRequestorTest {
     assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
     Mockito.verify(configStore, Mockito.times(0)).saveConfiguration(any());
 
-    futureConfig.complete(Configuration.builder(flagConfig).build());
+    futureConfig.complete(Configuration.builder(flagConfig, null).build());
 
     assertFalse(configStore.getConfiguration().isEmpty());
     assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());

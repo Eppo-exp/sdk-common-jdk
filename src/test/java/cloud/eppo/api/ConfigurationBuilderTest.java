@@ -37,7 +37,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testBuildConfigAutoDetectsServerFormat() throws IOException {
     byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"SERVER\" }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes).build();
+    Configuration config = Configuration.builder(jsonBytes, null).build();
     assertFalse(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
@@ -50,7 +50,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testBuildConfigAutoDetectsClientFormat() throws IOException {
     byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"CLIENT\" }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes).build();
+    Configuration config = Configuration.builder(jsonBytes, null).build();
     assertTrue(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
@@ -83,6 +83,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
+            null, // flagsSnapshotId
             null, // flagConfigJson
             null); // banditParamsJson
 
@@ -117,6 +118,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
+            null, // flagsSnapshotId
             null, // flagConfigJson
             null); // banditParamsJson
 
