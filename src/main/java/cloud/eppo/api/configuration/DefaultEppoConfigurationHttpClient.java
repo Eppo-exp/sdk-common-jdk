@@ -20,8 +20,7 @@ import org.slf4j.LoggerFactory;
  * Default implementation of an HTTP client for fetching Eppo configuration.
  *
  * <p>This client uses OkHttp for HTTP requests and Jackson (with EppoModule) for JSON parsing. It
- * provides async-only methods that return CompletableFuture for non-blocking configuration
- * fetches.
+ * provides async-only methods that return CompletableFuture for non-blocking configuration fetches.
  *
  * <p>Features:
  *
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
  *   <li>API key redaction in error messages
  * </ul>
  */
-public class DefaultEppoConfigurationHttpClient {
+public class DefaultEppoConfigurationHttpClient implements IEppoConfigurationHttpClient {
   private static final Logger log =
       LoggerFactory.getLogger(DefaultEppoConfigurationHttpClient.class);
 
@@ -55,6 +54,7 @@ public class DefaultEppoConfigurationHttpClient {
    * @param request The configuration request containing URL, API key, and optional ETag
    * @return A CompletableFuture that completes with the configuration response
    */
+  @Override
   public CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfiguration(
       ConfigurationRequest request) {
     return executeRequest(
@@ -71,6 +71,7 @@ public class DefaultEppoConfigurationHttpClient {
    * @param request The configuration request containing URL, API key, and optional ETag
    * @return A CompletableFuture that completes with the bandit configuration response
    */
+  @Override
   public CompletableFuture<ConfigurationResponse<IBanditParametersResponse>>
       fetchBanditConfiguration(ConfigurationRequest request) {
     return executeRequest(

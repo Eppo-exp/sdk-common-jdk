@@ -11,8 +11,9 @@ import java.util.concurrent.CompletableFuture;
  * from Eppo's servers. Implementations handle the HTTP communication, JSON parsing, and ETag-based
  * caching.
  *
- * <p>Both synchronous and asynchronous methods are provided for each configuration type. The
- * asynchronous methods return {@link CompletableFuture} for non-blocking operations.
+ * <p>All methods are asynchronous and return {@link CompletableFuture} for non-blocking
+ * operations. If synchronous behavior is needed, callers can use {@code .get()} on the returned
+ * future.
  *
  * <p><strong>Usage:</strong> Custom implementations can be provided to:
  *
@@ -48,9 +49,8 @@ public interface IEppoConfigurationHttpClient {
    *           errorMessage} is set
    *     </ul>
    */
-  <T extends IFlagConfigResponse>
-      CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfigurationAsync(
-          ConfigurationRequest request);
+  CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfiguration(
+      ConfigurationRequest request);
 
   /**
    * Asynchronously fetches bandit configuration from Eppo's servers.
@@ -69,7 +69,6 @@ public interface IEppoConfigurationHttpClient {
    *           errorMessage} is set
    *     </ul>
    */
-  <T extends IBanditParametersResponse>
-      CompletableFuture<ConfigurationResponse<IBanditParametersResponse>>
-          fetchBanditConfigurationAsync(ConfigurationRequest request);
+  CompletableFuture<ConfigurationResponse<IBanditParametersResponse>> fetchBanditConfiguration(
+      ConfigurationRequest request);
 }

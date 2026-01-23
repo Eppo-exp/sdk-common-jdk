@@ -1,9 +1,14 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
+import cloud.eppo.api.IBanditParametersResponse;
+import cloud.eppo.api.IFlagConfigResponse;
+import cloud.eppo.api.configuration.ConfigurationRequest;
+import cloud.eppo.api.configuration.ConfigurationResponse;
+import cloud.eppo.api.configuration.IEppoConfigurationHttpClient;
 import cloud.eppo.callback.CallbackManager;
+import cloud.eppo.configuration.ConfigurationRequestFactory;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -12,7 +17,8 @@ import org.slf4j.LoggerFactory;
 public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
-  private final EppoHttpClient client;
+  private final IEppoConfigurationHttpClient configurationClient;
+  private final ConfigurationRequestFactory requestFactory;
   private final IConfigurationStore configurationStore;
   private final boolean supportBandits;
 
@@ -24,11 +30,12 @@ public class ConfigurationRequestor {
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
-      @NotNull EppoHttpClient client,
-      boolean expectObfuscatedConfig,
+      @NotNull IEppoConfigurationHttpClient configurationClient,
+      @NotNull ConfigurationRequestFactory requestFactory,
       boolean supportBandits) {
     this.configurationStore = configurationStore;
-    this.client = client;
+    this.configurationClient = configurationClient;
+    this.requestFactory = requestFactory;
     this.supportBandits = supportBandits;
   }
 
@@ -83,17 +90,43 @@ public class ConfigurationRequestor {
   void fetchAndSaveFromRemote() {
     log.debug("Fetching configuration");
 
-    // Reuse the `lastConfig` as its bandits may be useful
     Configuration lastConfig = configurationStore.getConfiguration();
+    String previousETag = extractETagFromConfig(lastConfig);
 
-    byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
+    ConfigurationRequest flagRequest = requestFactory.createFlagConfigurationRequest(previousETag);
+
+    ConfigurationResponse<IFlagConfigResponse> flagResponse;
+    try {
+      flagResponse = configurationClient.fetchFlagConfiguration(flagRequest).get();
+    } catch (Exception e) {
+      log.error("Failed to fetch flag configuration", e);
+      throw new RuntimeException("Failed to fetch flag configuration", e);
+    }
+
+    if (flagResponse.isError()) {
+      throw new RuntimeException(
+          "Failed to fetch flag configuration: " + flagResponse.errorMessage);
+    }
+
+    if (flagResponse.isNotModified()) {
+      log.debug("Configuration not modified");
+      return;
+    }
+
     Configuration.Builder configBuilder =
-        Configuration.builder(flagConfigurationJsonBytes, null)
-            .banditParametersFromConfig(lastConfig);
+        Configuration.builder(flagResponse.payload).banditParametersFromConfig(lastConfig);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-      byte[] banditParametersJsonBytes = client.get(Constants.BANDIT_ENDPOINT);
-      configBuilder.banditParameters(banditParametersJsonBytes);
+      ConfigurationRequest banditRequest = requestFactory.createBanditConfigurationRequest(null);
+      try {
+        ConfigurationResponse<IBanditParametersResponse> banditResponse =
+            configurationClient.fetchBanditConfiguration(banditRequest).get();
+        if (banditResponse.isSuccess()) {
+          configBuilder.banditParameters(banditResponse.payload);
+        }
+      } catch (Exception e) {
+        log.warn("Failed to fetch bandit configuration, continuing without bandits", e);
+      }
     }
 
     saveConfigurationAndNotify(configBuilder.build()).join();
@@ -103,6 +136,7 @@ public class ConfigurationRequestor {
   CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
     log.debug("Fetching configuration from API server");
     final Configuration lastConfig = configurationStore.getConfiguration();
+    String previousETag = extractETagFromConfig(lastConfig);
 
     if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
       log.debug("Remote fetch is active. Cancelling and restarting");
@@ -110,29 +144,40 @@ public class ConfigurationRequestor {
       remoteFetchFuture = null;
     }
 
+    ConfigurationRequest flagRequest = requestFactory.createFlagConfigurationRequest(previousETag);
+
     remoteFetchFuture =
-        client
-            .getAsync(Constants.FLAG_CONFIG_ENDPOINT)
+        configurationClient
+            .fetchFlagConfiguration(flagRequest)
             .thenCompose(
-                flagConfigJsonBytes -> {
+                flagResponse -> {
+                  if (flagResponse.isError()) {
+                    throw new RuntimeException(
+                        "Failed to fetch flag configuration: " + flagResponse.errorMessage);
+                  }
+
+                  if (flagResponse.isNotModified()) {
+                    log.debug("Configuration not modified");
+                    return CompletableFuture.completedFuture(null);
+                  }
+
                   synchronized (this) {
                     Configuration.Builder configBuilder =
-                        Configuration.builder(flagConfigJsonBytes, null)
-                            .banditParametersFromConfig(
-                                lastConfig); // possibly reuse last bandit models loaded.
+                        Configuration.builder(flagResponse.payload)
+                            .banditParametersFromConfig(lastConfig);
 
                     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-                      byte[] banditParametersJsonBytes;
-                      try {
-                        banditParametersJsonBytes =
-                            client.getAsync(Constants.BANDIT_ENDPOINT).get();
-                      } catch (InterruptedException | ExecutionException e) {
-                        log.error("Error fetching from remote: " + e.getMessage());
-                        throw new RuntimeException(e);
-                      }
-                      if (banditParametersJsonBytes != null) {
-                        configBuilder.banditParameters(banditParametersJsonBytes);
-                      }
+                      ConfigurationRequest banditRequest =
+                          requestFactory.createBanditConfigurationRequest(null);
+                      return configurationClient
+                          .fetchBanditConfiguration(banditRequest)
+                          .thenCompose(
+                              banditResponse -> {
+                                if (banditResponse.isSuccess()) {
+                                  configBuilder.banditParameters(banditResponse.payload);
+                                }
+                                return saveConfigurationAndNotify(configBuilder.build());
+                              });
                     }
 
                     return saveConfigurationAndNotify(configBuilder.build());
@@ -163,5 +208,11 @@ public class ConfigurationRequestor {
    */
   public boolean unsubscribeFromConfigurationChange(Consumer<Configuration> callback) {
     return configChangeManager.unsubscribe(callback);
+  }
+
+  private String extractETagFromConfig(Configuration config) {
+    // TODO: Extract ETag if Configuration is updated to store it
+    // For now, return null
+    return null;
   }
 }

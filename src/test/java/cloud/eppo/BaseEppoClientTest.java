@@ -386,8 +386,10 @@ public class BaseEppoClientTest {
     try {
       initClient(false, false);
     } catch (RuntimeException e) {
-      // Expected
-      assertEquals("Intentional Error", e.getMessage());
+      // Expected - error message now wraps the original error
+      assertTrue(
+          e.getMessage().contains("Failed to fetch flag configuration")
+              || e.getMessage().contains("Intentional Error"));
     } finally {
       assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
     }
@@ -711,8 +713,9 @@ public class BaseEppoClientTest {
   }
 
   @Test
-  public void testPolling() {
-    EppoHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+  public void testPolling() throws Exception {
+    cloud.eppo.api.configuration.IEppoConfigurationHttpClient httpClient =
+        mockHttpResponse(BOOL_FLAG_CONFIG);
 
     BaseEppoClient client =
         eppoClient =
@@ -735,14 +738,14 @@ public class BaseEppoClientTest {
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(httpClient, times(1)).get(anyString());
+    verify(httpClient, times(1)).fetchFlagConfiguration(any());
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(httpClient, times(2)).get(anyString());
+    verify(httpClient, times(2)).fetchFlagConfiguration(any());
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -750,10 +753,18 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(httpClient, times(2)).get(anyString());
+    verify(httpClient, times(2)).fetchFlagConfiguration(any());
 
     // Set up a different config to be served
-    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    cloud.eppo.api.IFlagConfigResponse disabledFlagResponse =
+        new com.fasterxml.jackson.databind.ObjectMapper()
+            .registerModule(cloud.eppo.ufc.dto.adapters.EppoModule.eppoModule())
+            .readValue(DISABLED_BOOL_FLAG_CONFIG, cloud.eppo.ufc.dto.FlagConfigResponse.class);
+    when(httpClient.fetchFlagConfiguration(any()))
+        .thenReturn(
+            java.util.concurrent.CompletableFuture.completedFuture(
+                cloud.eppo.api.configuration.ConfigurationResponse.Flags.success(
+                    disabledFlagResponse, "new-etag")));
     client.startPolling(20);
 
     // True until the next config is fetched.

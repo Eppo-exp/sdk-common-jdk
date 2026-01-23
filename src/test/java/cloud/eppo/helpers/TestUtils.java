@@ -1,49 +1,55 @@
 package cloud.eppo.helpers;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.BaseEppoClient;
-import cloud.eppo.EppoHttpClient;
+import cloud.eppo.api.IFlagConfigResponse;
+import cloud.eppo.api.configuration.ConfigurationResponse;
+import cloud.eppo.api.configuration.IEppoConfigurationHttpClient;
+import cloud.eppo.ufc.dto.FlagConfigResponse;
+import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
 import java.util.concurrent.CompletableFuture;
-import okhttp3.*;
 
 public class TestUtils {
 
+  private static final ObjectMapper mapper =
+      new ObjectMapper().registerModule(EppoModule.eppoModule());
+
   @SuppressWarnings("SameParameterValue")
-  public static EppoHttpClient mockHttpResponse(String responseBody) {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+  public static IEppoConfigurationHttpClient mockHttpResponse(String responseBody) {
+    // Create a mock instance of IEppoConfigurationHttpClient
+    IEppoConfigurationHttpClient mockHttpClient = mock(IEppoConfigurationHttpClient.class);
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
-
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.complete(responseBody.getBytes());
+    try {
+      IFlagConfigResponse flagResponse = mapper.readValue(responseBody, FlagConfigResponse.class);
+      CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> mockResponse =
+          CompletableFuture.completedFuture(
+              ConfigurationResponse.Flags.success(flagResponse, "test-etag"));
+      when(mockHttpClient.fetchFlagConfiguration(any())).thenReturn(mockResponse);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to parse mock response", e);
+    }
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
     return mockHttpClient;
   }
 
   public static void mockHttpError() {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+    // Create a mock instance of IEppoConfigurationHttpClient
+    IEppoConfigurationHttpClient mockHttpClient = mock(IEppoConfigurationHttpClient.class);
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
-
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
+    CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> failedFuture =
+        new CompletableFuture<>();
+    failedFuture.completeExceptionally(new RuntimeException("Intentional Error"));
+    when(mockHttpClient.fetchFlagConfiguration(any())).thenReturn(failedFuture);
 
     setBaseClientHttpClientOverrideField(mockHttpClient);
   }
 
-  public static void setBaseClientHttpClientOverrideField(EppoHttpClient httpClient) {
+  public static void setBaseClientHttpClientOverrideField(IEppoConfigurationHttpClient httpClient) {
     setBaseClientOverrideField("httpClientOverride", httpClient);
   }
 
