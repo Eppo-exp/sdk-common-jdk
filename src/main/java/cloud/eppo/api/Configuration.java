@@ -258,6 +258,10 @@ public class Configuration {
     return new Builder(flagJson);
   }
 
+  public static Builder builder(IFlagConfigResponse flagConfigResponse) {
+    return new Builder(flagConfigResponse);
+  }
+
   /**
    * Builder to create the immutable config object.
    *
@@ -288,6 +292,13 @@ public class Configuration {
 
     public Builder(byte[] flagJson) {
       this(flagJson, parseFlagResponse(flagJson));
+    }
+
+    public Builder(IFlagConfigResponse flagConfigResponse) {
+      this(
+          null,
+          flagConfigResponse,
+          flagConfigResponse.getFormat() == IFlagConfigResponse.Format.CLIENT);
     }
 
     public Builder(byte[] flagJson, IFlagConfigResponse flagConfigResponse) {
@@ -345,6 +356,16 @@ public class Configuration {
         bandits = currentConfig.bandits;
         banditParamsJson = currentConfig.banditParamsJson;
       }
+      return this;
+    }
+
+    public Builder banditParameters(IBanditParametersResponse banditResponse) {
+      if (banditResponse == null || banditResponse.getBandits() == null) {
+        log.debug("Bandit parameters are null or empty");
+        return this;
+      }
+      bandits = Collections.unmodifiableMap(banditResponse.getBandits());
+      log.debug("Loaded {} bandit models from bandit parameters", bandits.size());
       return this;
     }
 

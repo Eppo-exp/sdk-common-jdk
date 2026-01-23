@@ -6,18 +6,9 @@ import java.util.concurrent.CompletableFuture;
 
 public interface IEppoConfigurationHttpClient {
 
-  <T extends IFlagConfigResponse> ConfigurationResponse<IFlagConfigResponse> fetchFlagConfiguration(
+  CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfiguration(
       ConfigurationRequest request);
 
-  <T extends IFlagConfigResponse>
-      CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfigurationAsync(
-          ConfigurationRequest request);
-
-  <T extends IBanditParametersResponse>
-      ConfigurationResponse<IBanditParametersResponse> fetchBanditConfiguration(
-          ConfigurationRequest request);
-
-  <T extends IBanditParametersResponse>
-      CompletableFuture<ConfigurationResponse<IBanditParametersResponse>>
-          fetchBanditConfigurationAsync(ConfigurationRequest request);
+  CompletableFuture<ConfigurationResponse<IBanditParametersResponse>> fetchBanditConfiguration(
+      ConfigurationRequest request);
 }

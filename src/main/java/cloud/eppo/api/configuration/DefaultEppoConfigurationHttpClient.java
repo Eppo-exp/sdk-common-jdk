@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  *   <li>API key redaction in error messages
  * </ul>
  */
-public class DefaultEppoConfigurationHttpClient {
+public class DefaultEppoConfigurationHttpClient implements IEppoConfigurationHttpClient {
   private static final Logger log =
       LoggerFactory.getLogger(DefaultEppoConfigurationHttpClient.class);
 
@@ -55,6 +55,7 @@ public class DefaultEppoConfigurationHttpClient {
    * @param request The configuration request containing URL, API key, and optional ETag
    * @return A CompletableFuture that completes with the configuration response
    */
+  @Override
   public CompletableFuture<ConfigurationResponse<IFlagConfigResponse>> fetchFlagConfiguration(
       ConfigurationRequest request) {
     return executeRequest(
@@ -71,6 +72,7 @@ public class DefaultEppoConfigurationHttpClient {
    * @param request The configuration request containing URL, API key, and optional ETag
    * @return A CompletableFuture that completes with the bandit configuration response
    */
+  @Override
   public CompletableFuture<ConfigurationResponse<IBanditParametersResponse>>
       fetchBanditConfiguration(ConfigurationRequest request) {
     return executeRequest(
