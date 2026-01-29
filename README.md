@@ -15,7 +15,7 @@ or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 - Jackson (bundled)
 - SLF4J (bundled)
 
-**Note:** In v3.x, OkHttp was bundled. In v4.0+, OkHttp is a peer dependency that your application must provide.
+**⚠️ Breaking Change in v4.0:** OkHttp is now a peer dependency—your application must explicitly provide it. Previously in v3.x, OkHttp was bundled. This change gives you full control over which OkHttp version (4.x or 5.x) your application uses.
 
 ## Usage
 
