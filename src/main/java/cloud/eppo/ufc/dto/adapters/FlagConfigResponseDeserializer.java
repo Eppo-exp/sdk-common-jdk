@@ -4,6 +4,7 @@ import static cloud.eppo.Utils.parseUtcISODateNode;
 
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
@@ -118,7 +119,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       Map.Entry<String, JsonNode> entry = it.next();
       String key = entry.getValue().get("key").asText();
       EppoValue value = eppoValueDeserializer.deserializeNode(entry.getValue().get("value"));
-      variations.put(entry.getKey(), new Variation(key, value));
+      variations.put(entry.getKey(), new Variation.Impl(key, value));
     }
     return variations;
   }

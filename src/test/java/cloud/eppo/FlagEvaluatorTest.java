@@ -10,16 +10,16 @@ import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.EvaluationDetails;
 import cloud.eppo.api.FlagEvaluationCode;
+import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.Variation;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.Allocation;
 import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.api.dto.OperatorType;
 import cloud.eppo.ufc.dto.Shard;
 import cloud.eppo.ufc.dto.Split;
 import cloud.eppo.ufc.dto.TargetingCondition;
 import cloud.eppo.ufc.dto.TargetingRule;
-import cloud.eppo.ufc.dto.Variation;
-import cloud.eppo.api.dto.VariationType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -478,7 +478,7 @@ public class FlagEvaluatorTest {
       String encodedVariationKey = base64Encode(variationEntry.getKey());
       Variation variationToEncode = variationEntry.getValue();
       Variation newVariation =
-          new Variation(
+          new Variation.Impl(
               encodedVariationKey,
               EppoValue.valueOf(base64Encode(variationToEncode.getValue().stringValue())));
       encodedVariations.put(encodedVariationKey, newVariation);
@@ -593,7 +593,7 @@ public class FlagEvaluatorTest {
       String encodedVariationKey = base64Encode(variationEntry.getKey());
       Variation variationToEncode = variationEntry.getValue();
       Variation newVariation =
-          new Variation(
+          new Variation.Impl(
               encodedVariationKey,
               EppoValue.valueOf(base64Encode(variationToEncode.getValue().stringValue())));
       encodedVariations.put(encodedVariationKey, newVariation);
@@ -673,7 +673,7 @@ public class FlagEvaluatorTest {
     for (String key : keys) {
       if (key != null) {
         // Use the uppercase key as the dummy value
-        Variation variation = new Variation(key, EppoValue.valueOf(key.toUpperCase()));
+        Variation variation = new Variation.Impl(key, EppoValue.valueOf(key.toUpperCase()));
         variations.put(variation.getKey(), variation);
       }
     }

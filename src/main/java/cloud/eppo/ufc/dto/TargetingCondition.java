@@ -1,9 +1,8 @@
 package cloud.eppo.ufc.dto;
 
-import java.util.Objects;
-
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.dto.OperatorType;
+import java.util.Objects;
 
 public class TargetingCondition {
   private final OperatorType operator;
@@ -18,11 +17,15 @@ public class TargetingCondition {
 
   @Override
   public String toString() {
-    return "TargetingCondition{" +
-      "operator=" + operator +
-      ", attribute='" + attribute + '\'' +
-      ", value=" + value +
-      '}';
+    return "TargetingCondition{"
+        + "operator="
+        + operator
+        + ", attribute='"
+        + attribute
+        + '\''
+        + ", value="
+        + value
+        + '}';
   }
 
   @Override
@@ -30,8 +33,8 @@ public class TargetingCondition {
     if (o == null || getClass() != o.getClass()) return false;
     TargetingCondition that = (TargetingCondition) o;
     return operator == that.operator
-            && Objects.equals(attribute, that.attribute)
-            && Objects.equals(value, that.value);
+        && Objects.equals(attribute, that.attribute)
+        && Objects.equals(value, that.value);
   }
 
   @Override
