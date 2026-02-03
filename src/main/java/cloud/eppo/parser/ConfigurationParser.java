@@ -1,7 +1,7 @@
 package cloud.eppo.parser;
 
-import cloud.eppo.ufc.dto.BanditParameters;
-import cloud.eppo.ufc.dto.FlagConfigResponse;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.FlagConfigResponse;
 import java.util.Map;
 
 /**
@@ -29,7 +29,7 @@ public interface ConfigurationParser {
    * @return map of bandit key to BanditParameters
    * @throws ConfigurationParseException if parsing fails
    */
-  Map<String, BanditParameters> parseBanditParams(byte[] banditParamsJson)
+  Map<String, ? extends BanditParameters> parseBanditParams(byte[] banditParamsJson)
       throws ConfigurationParseException;
 
   /**
@@ -53,6 +53,6 @@ public interface ConfigurationParser {
    * @return JSON bytes representing the bandit parameters
    * @throws ConfigurationParseException if serialization fails
    */
-  byte[] serializeBanditParams(Map<String, BanditParameters> banditParams)
+  byte[] serializeBanditParams(Map<String, ? extends BanditParameters> banditParams)
       throws ConfigurationParseException;
 }
