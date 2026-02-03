@@ -1,62 +1,74 @@
 package cloud.eppo.helpers;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import cloud.eppo.ApiEndpoints;
+import cloud.eppo.Constants;
+import cloud.eppo.SDKKey;
+import cloud.eppo.http.EppoConfigurationRequestFactory;
+import cloud.eppo.parser.ConfigurationParser;
 
-import cloud.eppo.BaseEppoClient;
-import cloud.eppo.EppoHttpClient;
-import java.lang.reflect.Field;
-import java.util.concurrent.CompletableFuture;
-import okhttp3.*;
-
+/** Test utilities for Eppo SDK tests. */
 public class TestUtils {
 
-  @SuppressWarnings("SameParameterValue")
-  public static EppoHttpClient mockHttpResponse(String responseBody) {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
+  /** Test SDK key for use in tests. */
+  public static final String TEST_SDK_KEY = "test-sdk-key";
 
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenReturn(responseBody.getBytes());
+  /** Test SDK key instance. */
+  public static final SDKKey TEST_SDK_KEY_INSTANCE = new SDKKey(TEST_SDK_KEY);
 
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.complete(responseBody.getBytes());
-
-    setBaseClientHttpClientOverrideField(mockHttpClient);
-    return mockHttpClient;
+  /**
+   * Creates a test HTTP client with pre-configured responses.
+   *
+   * @param flagConfigResponse the response body for flag config requests
+   * @return a configured TestHttpClient
+   */
+  public static TestHttpClient createTestHttpClient(String flagConfigResponse) {
+    return createTestHttpClient(flagConfigResponse, null);
   }
 
-  public static void mockHttpError() {
-    // Create a mock instance of EppoHttpClient
-    EppoHttpClient mockHttpClient = mock(EppoHttpClient.class);
-
-    // Mock sync get
-    when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Intentional Error"));
-
-    // Mock async get
-    CompletableFuture<byte[]> mockAsyncResponse = new CompletableFuture<>();
-    when(mockHttpClient.getAsync(anyString())).thenReturn(mockAsyncResponse);
-    mockAsyncResponse.completeExceptionally(new RuntimeException("Intentional Error"));
-
-    setBaseClientHttpClientOverrideField(mockHttpClient);
-  }
-
-  public static void setBaseClientHttpClientOverrideField(EppoHttpClient httpClient) {
-    setBaseClientOverrideField("httpClientOverride", httpClient);
-  }
-
-  /** Uses reflection to set a static override field used for tests (e.g., httpClientOverride) */
-  @SuppressWarnings("SameParameterValue")
-  public static <T> void setBaseClientOverrideField(String fieldName, T override) {
-    try {
-      Field httpClientOverrideField = BaseEppoClient.class.getDeclaredField(fieldName);
-      httpClientOverrideField.setAccessible(true);
-      httpClientOverrideField.set(null, override);
-      httpClientOverrideField.setAccessible(false);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      throw new RuntimeException(e);
+  /**
+   * Creates a test HTTP client with pre-configured responses.
+   *
+   * @param flagConfigResponse the response body for flag config requests
+   * @param banditParamsResponse the response body for bandit params requests (nullable)
+   * @return a configured TestHttpClient
+   */
+  public static TestHttpClient createTestHttpClient(
+      String flagConfigResponse, String banditParamsResponse) {
+    TestHttpClient client = new TestHttpClient();
+    client.setResponse(Constants.FLAG_CONFIG_ENDPOINT, flagConfigResponse);
+    if (banditParamsResponse != null) {
+      client.setResponse(Constants.BANDIT_ENDPOINT, banditParamsResponse);
     }
+    return client;
+  }
+
+  /**
+   * Creates a test HTTP client that throws errors.
+   *
+   * @return a configured TestHttpClient that throws errors
+   */
+  public static TestHttpClient createErrorHttpClient() {
+    TestHttpClient client = new TestHttpClient();
+    client.setError(new RuntimeException("Intentional Error"));
+    return client;
+  }
+
+  /**
+   * Creates a test configuration parser using Jackson.
+   *
+   * @return a TestConfigurationParser instance
+   */
+  public static ConfigurationParser createTestParser() {
+    return new TestConfigurationParser();
+  }
+
+  /**
+   * Creates a test configuration request factory.
+   *
+   * @return a configured EppoConfigurationRequestFactory
+   */
+  public static EppoConfigurationRequestFactory createTestRequestFactory() {
+    ApiEndpoints apiEndpoints = new ApiEndpoints(TEST_SDK_KEY_INSTANCE, null);
+    return new EppoConfigurationRequestFactory(apiEndpoints);
   }
 }
