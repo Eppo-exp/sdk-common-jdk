@@ -20,5 +20,5 @@ public interface EppoHttpClient {
    * @param request the request to execute
    * @return a CompletableFuture that will complete with the response
    */
-  CompletableFuture<EppoHttpResponse> get(EppoHttpRequest request);
+  CompletableFuture<EppoConfigurationResponse> get(EppoConfigurationRequest request);
 }

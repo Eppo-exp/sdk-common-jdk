@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Factory for creating configuration-related HTTP requests.
+ * Factory for creating configuration requests.
  *
  * <p>This factory encapsulates the logic for constructing URLs and requests for fetching flag
  * configurations and bandit parameters from the Eppo API.
@@ -30,13 +30,14 @@ public class EppoConfigurationRequestFactory {
   /**
    * Creates a request for fetching flag configuration.
    *
-   * @param ifNoneMatchEtag optional ETag for conditional GET (304 Not Modified support)
-   * @return the configured HTTP request
+   * @param lastVersionId optional version identifier for conditional fetch (304 Not Modified
+   *     support). If the server's current version matches, a 304 response will be returned.
+   * @return the configured request
    */
-  public EppoHttpRequest createFlagConfigRequest(@Nullable String ifNoneMatchEtag) {
-    EppoHttpRequest.Builder builder = EppoHttpRequest.builder(flagConfigUrl);
-    if (ifNoneMatchEtag != null) {
-      builder.ifNoneMatch(ifNoneMatchEtag);
+  public EppoConfigurationRequest createFlagConfigRequest(@Nullable String lastVersionId) {
+    EppoConfigurationRequest.Builder builder = EppoConfigurationRequest.builder(flagConfigUrl);
+    if (lastVersionId != null) {
+      builder.ifNoneMatch(lastVersionId);
     }
     return builder.build();
   }
@@ -44,10 +45,10 @@ public class EppoConfigurationRequestFactory {
   /**
    * Creates a request for fetching bandit parameters.
    *
-   * @return the configured HTTP request
+   * @return the configured request
    */
-  public EppoHttpRequest createBanditParamsRequest() {
-    return EppoHttpRequest.builder(banditParamsUrl).build();
+  public EppoConfigurationRequest createBanditParamsRequest() {
+    return EppoConfigurationRequest.builder(banditParamsUrl).build();
   }
 
   /**

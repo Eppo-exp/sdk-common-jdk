@@ -5,20 +5,20 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Represents an HTTP request to be executed by an {@link EppoHttpClient}.
+ * Represents a configuration request to be executed by an {@link EppoHttpClient}.
  *
  * <p>This class is immutable and should be constructed using the {@link Builder}.
  */
-public final class EppoHttpRequest {
+public final class EppoConfigurationRequest {
 
-  private final String url;
+  private final String uri;
   private final Map<String, String> queryParams;
-  private final String ifNoneMatchEtag;
+  private final String lastVersionId;
 
-  private EppoHttpRequest(Builder builder) {
-    this.url = builder.url;
+  private EppoConfigurationRequest(Builder builder) {
+    this.uri = builder.url;
     this.queryParams = Collections.unmodifiableMap(new LinkedHashMap<>(builder.queryParams));
-    this.ifNoneMatchEtag = builder.ifNoneMatchEtag;
+    this.lastVersionId = builder.lastVersionId;
   }
 
   /**
@@ -26,8 +26,8 @@ public final class EppoHttpRequest {
    *
    * @return the URL
    */
-  public String getUrl() {
-    return url;
+  public String getUri() {
+    return uri;
   }
 
   /**
@@ -40,16 +40,19 @@ public final class EppoHttpRequest {
   }
 
   /**
-   * Returns the ETag value for conditional GET requests (If-None-Match header).
+   * Returns the last known version identifier for conditional requests.
    *
-   * @return the ETag value, or null if not set
+   * <p>When set, the HTTP client should include an "If-None-Match" header with this value. If the
+   * server's current version matches, a 304 Not Modified response will be returned.
+   *
+   * @return the last version ID, or null if not set
    */
-  public String getIfNoneMatchEtag() {
-    return ifNoneMatchEtag;
+  public String getLastVersionId() {
+    return lastVersionId;
   }
 
   /**
-   * Creates a new builder for constructing an EppoHttpRequest.
+   * Creates a new builder for constructing an EppoConfigurationRequest.
    *
    * @param url the base URL for the request
    * @return a new builder
@@ -58,11 +61,11 @@ public final class EppoHttpRequest {
     return new Builder(url);
   }
 
-  /** Builder for constructing {@link EppoHttpRequest} instances. */
+  /** Builder for constructing {@link EppoConfigurationRequest} instances. */
   public static final class Builder {
     private final String url;
     private final Map<String, String> queryParams = new LinkedHashMap<>();
-    private String ifNoneMatchEtag;
+    private String lastVersionId;
 
     private Builder(String url) {
       if (url == null || url.isEmpty()) {
@@ -86,27 +89,26 @@ public final class EppoHttpRequest {
     }
 
     /**
-     * Sets the ETag value for conditional GET requests.
+     * Sets the last known version identifier for conditional requests.
      *
      * <p>When set, the HTTP client should include an "If-None-Match" header with this value. If the
-     * server returns a 304 Not Modified response, the client can skip downloading the response
-     * body.
+     * server's current version matches, a 304 Not Modified response will be returned.
      *
-     * @param etag the ETag value from a previous response
+     * @param versionId the version ID from a previous response
      * @return this builder
      */
-    public Builder ifNoneMatch(String etag) {
-      this.ifNoneMatchEtag = etag;
+    public Builder ifNoneMatch(String versionId) {
+      this.lastVersionId = versionId;
       return this;
     }
 
     /**
-     * Builds the EppoHttpRequest.
+     * Builds the EppoConfigurationRequest.
      *
-     * @return a new EppoHttpRequest instance
+     * @return a new EppoConfigurationRequest instance
      */
-    public EppoHttpRequest build() {
-      return new EppoHttpRequest(this);
+    public EppoConfigurationRequest build() {
+      return new EppoConfigurationRequest(this);
     }
   }
 }

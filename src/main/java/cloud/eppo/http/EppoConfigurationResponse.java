@@ -1,19 +1,19 @@
 package cloud.eppo.http;
 
 /**
- * Represents an HTTP response from an {@link EppoHttpClient}.
+ * Represents a configuration response from an {@link EppoHttpClient}.
  *
  * <p>This class is immutable and provides factory methods for common response types.
  */
-public final class EppoHttpResponse {
+public final class EppoConfigurationResponse {
 
   private final int statusCode;
-  private final String etag;
+  private final String versionId;
   private final byte[] body;
 
-  private EppoHttpResponse(int statusCode, String etag, byte[] body) {
+  private EppoConfigurationResponse(int statusCode, String versionId, byte[] body) {
     this.statusCode = statusCode;
-    this.etag = etag;
+    this.versionId = versionId;
     this.body = body;
   }
 
@@ -21,22 +21,22 @@ public final class EppoHttpResponse {
    * Creates a successful response.
    *
    * @param statusCode the HTTP status code (2xx)
-   * @param etag the ETag header value, or null if not present
+   * @param versionId the version identifier for this configuration, or null if not present
    * @param body the response body
    * @return a new successful response
    */
-  public static EppoHttpResponse success(int statusCode, String etag, byte[] body) {
-    return new EppoHttpResponse(statusCode, etag, body);
+  public static EppoConfigurationResponse success(int statusCode, String versionId, byte[] body) {
+    return new EppoConfigurationResponse(statusCode, versionId, body);
   }
 
   /**
    * Creates a 304 Not Modified response.
    *
-   * @param etag the ETag header value, or null if not present
+   * @param versionId the version identifier, or null if not present
    * @return a new not modified response
    */
-  public static EppoHttpResponse notModified(String etag) {
-    return new EppoHttpResponse(304, etag, null);
+  public static EppoConfigurationResponse notModified(String versionId) {
+    return new EppoConfigurationResponse(304, versionId, null);
   }
 
   /**
@@ -46,8 +46,8 @@ public final class EppoHttpResponse {
    * @param body the error response body, or null
    * @return a new error response
    */
-  public static EppoHttpResponse error(int statusCode, byte[] body) {
-    return new EppoHttpResponse(statusCode, null, body);
+  public static EppoConfigurationResponse error(int statusCode, byte[] body) {
+    return new EppoConfigurationResponse(statusCode, null, body);
   }
 
   /**
@@ -60,12 +60,14 @@ public final class EppoHttpResponse {
   }
 
   /**
-   * Returns the ETag header value.
+   * Returns the version identifier for this configuration.
    *
-   * @return the ETag, or null if not present
+   * <p>This can be used in subsequent requests to enable conditional fetching (304 Not Modified).
+   *
+   * @return the version ID, or null if not present
    */
-  public String getEtag() {
-    return etag;
+  public String getVersionId() {
+    return versionId;
   }
 
   /**
