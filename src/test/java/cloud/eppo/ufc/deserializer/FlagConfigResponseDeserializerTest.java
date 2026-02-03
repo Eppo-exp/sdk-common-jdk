@@ -2,11 +2,16 @@ package cloud.eppo.ufc.deserializer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.api.dto.Allocation;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.Shard;
+import cloud.eppo.api.dto.Split;
+import cloud.eppo.api.dto.TargetingCondition;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.model.ShardRange;
-import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;

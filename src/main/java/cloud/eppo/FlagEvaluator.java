@@ -11,13 +11,13 @@ import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.FlagEvaluationCode;
 import cloud.eppo.api.MatchedRule;
 import cloud.eppo.api.RuleCondition;
+import cloud.eppo.api.dto.Allocation;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.Shard;
+import cloud.eppo.api.dto.Split;
+import cloud.eppo.api.dto.TargetingRule;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.model.ShardRange;
-import cloud.eppo.ufc.dto.Allocation;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.Shard;
-import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.TargetingRule;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -185,7 +185,7 @@ public class FlagEvaluator {
                       + flag.getVariationType());
           }
         }
-        variation = new Variation.Impl(key, decodedValue);
+        variation = new Variation.Default(key, decodedValue);
 
         // Deobfuscate extraLogging if present
         if (extraLogging != null && !extraLogging.isEmpty()) {

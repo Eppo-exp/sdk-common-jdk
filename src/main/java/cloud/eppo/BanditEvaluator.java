@@ -6,7 +6,9 @@ import cloud.eppo.api.Actions;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.DiscriminableAttributes;
 import cloud.eppo.api.EppoValue;
-import cloud.eppo.ufc.dto.*;
+import cloud.eppo.api.dto.BanditAttributeCoefficients;
+import cloud.eppo.api.dto.BanditCoefficients;
+import cloud.eppo.api.dto.BanditModelData;
 import java.util.*;
 import java.util.stream.Collectors;
 

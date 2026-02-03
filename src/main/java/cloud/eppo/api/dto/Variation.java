@@ -8,11 +8,11 @@ public interface Variation {
 
   EppoValue getValue();
 
-  class Impl implements Variation {
+  class Default implements Variation {
     private final String key;
     private final EppoValue value;
 
-    public Impl(String key, EppoValue value) {
+    public Default(String key, EppoValue value) {
       this.key = key;
       this.value = value;
     }
