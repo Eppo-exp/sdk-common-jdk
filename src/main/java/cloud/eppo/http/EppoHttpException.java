@@ -10,7 +10,8 @@ public class EppoHttpException extends RuntimeException {
   private final int statusCode;
   private final boolean isUnauthorized;
 
-  private EppoHttpException(String message, Throwable cause, int statusCode, boolean isUnauthorized) {
+  private EppoHttpException(
+      String message, Throwable cause, int statusCode, boolean isUnauthorized) {
     super(message, cause);
     this.statusCode = statusCode;
     this.isUnauthorized = isUnauthorized;
