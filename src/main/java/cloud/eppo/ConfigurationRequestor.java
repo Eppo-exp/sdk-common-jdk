@@ -2,6 +2,11 @@ package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
 import cloud.eppo.callback.CallbackManager;
+import cloud.eppo.http.EppoConfigurationRequestFactory;
+import cloud.eppo.http.EppoHttpClient;
+import cloud.eppo.http.EppoHttpRequest;
+import cloud.eppo.http.EppoHttpResponse;
+import cloud.eppo.parser.ConfigurationParser;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -13,6 +18,8 @@ public class ConfigurationRequestor {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
   private final EppoHttpClient client;
+  private final ConfigurationParser parser;
+  private final EppoConfigurationRequestFactory requestFactory;
   private final IConfigurationStore configurationStore;
   private final boolean supportBandits;
 
@@ -25,10 +32,13 @@ public class ConfigurationRequestor {
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
       @NotNull EppoHttpClient client,
-      boolean expectObfuscatedConfig,
+      @NotNull ConfigurationParser parser,
+      @NotNull EppoConfigurationRequestFactory requestFactory,
       boolean supportBandits) {
     this.configurationStore = configurationStore;
     this.client = client;
+    this.parser = parser;
+    this.requestFactory = requestFactory;
     this.supportBandits = supportBandits;
   }
 
@@ -86,13 +96,48 @@ public class ConfigurationRequestor {
     // Reuse the `lastConfig` as its bandits may be useful
     Configuration lastConfig = configurationStore.getConfiguration();
 
-    byte[] flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
+    // Build request with conditional fetch support (If-None-Match)
+    String etag = (lastConfig != null) ? lastConfig.getFlagsVersionId() : null;
+    EppoHttpRequest flagRequest = requestFactory.createFlagConfigRequest(etag);
+
+    EppoHttpResponse flagResponse;
+    try {
+      flagResponse = client.get(flagRequest).get();
+    } catch (InterruptedException | ExecutionException e) {
+      log.error("Error fetching flag config: " + e.getMessage());
+      throw new RuntimeException(e);
+    }
+
+    // If not modified, keep existing config
+    if (flagResponse.isNotModified()) {
+      log.debug("Flag configuration not modified (304)");
+      return;
+    }
+
+    if (!flagResponse.isSuccessful()) {
+      log.error("Failed to fetch flag config: status {}", flagResponse.getStatusCode());
+      throw new RuntimeException(
+          "Failed to fetch flag config: status " + flagResponse.getStatusCode());
+    }
+
+    byte[] flagConfigurationJsonBytes = flagResponse.getBody();
     Configuration.Builder configBuilder =
-        Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
+        Configuration.builder(flagConfigurationJsonBytes, parser)
+            .banditParametersFromConfig(lastConfig)
+            .flagsVersionId(flagResponse.getEtag());
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-      byte[] banditParametersJsonBytes = client.get(Constants.BANDIT_ENDPOINT);
-      configBuilder.banditParameters(banditParametersJsonBytes);
+      EppoHttpRequest banditRequest = requestFactory.createBanditParamsRequest();
+      EppoHttpResponse banditResponse;
+      try {
+        banditResponse = client.get(banditRequest).get();
+      } catch (InterruptedException | ExecutionException e) {
+        log.error("Error fetching bandit params: " + e.getMessage());
+        throw new RuntimeException(e);
+      }
+      if (banditResponse.isSuccessful()) {
+        configBuilder.banditParameters(banditResponse.getBody());
+      }
     }
 
     saveConfigurationAndNotify(configBuilder.build()).join();
@@ -109,28 +154,46 @@ public class ConfigurationRequestor {
       remoteFetchFuture = null;
     }
 
+    // Build request with conditional fetch support (If-None-Match)
+    String etag = (lastConfig != null) ? lastConfig.getFlagsVersionId() : null;
+    EppoHttpRequest flagRequest = requestFactory.createFlagConfigRequest(etag);
+
     remoteFetchFuture =
         client
-            .getAsync(Constants.FLAG_CONFIG_ENDPOINT)
+            .get(flagRequest)
             .thenCompose(
-                flagConfigJsonBytes -> {
+                flagResponse -> {
                   synchronized (this) {
+                    // If not modified, keep existing config
+                    if (flagResponse.isNotModified()) {
+                      log.debug("Flag configuration not modified (304)");
+                      return CompletableFuture.completedFuture(null);
+                    }
+
+                    if (!flagResponse.isSuccessful()) {
+                      log.error(
+                          "Failed to fetch flag config: status {}", flagResponse.getStatusCode());
+                      throw new RuntimeException(
+                          "Failed to fetch flag config: status " + flagResponse.getStatusCode());
+                    }
+
+                    byte[] flagConfigJsonBytes = flagResponse.getBody();
                     Configuration.Builder configBuilder =
-                        Configuration.builder(flagConfigJsonBytes)
-                            .banditParametersFromConfig(
-                                lastConfig); // possibly reuse last bandit models loaded.
+                        Configuration.builder(flagConfigJsonBytes, parser)
+                            .banditParametersFromConfig(lastConfig)
+                            .flagsVersionId(flagResponse.getEtag());
 
                     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-                      byte[] banditParametersJsonBytes;
+                      EppoHttpRequest banditRequest = requestFactory.createBanditParamsRequest();
+                      EppoHttpResponse banditResponse;
                       try {
-                        banditParametersJsonBytes =
-                            client.getAsync(Constants.BANDIT_ENDPOINT).get();
+                        banditResponse = client.get(banditRequest).get();
                       } catch (InterruptedException | ExecutionException e) {
-                        log.error("Error fetching from remote: " + e.getMessage());
+                        log.error("Error fetching bandit params: " + e.getMessage());
                         throw new RuntimeException(e);
                       }
-                      if (banditParametersJsonBytes != null) {
-                        configBuilder.banditParameters(banditParametersJsonBytes);
+                      if (banditResponse.isSuccessful()) {
+                        configBuilder.banditParameters(banditResponse.getBody());
                       }
                     }
 

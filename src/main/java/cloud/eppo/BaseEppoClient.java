@@ -9,10 +9,13 @@ import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.cache.AssignmentCacheEntry;
+import cloud.eppo.http.EppoConfigurationRequestFactory;
+import cloud.eppo.http.EppoHttpClient;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
+import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,45 +47,33 @@ public class BaseEppoClient {
 
   private final CompletableFuture<Boolean> initialConfigFuture;
 
-  // Fields useful for testing in situations where we want to mock the http client or configuration
-  // store (accessed via reflection)
-  /** @noinspection FieldMayBeFinal */
-  private static EppoHttpClient httpClientOverride = null;
-
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
   protected BaseEppoClient(
-      @NotNull String apiKey,
       @NotNull String sdkName,
       @NotNull String sdkVersion,
-      @Nullable String apiBaseUrl,
+      @NotNull EppoHttpClient httpClient,
+      @NotNull ConfigurationParser configurationParser,
+      @NotNull EppoConfigurationRequestFactory requestFactory,
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
       @Nullable IConfigurationStore configurationStore,
       boolean isGracefulMode,
-      boolean expectObfuscatedConfig,
       boolean supportBandits,
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache) {
 
-    if (apiBaseUrl == null) {
-      apiBaseUrl = Constants.DEFAULT_BASE_URL;
-    }
-
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
-    // For now, the configuration is only obfuscated for Android clients
     requestor =
         new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+            this.configurationStore, httpClient, configurationParser, requestFactory, supportBandits);
     initialConfigFuture =
         initialConfiguration != null
             ? requestor.setInitialConfiguration(initialConfiguration)
@@ -94,15 +85,6 @@ public class BaseEppoClient {
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-  }
-
-  private EppoHttpClient buildHttpClient(
-      String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
-    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
-
-    return httpClientOverride != null
-        ? httpClientOverride
-        : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {

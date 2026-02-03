@@ -3,8 +3,19 @@ package cloud.eppo.ufc.dto.adapters;
 import static cloud.eppo.Utils.parseUtcISODateNode;
 
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.dto.Allocation;
+import cloud.eppo.api.dto.BanditFlagVariation;
+import cloud.eppo.api.dto.BanditReference;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.FlagConfigResponse;
+import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.Shard;
+import cloud.eppo.api.dto.Split;
+import cloud.eppo.api.dto.TargetingCondition;
+import cloud.eppo.api.dto.TargetingRule;
+import cloud.eppo.api.dto.Variation;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.model.ShardRange;
-import cloud.eppo.ufc.dto.*;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -39,12 +50,12 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
 
     if (rootNode == null || !rootNode.isObject()) {
       log.warn("no top-level JSON object");
-      return new FlagConfigResponse();
+      return new FlagConfigResponse.Default();
     }
     JsonNode flagsNode = rootNode.get("flags");
     if (flagsNode == null || !flagsNode.isObject()) {
       log.warn("no root-level flags object");
-      return new FlagConfigResponse();
+      return new FlagConfigResponse.Default();
     }
 
     // Default is to assume that the config is not obfuscated.
@@ -93,7 +104,8 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       }
     }
 
-    return new FlagConfigResponse(flags, banditReferences, dataFormat, environmentName, createdAt);
+    return new FlagConfigResponse.Default(
+        flags, banditReferences, dataFormat, environmentName, createdAt);
   }
 
   private FlagConfig deserializeFlag(JsonNode jsonNode) {
@@ -104,7 +116,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
     Map<String, Variation> variations = deserializeVariations(jsonNode.get("variations"));
     List<Allocation> allocations = deserializeAllocations(jsonNode.get("allocations"));
 
-    return new FlagConfig(key, enabled, totalShards, variationType, variations, allocations);
+    return new FlagConfig.Default(key, enabled, totalShards, variationType, variations, allocations);
   }
 
   private Map<String, Variation> deserializeVariations(JsonNode jsonNode) {
@@ -116,7 +128,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       Map.Entry<String, JsonNode> entry = it.next();
       String key = entry.getValue().get("key").asText();
       EppoValue value = eppoValueDeserializer.deserializeNode(entry.getValue().get("value"));
-      variations.put(entry.getKey(), new Variation(key, value));
+      variations.put(entry.getKey(), new Variation.Default(key, value));
     }
     return variations;
   }
@@ -133,7 +145,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       Date endAt = parseUtcISODateNode(allocationNode.get("endAt"));
       List<Split> splits = deserializeSplits(allocationNode.get("splits"));
       boolean doLog = allocationNode.get("doLog").asBoolean();
-      allocations.add(new Allocation(key, rules, startAt, endAt, splits, doLog));
+      allocations.add(new Allocation.Default(key, rules, startAt, endAt, splits, doLog));
     }
     return allocations;
   }
@@ -154,9 +166,9 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
           continue;
         }
         EppoValue value = eppoValueDeserializer.deserializeNode(conditionNode.get("value"));
-        conditions.add(new TargetingCondition(operator, attribute, value));
+        conditions.add(new TargetingCondition.Default(operator, attribute, value));
       }
-      targetingRules.add(new TargetingRule(conditions));
+      targetingRules.add(new TargetingRule.Default(conditions));
     }
 
     return targetingRules;
@@ -178,7 +190,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
           extraLogging.put(entry.getKey(), entry.getValue().asText());
         }
       }
-      splits.add(new Split(variationKey, shards, extraLogging));
+      splits.add(new Split.Default(variationKey, shards, extraLogging));
     }
 
     return splits;
@@ -197,7 +209,7 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
         int end = rangeNode.get("end").asInt();
         ranges.add(new ShardRange(start, end));
       }
-      shards.add(new Shard(salt, ranges));
+      shards.add(new Shard.Default(salt, ranges));
     }
     return shards;
   }
@@ -214,11 +226,11 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
         String variationKey = flagVariationNode.get("variationKey").asText();
         String variationValue = flagVariationNode.get("variationValue").asText();
         BanditFlagVariation flagVariation =
-            new BanditFlagVariation(
+            new BanditFlagVariation.Default(
                 banditKey, flagKey, allocationKey, variationKey, variationValue);
         flagVariations.add(flagVariation);
       }
     }
-    return new BanditReference(modelVersion, flagVariations);
+    return new BanditReference.Default(modelVersion, flagVariations);
   }
 }

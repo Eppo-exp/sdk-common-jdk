@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
+import cloud.eppo.helpers.TestConfigurationParser;
+import cloud.eppo.parser.ConfigurationParser;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -21,24 +23,26 @@ public class ConfigurationBuilderTest {
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 
+  private static final ConfigurationParser parser = new TestConfigurationParser();
+
   @Test
   public void testHydrateConfigFromBytesForServer_true() {
     byte[] jsonBytes = "{ \"format\": \"SERVER\", \"flags\":{} }".getBytes();
-    Configuration config = new Configuration.Builder(jsonBytes).build();
+    Configuration config = new Configuration.Builder(jsonBytes, parser).build();
     assertFalse(config.isConfigObfuscated());
   }
 
   @Test
   public void testHydrateConfigFromBytesForServer_false() {
     byte[] jsonBytes = "{ \"format\": \"CLIENT\", \"flags\":{} }".getBytes();
-    Configuration config = new Configuration.Builder(jsonBytes).build();
+    Configuration config = new Configuration.Builder(jsonBytes, parser).build();
     assertTrue(config.isConfigObfuscated());
   }
 
   @Test
   public void testBuildConfigAutoDetectsServerFormat() throws IOException {
     byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"SERVER\" }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes).build();
+    Configuration config = Configuration.builder(jsonBytes, parser).build();
     assertFalse(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
@@ -51,7 +55,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testBuildConfigAutoDetectsClientFormat() throws IOException {
     byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"CLIENT\" }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes).build();
+    Configuration config = Configuration.builder(jsonBytes, parser).build();
     assertTrue(config.isConfigObfuscated());
 
     byte[] serializedFlags = config.serializeFlagConfigToBytes();
@@ -84,6 +88,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
+            null, // flagsVersionId
             null, // flagConfigJson
             null); // banditParamsJson
 
@@ -118,6 +123,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
+            null, // flagsVersionId
             null, // flagConfigJson
             null); // banditParamsJson
 
@@ -140,7 +146,7 @@ public class ConfigurationBuilderTest {
     // Environment name is nested inside an "environment" object
     String json =
         "{ \"flags\": {}, \"environment\": { \"name\": \"Production\" }, \"createdAt\": \"2024-01-01T00:00:00.000Z\" }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = new Configuration.Builder(json.getBytes(), parser).build();
 
     assertEquals("Production", config.getEnvironmentName());
   }
@@ -149,7 +155,7 @@ public class ConfigurationBuilderTest {
   public void testEnvironmentNameNullWhenNotInJson() {
     // When flags are present but no environment object
     String json = "{ \"flags\": {} }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = new Configuration.Builder(json.getBytes(), parser).build();
 
     assertNull(config.getEnvironmentName());
   }
@@ -157,7 +163,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testConfigPublishedAtParsedFromCreatedAt() throws Exception {
     String json = "{ \"flags\": {}, \"createdAt\": \"2024-04-17T19:40:53.716Z\" }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = new Configuration.Builder(json.getBytes(), parser).build();
 
     // configPublishedAt should be set from the createdAt field in the JSON
     Date publishedAt = config.getConfigPublishedAt();
@@ -172,7 +178,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testConfigPublishedAtNullWhenCreatedAtNotInJson() {
     String json = "{ \"flags\": {} }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = new Configuration.Builder(json.getBytes(), parser).build();
 
     assertNull(config.getConfigPublishedAt());
   }
@@ -185,7 +191,7 @@ public class ConfigurationBuilderTest {
     // Small sleep to ensure time difference is measurable
     Thread.sleep(10);
 
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = new Configuration.Builder(json.getBytes(), parser).build();
 
     Thread.sleep(10);
     Date afterBuild = new Date();
@@ -207,7 +213,7 @@ public class ConfigurationBuilderTest {
         "{ \"flags\": {}, \"environment\": { \"name\": \"Staging\" }, \"createdAt\": \"2024-06-15T12:30:00.000Z\", \"format\": \"SERVER\" }";
 
     Date beforeBuild = new Date();
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = new Configuration.Builder(json.getBytes(), parser).build();
     Date afterBuild = new Date();
 
     // Verify environmentName
