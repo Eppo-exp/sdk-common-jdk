@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.ufc.dto.FlagConfig;
 import cloud.eppo.ufc.dto.FlagConfigResponse;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

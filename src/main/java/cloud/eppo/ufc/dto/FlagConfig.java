@@ -1,5 +1,7 @@
 package cloud.eppo.ufc.dto;
 
+import cloud.eppo.api.dto.VariationType;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

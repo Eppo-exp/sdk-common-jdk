@@ -3,6 +3,8 @@ package cloud.eppo.ufc.dto.adapters;
 import static cloud.eppo.Utils.parseUtcISODateNode;
 
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.model.ShardRange;
 import cloud.eppo.ufc.dto.*;
 import com.fasterxml.jackson.core.JsonParser;

@@ -2,6 +2,7 @@ package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;

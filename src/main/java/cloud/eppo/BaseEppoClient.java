@@ -5,6 +5,7 @@ import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.cache.AssignmentCacheEntry;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;

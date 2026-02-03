@@ -3,6 +3,7 @@ package cloud.eppo.ufc.dto;
 import java.util.Objects;
 
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.dto.OperatorType;
 
 public class TargetingCondition {
   private final OperatorType operator;

@@ -8,7 +8,7 @@ import cloud.eppo.api.EvaluationDetails;
 import cloud.eppo.api.FlagEvaluationCode;
 import cloud.eppo.api.MatchedRule;
 import cloud.eppo.api.RuleCondition;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoValueDeserializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
