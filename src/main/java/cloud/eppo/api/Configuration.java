@@ -2,8 +2,13 @@ package cloud.eppo.api;
 
 import static cloud.eppo.Utils.getMD5Hex;
 
+import cloud.eppo.api.dto.BanditFlagVariation;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.api.dto.BanditReference;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.ufc.dto.*;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

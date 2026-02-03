@@ -2,7 +2,12 @@ package cloud.eppo.ufc.deserializer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import cloud.eppo.ufc.dto.*;
+import cloud.eppo.api.dto.BanditCoefficients;
+import cloud.eppo.api.dto.BanditModelData;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.ufc.dto.BanditCategoricalAttributeCoefficients;
+import cloud.eppo.ufc.dto.BanditNumericAttributeCoefficients;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;

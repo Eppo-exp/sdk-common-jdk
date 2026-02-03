@@ -1,13 +1,14 @@
 package cloud.eppo.ufc.dto;
 
 import cloud.eppo.api.EppoValue;
+import cloud.eppo.api.dto.BanditAttributeCoefficients;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-
 public class BanditNumericAttributeCoefficients implements BanditAttributeCoefficients {
-  private final Logger logger = LoggerFactory.getLogger(BanditNumericAttributeCoefficients.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(BanditNumericAttributeCoefficients.class);
   private final String attributeKey;
   private final Double coefficient;
   private final Double missingValueCoefficient;
@@ -21,26 +22,29 @@ public class BanditNumericAttributeCoefficients implements BanditAttributeCoeffi
 
   @Override
   public String toString() {
-    return "BanditNumericAttributeCoefficients{" +
-      "attributeKey='" + attributeKey + '\'' +
-      ", coefficient=" + coefficient +
-      ", missingValueCoefficient=" + missingValueCoefficient +
-      '}';
+    return "BanditNumericAttributeCoefficients{"
+        + "attributeKey='"
+        + attributeKey
+        + '\''
+        + ", coefficient="
+        + coefficient
+        + ", missingValueCoefficient="
+        + missingValueCoefficient
+        + '}';
   }
 
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     BanditNumericAttributeCoefficients that = (BanditNumericAttributeCoefficients) o;
-    return Objects.equals(logger, that.logger)
-            && Objects.equals(attributeKey, that.attributeKey)
-            && Objects.equals(coefficient, that.coefficient)
-            && Objects.equals(missingValueCoefficient, that.missingValueCoefficient);
+    return Objects.equals(attributeKey, that.getAttributeKey())
+        && Objects.equals(coefficient, that.getCoefficient())
+        && Objects.equals(missingValueCoefficient, that.getMissingValueCoefficient());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logger, attributeKey, coefficient, missingValueCoefficient);
+    return Objects.hash(attributeKey, coefficient, missingValueCoefficient);
   }
 
   @Override
