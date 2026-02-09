@@ -3,9 +3,9 @@ package cloud.eppo.api;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
 
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.FlagConfigResponse;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.FlagConfigResponse;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class ConfigurationBuilderTest {
   public void getFlagType_shouldReturnCorrectType() {
     // Create a flag config with a STRING variation type
     FlagConfig flagConfig =
-        new FlagConfig(
+        new FlagConfig.Default(
             "test-flag",
             true,
             1,
@@ -98,7 +98,7 @@ public class ConfigurationBuilderTest {
   public void getFlagType_withObfuscatedConfig_shouldReturnCorrectType() {
     // Create a flag config with a NUMERIC variation type
     FlagConfig flagConfig =
-        new FlagConfig(
+        new FlagConfig.Default(
             "test-flag",
             true,
             1,

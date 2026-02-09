@@ -5,9 +5,9 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
-import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.TargetingCondition;
-import cloud.eppo.ufc.dto.TargetingRule;
+import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.TargetingCondition;
+import cloud.eppo.api.dto.TargetingRule;
 import com.github.zafarkhaja.semver.Version;
 import java.util.Collections;
 import java.util.Map;

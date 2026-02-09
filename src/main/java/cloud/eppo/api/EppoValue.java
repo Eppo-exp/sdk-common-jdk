@@ -1,7 +1,7 @@
 package cloud.eppo.api;
 
-import cloud.eppo.ufc.dto.EppoValueType;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.api.dto.EppoValueType;
+import cloud.eppo.api.dto.VariationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Iterator;

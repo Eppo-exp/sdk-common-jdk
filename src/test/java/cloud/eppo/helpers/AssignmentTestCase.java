@@ -10,7 +10,7 @@ import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.EvaluationDetails;
 import cloud.eppo.api.MatchedRule;
 import cloud.eppo.api.RuleCondition;
-import cloud.eppo.ufc.dto.VariationType;
+import cloud.eppo.api.dto.VariationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;

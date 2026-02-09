@@ -5,12 +5,14 @@ import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.cache.AssignmentCacheEntry;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
-import cloud.eppo.ufc.dto.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;

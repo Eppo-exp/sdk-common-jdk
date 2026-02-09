@@ -10,16 +10,16 @@ import cloud.eppo.api.Attributes;
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.EvaluationDetails;
 import cloud.eppo.api.FlagEvaluationCode;
+import cloud.eppo.api.dto.Allocation;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.OperatorType;
+import cloud.eppo.api.dto.Shard;
+import cloud.eppo.api.dto.Split;
+import cloud.eppo.api.dto.TargetingCondition;
+import cloud.eppo.api.dto.TargetingRule;
+import cloud.eppo.api.dto.Variation;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.model.ShardRange;
-import cloud.eppo.ufc.dto.Allocation;
-import cloud.eppo.ufc.dto.FlagConfig;
-import cloud.eppo.ufc.dto.OperatorType;
-import cloud.eppo.ufc.dto.Shard;
-import cloud.eppo.ufc.dto.Split;
-import cloud.eppo.ufc.dto.TargetingCondition;
-import cloud.eppo.ufc.dto.TargetingRule;
-import cloud.eppo.ufc.dto.Variation;
-import cloud.eppo.ufc.dto.VariationType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -478,7 +478,7 @@ public class FlagEvaluatorTest {
       String encodedVariationKey = base64Encode(variationEntry.getKey());
       Variation variationToEncode = variationEntry.getValue();
       Variation newVariation =
-          new Variation(
+          new Variation.Default(
               encodedVariationKey,
               EppoValue.valueOf(base64Encode(variationToEncode.getValue().stringValue())));
       encodedVariations.put(encodedVariationKey, newVariation);
@@ -505,9 +505,10 @@ public class FlagEvaluatorTest {
                     EppoValue value =
                         EppoValue.valueOf(base64Encode(conditionToEncode.getValue().stringValue()));
                     encodedCondition =
-                        new TargetingCondition(conditionToEncode.getOperator(), attribute, value);
+                        new TargetingCondition.Default(
+                            conditionToEncode.getOperator(), attribute, value);
                     encodedRules.add(
-                        new TargetingRule(
+                        new TargetingRule.Default(
                             new HashSet<>(Collections.singletonList(encodedCondition))));
                     encodedRules.addAll(
                         allocationToEncode.getRules().stream()
@@ -518,12 +519,12 @@ public class FlagEvaluatorTest {
                       allocationToEncode.getSplits().stream()
                           .map(
                               splitToEncode ->
-                                  new Split(
+                                  new Split.Default(
                                       base64Encode(splitToEncode.getVariationKey()),
                                       splitToEncode.getShards(),
                                       splitToEncode.getExtraLogging()))
                           .collect(Collectors.toList());
-                  return new Allocation(
+                  return new Allocation.Default(
                       allocationToEncode.getKey(),
                       encodedRules,
                       allocationToEncode.getStartAt(),
@@ -536,7 +537,7 @@ public class FlagEvaluatorTest {
     Attributes matchingEmailAttributes = new Attributes();
     matchingEmailAttributes.put("email", "eppo@example.com");
     FlagConfig obfuscatedFlag =
-        new FlagConfig(
+        new FlagConfig.Default(
             flag.getKey(),
             flag.isEnabled(),
             flag.getTotalShards(),
@@ -580,7 +581,7 @@ public class FlagEvaluatorTest {
     obfuscatedExtraLogging.put(base64Encode("anotherKey"), base64Encode("anotherValue"));
 
     List<Split> splits = new ArrayList<>();
-    splits.add(new Split("a", null, obfuscatedExtraLogging));
+    splits.add(new Split.Default("a", null, obfuscatedExtraLogging));
 
     List<Allocation> allocations = createAllocations("test", splits);
 
@@ -593,7 +594,7 @@ public class FlagEvaluatorTest {
       String encodedVariationKey = base64Encode(variationEntry.getKey());
       Variation variationToEncode = variationEntry.getValue();
       Variation newVariation =
-          new Variation(
+          new Variation.Default(
               encodedVariationKey,
               EppoValue.valueOf(base64Encode(variationToEncode.getValue().stringValue())));
       encodedVariations.put(encodedVariationKey, newVariation);
@@ -609,12 +610,12 @@ public class FlagEvaluatorTest {
                       allocationToEncode.getSplits().stream()
                           .map(
                               splitToEncode ->
-                                  new Split(
+                                  new Split.Default(
                                       base64Encode(splitToEncode.getVariationKey()),
                                       splitToEncode.getShards(),
                                       splitToEncode.getExtraLogging()))
                           .collect(Collectors.toList());
-                  return new Allocation(
+                  return new Allocation.Default(
                       allocationToEncode.getKey(),
                       allocationToEncode.getRules(),
                       allocationToEncode.getStartAt(),
@@ -626,7 +627,7 @@ public class FlagEvaluatorTest {
 
     // Create the obfuscated flag
     FlagConfig obfuscatedFlag =
-        new FlagConfig(
+        new FlagConfig.Default(
             flag.getKey(),
             flag.isEnabled(),
             flag.getTotalShards(),
@@ -673,7 +674,7 @@ public class FlagEvaluatorTest {
     for (String key : keys) {
       if (key != null) {
         // Use the uppercase key as the dummy value
-        Variation variation = new Variation(key, EppoValue.valueOf(key.toUpperCase()));
+        Variation variation = new Variation.Default(key, EppoValue.valueOf(key.toUpperCase()));
         variations.put(variation.getKey(), variation);
       }
     }
@@ -690,7 +691,7 @@ public class FlagEvaluatorTest {
       ShardRange range = new ShardRange(rangeStart, rangeEnd);
       ranges = new HashSet<>(Collections.singletonList(range));
     }
-    return new HashSet<>(Collections.singletonList(new Shard(salt, ranges)));
+    return new HashSet<>(Collections.singletonList(new Shard.Default(salt, ranges)));
   }
 
   private List<Split> createSplits(String variationKey) {
@@ -698,14 +699,14 @@ public class FlagEvaluatorTest {
   }
 
   private List<Split> createSplits(String variationKey, Set<Shard> shards) {
-    Split split = new Split(variationKey, shards, new HashMap<>());
+    Split split = new Split.Default(variationKey, shards, new HashMap<>());
     return new ArrayList<>(Collections.singletonList(split));
   }
 
   private Set<TargetingRule> createRules(String attribute, OperatorType operator, EppoValue value) {
     Set<TargetingCondition> conditions = new HashSet<>();
-    conditions.add(new TargetingCondition(operator, attribute, value));
-    return new HashSet<>(Collections.singletonList(new TargetingRule(conditions)));
+    conditions.add(new TargetingCondition.Default(operator, attribute, value));
+    return new HashSet<>(Collections.singletonList(new TargetingRule.Default(conditions)));
   }
 
   private List<Allocation> createAllocations(String allocationKey, List<Split> splits) {
@@ -714,7 +715,7 @@ public class FlagEvaluatorTest {
 
   private List<Allocation> createAllocations(
       String allocationKey, List<Split> splits, Set<TargetingRule> rules) {
-    Allocation allocation = new Allocation(allocationKey, rules, null, null, splits, true);
+    Allocation allocation = new Allocation.Default(allocationKey, rules, null, null, splits, true);
     return new ArrayList<>(Collections.singletonList(allocation));
   }
 
@@ -723,6 +724,6 @@ public class FlagEvaluatorTest {
       boolean enabled,
       Map<String, Variation> variations,
       List<Allocation> allocations) {
-    return new FlagConfig(key, enabled, 10, VariationType.STRING, variations, allocations);
+    return new FlagConfig.Default(key, enabled, 10, VariationType.STRING, variations, allocations);
   }
 }

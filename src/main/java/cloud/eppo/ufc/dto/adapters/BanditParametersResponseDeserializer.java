@@ -1,6 +1,11 @@
 package cloud.eppo.ufc.dto.adapters;
 
-import cloud.eppo.ufc.dto.*;
+import cloud.eppo.api.dto.BanditCategoricalAttributeCoefficients;
+import cloud.eppo.api.dto.BanditCoefficients;
+import cloud.eppo.api.dto.BanditModelData;
+import cloud.eppo.api.dto.BanditNumericAttributeCoefficients;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditParametersResponse;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,13 +39,13 @@ public class BanditParametersResponseDeserializer
     JsonNode rootNode = jsonParser.getCodec().readTree(jsonParser);
     if (rootNode == null || !rootNode.isObject()) {
       log.warn("no top-level JSON object");
-      return new BanditParametersResponse();
+      return new BanditParametersResponse.Default();
     }
 
     JsonNode banditsNode = rootNode.get("bandits");
     if (banditsNode == null || !banditsNode.isObject()) {
       log.warn("no root-level bandits object");
-      return new BanditParametersResponse();
+      return new BanditParametersResponse.Default();
     }
 
     Map<String, BanditParameters> bandits = new HashMap<>();
@@ -70,14 +75,15 @@ public class BanditParametersResponseDeserializer
                   });
 
               BanditModelData modelData =
-                  new BanditModelData(
+                  new BanditModelData.Default(
                       gamma, defaultActionScore, actionProbabilityFloor, coefficients);
               BanditParameters parameters =
-                  new BanditParameters(banditKey, updatedAt, modelName, modelVersion, modelData);
+                  new BanditParameters.Default(
+                      banditKey, updatedAt, modelName, modelVersion, modelData);
               bandits.put(banditKey, parameters);
             });
 
-    return new BanditParametersResponse(bandits);
+    return new BanditParametersResponse.Default(bandits);
   }
 
   private BanditCoefficients parseActionCoefficientsNode(JsonNode actionCoefficientsNode) {
@@ -104,7 +110,7 @@ public class BanditParametersResponseDeserializer
         this.parseCategoricalAttributeCoefficientsArrayNode(
             actionCategoricalAttributeCoefficientsNode);
 
-    return new BanditCoefficients(
+    return new BanditCoefficients.Default(
         actionKey,
         intercept,
         subjectNumericAttributeCoefficients,
@@ -125,7 +131,7 @@ public class BanditParametersResponseDeserializer
               Double missingValueCoefficient =
                   numericAttributeCoefficientsNode.get("missingValueCoefficient").asDouble();
               BanditNumericAttributeCoefficients coefficients =
-                  new BanditNumericAttributeCoefficients(
+                  new BanditNumericAttributeCoefficients.Default(
                       attributeKey, coefficient, missingValueCoefficient);
               numericAttributeCoefficients.put(attributeKey, coefficients);
             });
@@ -158,7 +164,7 @@ public class BanditParametersResponseDeserializer
                   });
 
               BanditCategoricalAttributeCoefficients coefficients =
-                  new BanditCategoricalAttributeCoefficients(
+                  new BanditCategoricalAttributeCoefficients.Default(
                       attributeKey, missingValueCoefficient, valueCoefficients);
               categoricalAttributeCoefficients.put(attributeKey, coefficients);
             });

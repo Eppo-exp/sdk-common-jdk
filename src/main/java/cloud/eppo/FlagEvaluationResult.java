@@ -1,7 +1,7 @@
 package cloud.eppo;
 
 import cloud.eppo.api.*;
-import cloud.eppo.ufc.dto.Variation;
+import cloud.eppo.api.dto.Variation;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
