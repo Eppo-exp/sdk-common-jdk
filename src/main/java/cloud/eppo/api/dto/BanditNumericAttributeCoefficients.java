@@ -1,9 +1,6 @@
 package cloud.eppo.api.dto;
 
-import cloud.eppo.api.EppoValue;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public interface BanditNumericAttributeCoefficients extends BanditAttributeCoefficients {
   Double getCoefficient();
@@ -11,8 +8,6 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
   Double getMissingValueCoefficient();
 
   class Default implements BanditNumericAttributeCoefficients {
-    private static final Logger logger =
-        LoggerFactory.getLogger(BanditNumericAttributeCoefficients.Default.class);
     private final String attributeKey;
     private final Double coefficient;
     private final Double missingValueCoefficient;
@@ -53,17 +48,6 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
     @Override
     public String getAttributeKey() {
       return attributeKey;
-    }
-
-    @Override
-    public double scoreForAttributeValue(EppoValue attributeValue) {
-      if (attributeValue == null || attributeValue.isNull()) {
-        return missingValueCoefficient;
-      }
-      if (!attributeValue.isNumeric()) {
-        logger.warn("Unexpected categorical attribute value for attribute {}", attributeKey);
-      }
-      return coefficient * attributeValue.doubleValue();
     }
 
     @Override
