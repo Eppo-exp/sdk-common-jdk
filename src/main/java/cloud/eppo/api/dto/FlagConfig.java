@@ -3,19 +3,20 @@ package cloud.eppo.api.dto;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface FlagConfig {
-  String getKey();
+  @NotNull String getKey();
 
   boolean isEnabled();
 
   int getTotalShards();
 
-  VariationType getVariationType();
+  @NotNull VariationType getVariationType();
 
-  Map<String, Variation> getVariations();
+  @NotNull Map<String, Variation> getVariations();
 
-  List<Allocation> getAllocations();
+  @NotNull List<Allocation> getAllocations();
 
   class Default implements FlagConfig {
     private final String key;

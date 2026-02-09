@@ -2,15 +2,16 @@ package cloud.eppo.api.dto;
 
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface BanditModelData {
-  Double getGamma();
+  @NotNull Double getGamma();
 
-  Double getDefaultActionScore();
+  @NotNull Double getDefaultActionScore();
 
-  Double getActionProbabilityFloor();
+  @NotNull Double getActionProbabilityFloor();
 
-  Map<String, BanditCoefficients> getCoefficients();
+  @NotNull Map<String, BanditCoefficients> getCoefficients();
 
   class Default implements BanditModelData {
     private final Double gamma;

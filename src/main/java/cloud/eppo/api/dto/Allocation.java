@@ -4,27 +4,29 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface Allocation {
-  String getKey();
+  @NotNull String getKey();
 
-  void setKey(String key);
+  void setKey(@NotNull String key);
 
-  Set<TargetingRule> getRules();
+  @Nullable Set<TargetingRule> getRules();
 
-  void setRules(Set<TargetingRule> rules);
+  void setRules(@Nullable Set<TargetingRule> rules);
 
-  Date getStartAt();
+  @Nullable Date getStartAt();
 
-  void setStartAt(Date startAt);
+  void setStartAt(@Nullable Date startAt);
 
-  Date getEndAt();
+  @Nullable Date getEndAt();
 
-  void setEndAt(Date endAt);
+  void setEndAt(@Nullable Date endAt);
 
-  List<Split> getSplits();
+  @NotNull List<Split> getSplits();
 
-  void setSplits(List<Split> splits);
+  void setSplits(@NotNull List<Split> splits);
 
   boolean doLog();
 

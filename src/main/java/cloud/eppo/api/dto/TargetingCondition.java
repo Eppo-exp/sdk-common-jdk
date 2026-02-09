@@ -2,13 +2,14 @@ package cloud.eppo.api.dto;
 
 import cloud.eppo.api.EppoValue;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface TargetingCondition {
-  OperatorType getOperator();
+  @NotNull OperatorType getOperator();
 
-  String getAttribute();
+  @NotNull String getAttribute();
 
-  EppoValue getValue();
+  @NotNull EppoValue getValue();
 
   class Default implements TargetingCondition {
     private final OperatorType operator;

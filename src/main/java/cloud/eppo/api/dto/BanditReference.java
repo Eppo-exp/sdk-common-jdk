@@ -2,11 +2,12 @@ package cloud.eppo.api.dto;
 
 import java.util.List;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface BanditReference {
-  String getModelVersion();
+  @NotNull String getModelVersion();
 
-  List<BanditFlagVariation> getFlagVariations();
+  @NotNull List<BanditFlagVariation> getFlagVariations();
 
   class Default implements BanditReference {
     private final String modelVersion;

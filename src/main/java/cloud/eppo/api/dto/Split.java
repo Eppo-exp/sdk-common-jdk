@@ -3,13 +3,15 @@ package cloud.eppo.api.dto;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface Split {
-  String getVariationKey();
+  @NotNull String getVariationKey();
 
-  Set<Shard> getShards();
+  @NotNull Set<Shard> getShards();
 
-  Map<String, String> getExtraLogging();
+  @Nullable Map<String, String> getExtraLogging();
 
   class Default implements Split {
     private final String variationKey;
