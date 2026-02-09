@@ -10,35 +10,23 @@ import org.jetbrains.annotations.Nullable;
 public interface Allocation {
   @NotNull String getKey();
 
-  void setKey(@NotNull String key);
-
   @Nullable Set<TargetingRule> getRules();
-
-  void setRules(@Nullable Set<TargetingRule> rules);
 
   @Nullable Date getStartAt();
 
-  void setStartAt(@Nullable Date startAt);
-
   @Nullable Date getEndAt();
-
-  void setEndAt(@Nullable Date endAt);
 
   @NotNull List<Split> getSplits();
 
-  void setSplits(@NotNull List<Split> splits);
-
   boolean doLog();
 
-  void setDoLog(boolean doLog);
-
   class Default implements Allocation {
-    private String key;
-    private Set<TargetingRule> rules;
-    private Date startAt;
-    private Date endAt;
-    private List<Split> splits;
-    private boolean doLog;
+    private final String key;
+    private final Set<TargetingRule> rules;
+    private final Date startAt;
+    private final Date endAt;
+    private final List<Split> splits;
+    private final boolean doLog;
 
     public Default(
         String key,
@@ -97,18 +85,8 @@ public interface Allocation {
     }
 
     @Override
-    public void setKey(String key) {
-      this.key = key;
-    }
-
-    @Override
     public Set<TargetingRule> getRules() {
       return rules;
-    }
-
-    @Override
-    public void setRules(Set<TargetingRule> rules) {
-      this.rules = rules;
     }
 
     @Override
@@ -117,18 +95,8 @@ public interface Allocation {
     }
 
     @Override
-    public void setStartAt(Date startAt) {
-      this.startAt = startAt;
-    }
-
-    @Override
     public Date getEndAt() {
       return endAt;
-    }
-
-    @Override
-    public void setEndAt(Date endAt) {
-      this.endAt = endAt;
     }
 
     @Override
@@ -137,18 +105,8 @@ public interface Allocation {
     }
 
     @Override
-    public void setSplits(List<Split> splits) {
-      this.splits = splits;
-    }
-
-    @Override
     public boolean doLog() {
       return doLog;
-    }
-
-    @Override
-    public void setDoLog(boolean doLog) {
-      this.doLog = doLog;
     }
   }
 }
