@@ -6,14 +6,17 @@ import cloud.eppo.api.Actions;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.api.DiscriminableAttributes;
 import cloud.eppo.api.EppoValue;
-import cloud.eppo.api.dto.BanditAttributeCoefficients;
+import cloud.eppo.api.dto.BanditCategoricalAttributeCoefficients;
 import cloud.eppo.api.dto.BanditCoefficients;
 import cloud.eppo.api.dto.BanditModelData;
+import cloud.eppo.api.dto.BanditNumericAttributeCoefficients;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BanditEvaluator {
-
+  private static final Logger logger = LoggerFactory.getLogger(BanditEvaluator.class);
   private static final int BANDIT_ASSIGNMENT_SHARDS = 10000; // hard-coded for now
 
   public static BanditEvaluationResult evaluateBandit(
@@ -66,19 +69,19 @@ public class BanditEvaluator {
                   // Score the action using the provided attributes
                   double actionScore = banditCoefficients.getIntercept();
                   actionScore +=
-                      scoreContextForCoefficients(
+                      scoreNumericAttributes(
                           actionAttributes.getNumericAttributes(),
                           banditCoefficients.getActionNumericCoefficients());
                   actionScore +=
-                      scoreContextForCoefficients(
+                      scoreCategoricalAttributes(
                           actionAttributes.getCategoricalAttributes(),
                           banditCoefficients.getActionCategoricalCoefficients());
                   actionScore +=
-                      scoreContextForCoefficients(
+                      scoreNumericAttributes(
                           subjectAttributes.getNumericAttributes(),
                           banditCoefficients.getSubjectNumericCoefficients());
                   actionScore +=
-                      scoreContextForCoefficients(
+                      scoreCategoricalAttributes(
                           subjectAttributes.getCategoricalAttributes(),
                           banditCoefficients.getSubjectCategoricalCoefficients());
 
@@ -86,19 +89,77 @@ public class BanditEvaluator {
                 }));
   }
 
-  private static double scoreContextForCoefficients(
-      Attributes attributes, Map<String, ? extends BanditAttributeCoefficients> coefficients) {
-
+  private static double scoreNumericAttributes(
+      Attributes attributes,
+      Map<String, ? extends BanditNumericAttributeCoefficients> coefficients) {
     double totalScore = 0.0;
 
-    for (BanditAttributeCoefficients attributeCoefficients : coefficients.values()) {
-      EppoValue contextValue = attributes.get(attributeCoefficients.getAttributeKey());
-      // The coefficient implementation knows how to score
-      double attributeScore = attributeCoefficients.scoreForAttributeValue(contextValue);
+    for (BanditNumericAttributeCoefficients attributeCoefficients : coefficients.values()) {
+      EppoValue attributeValue = attributes.get(attributeCoefficients.getAttributeKey());
+      double attributeScore =
+          scoreNumericAttributeValue(
+              attributeValue,
+              attributeCoefficients.getAttributeKey(),
+              attributeCoefficients.getCoefficient(),
+              attributeCoefficients.getMissingValueCoefficient());
       totalScore += attributeScore;
     }
 
     return totalScore;
+  }
+
+  private static double scoreNumericAttributeValue(
+      EppoValue attributeValue,
+      String attributeKey,
+      double coefficient,
+      double missingValueCoefficient) {
+    if (attributeValue == null || attributeValue.isNull()) {
+      return missingValueCoefficient;
+    }
+    if (!attributeValue.isNumeric()) {
+      logger.warn("Unexpected categorical attribute value for attribute {}", attributeKey);
+    }
+    return coefficient * attributeValue.doubleValue();
+  }
+
+  private static double scoreCategoricalAttributes(
+      Attributes attributes,
+      Map<String, ? extends BanditCategoricalAttributeCoefficients> coefficients) {
+    double totalScore = 0.0;
+
+    for (BanditCategoricalAttributeCoefficients attributeCoefficients : coefficients.values()) {
+      EppoValue attributeValue = attributes.get(attributeCoefficients.getAttributeKey());
+      double attributeScore =
+          scoreCategoricalAttributeValue(
+              attributeValue,
+              attributeCoefficients.getAttributeKey(),
+              attributeCoefficients.getValueCoefficients(),
+              attributeCoefficients.getMissingValueCoefficient());
+      totalScore += attributeScore;
+    }
+
+    return totalScore;
+  }
+
+  private static double scoreCategoricalAttributeValue(
+      EppoValue attributeValue,
+      String attributeKey,
+      Map<String, Double> valueCoefficients,
+      double missingValueCoefficient) {
+    if (attributeValue == null || attributeValue.isNull()) {
+      return missingValueCoefficient;
+    }
+    if (attributeValue.isNumeric()) {
+      logger.warn("Unexpected numeric attribute value for attribute {}", attributeKey);
+      return missingValueCoefficient;
+    }
+
+    String valueKey = attributeValue.toString();
+    Double coefficient = valueCoefficients.get(valueKey);
+
+    // Categorical attributes are treated as one-hot booleans, so it's just the coefficient * 1
+    // when present
+    return coefficient != null ? coefficient : missingValueCoefficient;
   }
 
   private static Map<String, Double> weighActions(
