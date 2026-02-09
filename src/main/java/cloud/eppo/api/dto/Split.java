@@ -4,14 +4,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public interface Split {
   @NotNull String getVariationKey();
 
   @NotNull Set<Shard> getShards();
 
-  @Nullable Map<String, String> getExtraLogging();
+  @NotNull Map<String, String> getExtraLogging();
 
   class Default implements Split {
     private final String variationKey;
