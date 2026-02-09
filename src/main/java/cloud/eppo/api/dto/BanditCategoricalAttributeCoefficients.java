@@ -3,8 +3,6 @@ package cloud.eppo.api.dto;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public interface BanditCategoricalAttributeCoefficients extends BanditAttributeCoefficients {
   @NotNull Double getMissingValueCoefficient();
