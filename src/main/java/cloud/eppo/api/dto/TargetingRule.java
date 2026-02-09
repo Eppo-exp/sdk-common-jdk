@@ -2,9 +2,10 @@ package cloud.eppo.api.dto;
 
 import java.util.Objects;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
 
 public interface TargetingRule {
-  Set<TargetingCondition> getConditions();
+  @NotNull Set<TargetingCondition> getConditions();
 
   class Default implements TargetingRule {
     private final Set<TargetingCondition> conditions;

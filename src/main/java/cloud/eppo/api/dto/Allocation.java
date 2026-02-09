@@ -4,39 +4,29 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface Allocation {
-  String getKey();
+  @NotNull String getKey();
 
-  void setKey(String key);
+  @Nullable Set<TargetingRule> getRules();
 
-  Set<TargetingRule> getRules();
+  @Nullable Date getStartAt();
 
-  void setRules(Set<TargetingRule> rules);
+  @Nullable Date getEndAt();
 
-  Date getStartAt();
-
-  void setStartAt(Date startAt);
-
-  Date getEndAt();
-
-  void setEndAt(Date endAt);
-
-  List<Split> getSplits();
-
-  void setSplits(List<Split> splits);
+  @NotNull List<Split> getSplits();
 
   boolean doLog();
 
-  void setDoLog(boolean doLog);
-
   class Default implements Allocation {
-    private String key;
-    private Set<TargetingRule> rules;
-    private Date startAt;
-    private Date endAt;
-    private List<Split> splits;
-    private boolean doLog;
+    private final String key;
+    private final Set<TargetingRule> rules;
+    private final Date startAt;
+    private final Date endAt;
+    private final List<Split> splits;
+    private final boolean doLog;
 
     public Default(
         String key,
@@ -95,18 +85,8 @@ public interface Allocation {
     }
 
     @Override
-    public void setKey(String key) {
-      this.key = key;
-    }
-
-    @Override
     public Set<TargetingRule> getRules() {
       return rules;
-    }
-
-    @Override
-    public void setRules(Set<TargetingRule> rules) {
-      this.rules = rules;
     }
 
     @Override
@@ -115,18 +95,8 @@ public interface Allocation {
     }
 
     @Override
-    public void setStartAt(Date startAt) {
-      this.startAt = startAt;
-    }
-
-    @Override
     public Date getEndAt() {
       return endAt;
-    }
-
-    @Override
-    public void setEndAt(Date endAt) {
-      this.endAt = endAt;
     }
 
     @Override
@@ -135,18 +105,8 @@ public interface Allocation {
     }
 
     @Override
-    public void setSplits(List<Split> splits) {
-      this.splits = splits;
-    }
-
-    @Override
     public boolean doLog() {
       return doLog;
-    }
-
-    @Override
-    public void setDoLog(boolean doLog) {
-      this.doLog = doLog;
     }
   }
 }

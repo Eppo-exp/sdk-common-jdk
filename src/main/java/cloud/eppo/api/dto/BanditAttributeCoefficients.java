@@ -1,10 +1,11 @@
 package cloud.eppo.api.dto;
 
 import cloud.eppo.api.EppoValue;
+import org.jetbrains.annotations.NotNull;
 
 public interface BanditAttributeCoefficients {
 
-  String getAttributeKey();
+  @NotNull String getAttributeKey();
 
-  double scoreForAttributeValue(EppoValue attributeValue);
+  double scoreForAttributeValue(@NotNull EppoValue attributeValue);
 }

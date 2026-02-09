@@ -2,17 +2,19 @@ package cloud.eppo.api.dto;
 
 import java.util.Date;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface BanditParameters {
-  String getBanditKey();
+  @NotNull String getBanditKey();
 
-  Date getUpdatedAt();
+  @Nullable Date getUpdatedAt();
 
-  String getModelName();
+  @NotNull String getModelName();
 
-  String getModelVersion();
+  @NotNull String getModelVersion();
 
-  BanditModelData getModelData();
+  @NotNull BanditModelData getModelData();
 
   class Default implements BanditParameters {
     private final String banditKey;

@@ -4,17 +4,19 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface FlagConfigResponse {
-  Map<String, FlagConfig> getFlags();
+  @NotNull Map<String, FlagConfig> getFlags();
 
-  Map<String, BanditReference> getBanditReferences();
+  @NotNull Map<String, BanditReference> getBanditReferences();
 
-  Format getFormat();
+  @NotNull Format getFormat();
 
-  String getEnvironmentName();
+  @Nullable String getEnvironmentName();
 
-  Date getCreatedAt();
+  @Nullable Date getCreatedAt();
 
   enum Format {
     SERVER,
