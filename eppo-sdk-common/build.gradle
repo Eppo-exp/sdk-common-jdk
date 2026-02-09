@@ -1,0 +1,136 @@
+plugins {
+  id 'java-library'
+  id 'maven-publish'
+  id "com.diffplug.spotless" version "6.13.0"
+}
+
+group = 'cloud.eppo'
+version = '4.0.0-SNAPSHOT'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+// Create a combined JAR that includes both this module and the framework
+jar {
+  // Include classes from the root framework module
+  from(project(':').sourceSets.main.output)
+  // This module's classes take precedence over framework classes
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Create combined sources JAR
+tasks.register('sourcesJar', Jar) {
+  archiveClassifier.set('sources')
+  from sourceSets.main.allSource
+  from project(':').sourceSets.main.allSource
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Create combined javadoc JAR
+tasks.register('javadocJar', Jar) {
+  archiveClassifier.set('javadoc')
+  from javadoc
+  from project(':').tasks.javadoc
+}
+
+dependencies {
+  // Depend on the core SDK module for interfaces and DTOs
+  api project(':')
+
+  // OkHttp 5 for HTTP client implementation
+  implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.14'
+
+  // Jackson for JSON parsing (already in parent, but explicit for this module)
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+
+  // Logging
+  implementation 'org.slf4j:slf4j-api:2.0.17'
+
+  // Test dependencies
+  testImplementation platform('org.junit:junit-bom:5.14.1')
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+  testImplementation 'com.squareup.okhttp3:mockwebserver:5.0.0-alpha.14'
+  testImplementation 'com.google.truth:truth:1.4.5'
+}
+
+test {
+  useJUnitPlatform()
+  testLogging {
+    events "started", "passed", "skipped", "failed"
+    exceptionFormat "full"
+    showExceptions true
+    showCauses true
+    showStackTraces true
+  }
+}
+
+spotless {
+  ratchetFrom 'origin/main'
+
+  format 'misc', {
+    target '*.gradle', '.gitattributes', '.gitignore'
+
+    trimTrailingWhitespace()
+    indentWithSpaces(2)
+    endWithNewline()
+  }
+  java {
+    googleJavaFormat('1.7')
+    formatAnnotations()
+  }
+}
+
+javadoc {
+  failOnError = false
+  options.addStringOption('Xdoclint:none', '-quiet')
+  options.addBooleanOption('failOnError', false)
+  if (JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = 'cloud.eppo'
+      artifactId = 'sdk-common-jvm'
+
+      from components.java
+      artifact sourcesJar
+      artifact javadocJar
+
+      pom {
+        name = 'Eppo SDK Common JVM'
+        description = 'Complete Eppo SDK for JVM with default HTTP client and configuration parser'
+        url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+        licenses {
+          license {
+            name = 'MIT License'
+            url = 'http://www.opensource.org/licenses/mit-license.php'
+          }
+        }
+        developers {
+          developer {
+            name = 'Eppo'
+            email = 'https://geteppo.com'
+          }
+        }
+        scm {
+          connection = 'scm:git:git://github.com/Eppo-exp/sdk-common-jvm.git'
+          developerConnection = 'scm:git:ssh://github.com/Eppo-exp/sdk-common-jvm.git'
+          url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+        }
+      }
+
+      // Remove the framework dependency from POM since it's bundled in the JAR
+      pom.withXml {
+        asNode().dependencies.dependency.findAll {
+          it.artifactId.text() == 'eppo-sdk-framework'
+        }.each { it.parent().remove(it) }
+      }
+    }
+  }
+}
