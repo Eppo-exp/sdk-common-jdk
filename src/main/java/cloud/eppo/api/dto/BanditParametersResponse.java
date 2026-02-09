@@ -3,9 +3,10 @@ package cloud.eppo.api.dto;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface BanditParametersResponse {
-  Map<String, BanditParameters> getBandits();
+  @NotNull Map<String, BanditParameters> getBandits();
 
   class Default implements BanditParametersResponse {
     private final Map<String, BanditParameters> bandits;

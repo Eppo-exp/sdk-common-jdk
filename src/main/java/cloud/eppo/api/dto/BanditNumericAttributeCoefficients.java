@@ -1,11 +1,14 @@
 package cloud.eppo.api.dto;
 
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface BanditNumericAttributeCoefficients extends BanditAttributeCoefficients {
-  Double getCoefficient();
+  @NotNull Double getCoefficient();
 
-  Double getMissingValueCoefficient();
+  @NotNull Double getMissingValueCoefficient();
 
   class Default implements BanditNumericAttributeCoefficients {
     private final String attributeKey;

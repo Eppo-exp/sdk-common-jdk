@@ -2,11 +2,14 @@ package cloud.eppo.api.dto;
 
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface BanditCategoricalAttributeCoefficients extends BanditAttributeCoefficients {
-  Double getMissingValueCoefficient();
+  @NotNull Double getMissingValueCoefficient();
 
-  Map<String, Double> getValueCoefficients();
+  @NotNull Map<String, Double> getValueCoefficients();
 
   class Default implements BanditCategoricalAttributeCoefficients {
     private final String attributeKey;

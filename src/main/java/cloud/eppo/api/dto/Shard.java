@@ -3,11 +3,12 @@ package cloud.eppo.api.dto;
 import cloud.eppo.model.ShardRange;
 import java.util.Objects;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
 
 public interface Shard {
-  String getSalt();
+  @NotNull String getSalt();
 
-  Set<ShardRange> getRanges();
+  @NotNull Set<ShardRange> getRanges();
 
   class Default implements Shard {
     private final String salt;

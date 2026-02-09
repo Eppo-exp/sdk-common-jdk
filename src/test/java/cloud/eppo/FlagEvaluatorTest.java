@@ -381,8 +381,6 @@ public class FlagEvaluatorTest {
   public void testAllocationStartAndEndAt() {
     Map<String, Variation> variations = createVariations("a");
     List<Split> splits = createSplits("a");
-    List<Allocation> allocations = createAllocations("allocation", splits);
-    FlagConfig flag = createFlag("key", true, variations, allocations);
 
     // Start off with today being between startAt and endAt
     Date now = new Date();
@@ -390,13 +388,13 @@ public class FlagEvaluatorTest {
     Date startAt = new Date(now.getTime() - oneDayInMilliseconds);
     Date endAt = new Date(now.getTime() + oneDayInMilliseconds);
 
-    Allocation allocation = allocations.get(0);
-    allocation.setStartAt(startAt);
-    allocation.setEndAt(endAt);
+    List<Allocation> activeAllocations =
+        createAllocationsWithDates("allocation", splits, null, startAt, endAt);
+    FlagConfig activeFlag = createFlag("key", true, variations, activeAllocations);
 
     FlagEvaluationResult result =
         FlagEvaluator.evaluateFlag(
-            flag, "flag", "subject", new Attributes(), false, "Test", null, null);
+            activeFlag, "flag", "subject", new Attributes(), false, "Test", null, null);
 
     assertEquals("A", result.getVariation().getValue().stringValue());
     assertTrue(result.doLog());
@@ -411,12 +409,15 @@ public class FlagEvaluatorTest {
         details.getMatchedAllocation().getAllocationEvaluationCode());
 
     // Make both startAt and endAt in the future (allocation not yet active)
-    allocation.setStartAt(new Date(now.getTime() + oneDayInMilliseconds));
-    allocation.setEndAt(new Date(now.getTime() + 2 * oneDayInMilliseconds));
+    Date futureStart = new Date(now.getTime() + oneDayInMilliseconds);
+    Date futureEnd = new Date(now.getTime() + 2 * oneDayInMilliseconds);
+    List<Allocation> futureAllocations =
+        createAllocationsWithDates("allocation", splits, null, futureStart, futureEnd);
+    FlagConfig futureFlag = createFlag("key", true, variations, futureAllocations);
 
     result =
         FlagEvaluator.evaluateFlag(
-            flag, "flag", "subject", new Attributes(), false, "Test", null, null);
+            futureFlag, "flag", "subject", new Attributes(), false, "Test", null, null);
 
     assertNull(result.getVariation());
     assertFalse(result.doLog());
@@ -433,12 +434,15 @@ public class FlagEvaluatorTest {
     assertEquals(1, details.getUnmatchedAllocations().get(0).getOrderPosition());
 
     // Make both startAt and endAt in the past (allocation expired)
-    allocation.setStartAt(new Date(now.getTime() - 2 * oneDayInMilliseconds));
-    allocation.setEndAt(new Date(now.getTime() - oneDayInMilliseconds));
+    Date pastStart = new Date(now.getTime() - 2 * oneDayInMilliseconds);
+    Date pastEnd = new Date(now.getTime() - oneDayInMilliseconds);
+    List<Allocation> expiredAllocations =
+        createAllocationsWithDates("allocation", splits, null, pastStart, pastEnd);
+    FlagConfig expiredFlag = createFlag("key", true, variations, expiredAllocations);
 
     result =
         FlagEvaluator.evaluateFlag(
-            flag, "flag", "subject", new Attributes(), false, "Test", null, null);
+            expiredFlag, "flag", "subject", new Attributes(), false, "Test", null, null);
 
     assertNull(result.getVariation());
     assertFalse(result.doLog());
@@ -488,8 +492,7 @@ public class FlagEvaluatorTest {
         allocations.stream()
             .map(
                 allocationToEncode -> {
-                  allocationToEncode.setKey(base64Encode(allocationToEncode.getKey()));
-                  TargetingCondition encodedCondition;
+                  String encodedKey = base64Encode(allocationToEncode.getKey());
                   Set<TargetingRule> encodedRules = new HashSet<>();
                   if (allocationToEncode.getRules() != null) {
                     // assume just a single rule with a single string-valued condition
@@ -504,7 +507,7 @@ public class FlagEvaluatorTest {
                     String attribute = getMD5Hex(conditionToEncode.getAttribute());
                     EppoValue value =
                         EppoValue.valueOf(base64Encode(conditionToEncode.getValue().stringValue()));
-                    encodedCondition =
+                    TargetingCondition encodedCondition =
                         new TargetingCondition.Default(
                             conditionToEncode.getOperator(), attribute, value);
                     encodedRules.add(
@@ -525,7 +528,7 @@ public class FlagEvaluatorTest {
                                       splitToEncode.getExtraLogging()))
                           .collect(Collectors.toList());
                   return new Allocation.Default(
-                      allocationToEncode.getKey(),
+                      encodedKey,
                       encodedRules,
                       allocationToEncode.getStartAt(),
                       allocationToEncode.getEndAt(),
@@ -605,7 +608,7 @@ public class FlagEvaluatorTest {
         allocations.stream()
             .map(
                 allocationToEncode -> {
-                  allocationToEncode.setKey(base64Encode(allocationToEncode.getKey()));
+                  String encodedKey = base64Encode(allocationToEncode.getKey());
                   List<Split> encodedSplits =
                       allocationToEncode.getSplits().stream()
                           .map(
@@ -616,7 +619,7 @@ public class FlagEvaluatorTest {
                                       splitToEncode.getExtraLogging()))
                           .collect(Collectors.toList());
                   return new Allocation.Default(
-                      allocationToEncode.getKey(),
+                      encodedKey,
                       allocationToEncode.getRules(),
                       allocationToEncode.getStartAt(),
                       allocationToEncode.getEndAt(),
@@ -715,7 +718,17 @@ public class FlagEvaluatorTest {
 
   private List<Allocation> createAllocations(
       String allocationKey, List<Split> splits, Set<TargetingRule> rules) {
-    Allocation allocation = new Allocation.Default(allocationKey, rules, null, null, splits, true);
+    return createAllocationsWithDates(allocationKey, splits, rules, null, null);
+  }
+
+  private List<Allocation> createAllocationsWithDates(
+      String allocationKey,
+      List<Split> splits,
+      Set<TargetingRule> rules,
+      Date startAt,
+      Date endAt) {
+    Allocation allocation =
+        new Allocation.Default(allocationKey, rules, startAt, endAt, splits, true);
     return new ArrayList<>(Collections.singletonList(allocation));
   }
 

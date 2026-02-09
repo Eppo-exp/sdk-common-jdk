@@ -2,19 +2,20 @@ package cloud.eppo.api.dto;
 
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface BanditCoefficients {
-  String getActionKey();
+  @NotNull String getActionKey();
 
-  Double getIntercept();
+  @NotNull Double getIntercept();
 
-  Map<String, BanditNumericAttributeCoefficients> getSubjectNumericCoefficients();
+  @NotNull Map<String, BanditNumericAttributeCoefficients> getSubjectNumericCoefficients();
 
-  Map<String, BanditCategoricalAttributeCoefficients> getSubjectCategoricalCoefficients();
+  @NotNull Map<String, BanditCategoricalAttributeCoefficients> getSubjectCategoricalCoefficients();
 
-  Map<String, BanditNumericAttributeCoefficients> getActionNumericCoefficients();
+  @NotNull Map<String, BanditNumericAttributeCoefficients> getActionNumericCoefficients();
 
-  Map<String, BanditCategoricalAttributeCoefficients> getActionCategoricalCoefficients();
+  @NotNull Map<String, BanditCategoricalAttributeCoefficients> getActionCategoricalCoefficients();
 
   class Default implements BanditCoefficients {
     private final String actionKey;

@@ -1,17 +1,18 @@
 package cloud.eppo.api.dto;
 
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public interface BanditFlagVariation {
-  String getBanditKey();
+  @NotNull String getBanditKey();
 
-  String getFlagKey();
+  @NotNull String getFlagKey();
 
-  String getAllocationKey();
+  @NotNull String getAllocationKey();
 
-  String getVariationKey();
+  @NotNull String getVariationKey();
 
-  String getVariationValue();
+  @NotNull String getVariationValue();
 
   class Default implements BanditFlagVariation {
     private final String banditKey;
