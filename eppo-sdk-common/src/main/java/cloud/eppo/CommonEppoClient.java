@@ -1,16 +1,9 @@
 package cloud.eppo;
 
-import cloud.eppo.api.AssignmentDetails;
-import cloud.eppo.api.Attributes;
 import cloud.eppo.api.Configuration;
-import cloud.eppo.api.EppoValue;
-import cloud.eppo.api.EvaluationDetails;
-import cloud.eppo.api.FlagEvaluationCode;
 import cloud.eppo.api.IAssignmentCache;
-import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditLogger;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -76,42 +69,5 @@ public class CommonEppoClient extends BaseEppoClient {
         banditAssignmentCache,
         new JacksonConfigurationParser(),
         new OkHttpEppoClient());
-  }
-
-  // ==================== JSON Assignment Methods (Jackson-dependent) ====================
-
-  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
-    return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
-    return this.getJSONAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
-  public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
-      String flagKey, String subjectKey, JsonNode defaultValue) {
-    return this.getJSONAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
-    try {
-      return this.getTypedAssignmentWithDetails(
-          flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
-    } catch (Exception e) {
-      String defaultValueString = defaultValue != null ? defaultValue.toString() : null;
-      return new AssignmentDetails<>(
-          throwIfNotGraceful(e, defaultValue),
-          null,
-          EvaluationDetails.buildDefault(
-              getConfiguration().getEnvironmentName(),
-              getConfiguration().getConfigFetchedAt(),
-              getConfiguration().getConfigPublishedAt(),
-              FlagEvaluationCode.ASSIGNMENT_ERROR,
-              e.getMessage(),
-              EppoValue.valueOf(defaultValueString)));
-    }
   }
 }

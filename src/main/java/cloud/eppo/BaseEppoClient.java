@@ -567,40 +567,6 @@ public class BaseEppoClient {
     }
   }
 
-  public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
-    return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public String getJSONStringAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
-    return this.getJSONStringAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
-  }
-
-  public AssignmentDetails<String> getJSONStringAssignmentDetails(
-      String flagKey, String subjectKey, String defaultValue) {
-    return this.getJSONStringAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
-  }
-
-  public AssignmentDetails<String> getJSONStringAssignmentDetails(
-      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
-    try {
-      return this.getTypedAssignmentWithDetails(
-          flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
-    } catch (Exception e) {
-      return new AssignmentDetails<>(
-          throwIfNotGraceful(e, defaultValue),
-          null,
-          EvaluationDetails.buildDefault(
-              getConfiguration().getEnvironmentName(),
-              getConfiguration().getConfigFetchedAt(),
-              getConfiguration().getConfigPublishedAt(),
-              FlagEvaluationCode.ASSIGNMENT_ERROR,
-              e.getMessage(),
-              EppoValue.valueOf(defaultValue)));
-    }
-  }
-
   public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
     return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
@@ -633,6 +599,40 @@ public class BaseEppoClient {
               FlagEvaluationCode.ASSIGNMENT_ERROR,
               e.getMessage(),
               EppoValue.valueOf(defaultValueString)));
+    }
+  }
+
+  public String getJSONStringAssignment(String flagKey, String subjectKey, String defaultValue) {
+    return this.getJSONStringAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  public String getJSONStringAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
+    return this.getJSONStringAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
+        .getVariation();
+  }
+
+  public AssignmentDetails<String> getJSONStringAssignmentDetails(
+      String flagKey, String subjectKey, String defaultValue) {
+    return this.getJSONStringAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
+  }
+
+  public AssignmentDetails<String> getJSONStringAssignmentDetails(
+      String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
+    try {
+      return this.getTypedAssignmentWithDetails(
+          flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
+    } catch (Exception e) {
+      return new AssignmentDetails<>(
+          throwIfNotGraceful(e, defaultValue),
+          null,
+          EvaluationDetails.buildDefault(
+              getConfiguration().getEnvironmentName(),
+              getConfiguration().getConfigFetchedAt(),
+              getConfiguration().getConfigPublishedAt(),
+              FlagEvaluationCode.ASSIGNMENT_ERROR,
+              e.getMessage(),
+              EppoValue.valueOf(defaultValue)));
     }
   }
 
