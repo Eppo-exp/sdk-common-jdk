@@ -1,7 +1,7 @@
 package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
-import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.callback.CallbackManager;
 import cloud.eppo.http.EppoConfigurationClient;
@@ -10,7 +10,6 @@ import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -163,10 +162,9 @@ public class ConfigurationRequestor {
       if (banditParametersJsonBytes != null) {
         if (configurationParser != null) {
           try {
-            Map<String, ? extends BanditParameters> bandits =
+            BanditParametersResponse bandits =
                 configurationParser.parseBanditParams(banditParametersJsonBytes);
-            // Note: Configuration.Builder handles bandits directly from bytes for now
-            configBuilder.banditParameters(banditParametersJsonBytes);
+            configBuilder.banditParameters(bandits);
           } catch (ConfigurationParseException e) {
             log.error("Failed to parse bandit parameters", e);
             throw new RuntimeException(e);
@@ -280,7 +278,18 @@ public class ConfigurationRequestor {
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = fetchBanditParametersAsync();
       if (banditParametersJsonBytes != null) {
-        configBuilder.banditParameters(banditParametersJsonBytes);
+        if (configurationParser != null) {
+          try {
+            BanditParametersResponse bandits =
+                configurationParser.parseBanditParams(banditParametersJsonBytes);
+            configBuilder.banditParameters(bandits);
+          } catch (ConfigurationParseException e) {
+            log.error("Failed to parse bandit parameters", e);
+            throw new RuntimeException(e);
+          }
+        } else {
+          configBuilder.banditParameters(banditParametersJsonBytes);
+        }
       }
     }
 

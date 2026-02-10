@@ -73,9 +73,6 @@ public class TestUtils {
     return mockClient;
   }
 
-  // ==================== Legacy methods (deprecated, use mockConfigurationClient instead)
-  // ====================
-
   /** @deprecated Use mockConfigurationClient() and pass to BaseEppoClient constructor instead */
   @Deprecated
   @SuppressWarnings("SameParameterValue")

@@ -30,8 +30,6 @@ import org.mockito.Mockito;
 
 public class ConfigurationRequestorTest {
 
-  // ==================== Shared Test Fixtures ====================
-
   private static final File INITIAL_FLAG_CONFIG_FILE =
       new File("src/test/resources/static/initial-flag-config.json");
   private static final File DIFFERENT_FLAG_CONFIG_FILE =
@@ -49,8 +47,6 @@ public class ConfigurationRequestorTest {
   private static String loadInitialFlagConfigString() throws IOException {
     return FileUtils.readFileToString(INITIAL_FLAG_CONFIG_FILE, StandardCharsets.UTF_8);
   }
-
-  // ==================== Initial Configuration Tests ====================
 
   @Nested
   class InitialConfigurationTests {
@@ -175,8 +171,6 @@ public class ConfigurationRequestorTest {
       assertNull(configStore.getConfiguration().getFlag("boolean_flag"));
     }
   }
-
-  // ==================== Configuration Change Listener Tests ====================
 
   @Nested
   class ConfigurationChangeListenerTests {
@@ -358,8 +352,6 @@ public class ConfigurationRequestorTest {
     }
   }
 
-  // ==================== Tests for EppoConfigurationClient ====================
-
   @Nested
   class EppoConfigurationClientTests {
     private IConfigurationStore configStore;
@@ -471,8 +463,6 @@ public class ConfigurationRequestorTest {
       verify(configStore, never()).saveConfiguration(any());
     }
   }
-
-  // ==================== Tests for ConfigurationParser ====================
 
   @Nested
   class ConfigurationParserTests {
@@ -597,9 +587,6 @@ public class ConfigurationRequestorTest {
       verify(configStore, never()).saveConfiguration(any());
     }
   }
-
-  // ==================== Integration Tests with Real Implementations ====================
-  // These tests use OkHttpEppoClient and JacksonConfigurationParser from eppo-sdk-common
 
   @Nested
   class IntegrationTests {
