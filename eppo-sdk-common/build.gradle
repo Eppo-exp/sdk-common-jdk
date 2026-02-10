@@ -36,16 +36,11 @@ tasks.register('javadocJar', Jar) {
 }
 
 dependencies {
-  // Depend on the core SDK module for interfaces and DTOs
   api project(':')
 
-  // OkHttp 5 for HTTP client implementation
-  implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.14'
-
-  // Jackson for JSON parsing (already in parent, but explicit for this module)
+  implementation 'com.squareup.okhttp3:okhttp:5.2.0'
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
 
-  // Logging
   implementation 'org.slf4j:slf4j-api:2.0.17'
 
   // Test dependencies
