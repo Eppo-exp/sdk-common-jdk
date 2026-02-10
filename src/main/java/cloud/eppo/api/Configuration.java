@@ -72,6 +72,7 @@ public class Configuration {
   private final String environmentName;
   private final Date configFetchedAt;
   private final Date configPublishedAt;
+  @Nullable private final String flagsSnapshotId;
 
   private final byte[] flagConfigJson;
 
@@ -86,6 +87,7 @@ public class Configuration {
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt,
+      @Nullable String flagsSnapshotId,
       byte[] flagConfigJson,
       byte[] banditParamsJson) {
     this.flags = flags;
@@ -95,6 +97,7 @@ public class Configuration {
     this.environmentName = environmentName;
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
+    this.flagsSnapshotId = flagsSnapshotId;
 
     // Graft the `format` field into the flagConfigJson'
     if (flagConfigJson != null && flagConfigJson.length != 0) {
@@ -123,6 +126,7 @@ public class Configuration {
         null,
         null,
         null,
+        null,
         emptyFlagsBytes,
         null);
   }
@@ -145,6 +149,8 @@ public class Configuration {
         + configFetchedAt
         + ", configPublishedAt="
         + configPublishedAt
+        + ", flagsSnapshotId="
+        + flagsSnapshotId
         + ", flagConfigJson="
         + Arrays.toString(flagConfigJson)
         + ", banditParamsJson="
@@ -163,6 +169,7 @@ public class Configuration {
         && Objects.equals(environmentName, that.environmentName)
         && Objects.equals(configFetchedAt, that.configFetchedAt)
         && Objects.equals(configPublishedAt, that.configPublishedAt)
+        && Objects.equals(flagsSnapshotId, that.flagsSnapshotId)
         && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
         && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
   }
@@ -177,6 +184,7 @@ public class Configuration {
         environmentName,
         configFetchedAt,
         configPublishedAt,
+        flagsSnapshotId,
         Arrays.hashCode(flagConfigJson),
         Arrays.hashCode(banditParamsJson));
   }
@@ -260,6 +268,20 @@ public class Configuration {
     return configPublishedAt;
   }
 
+  /**
+   * Returns the snapshot ID for the flags configuration.
+   *
+   * <p>The snapshot ID is an opaque identifier (typically an HTTP ETag value) that represents a
+   * specific version of the flag configuration. This value can be used for caching and conditional
+   * requests to avoid re-fetching unchanged configuration data.
+   *
+   * @return the snapshot ID, or null if not available
+   */
+  @Nullable
+  public String getFlagsSnapshotId() {
+    return flagsSnapshotId;
+  }
+
   public static Builder builder(byte[] flagJson) {
     return new Builder(flagJson);
   }
@@ -279,6 +301,7 @@ public class Configuration {
     private byte[] banditParamsJson;
     private final String environmentName;
     private final Date configPublishedAt;
+    @Nullable private String flagsSnapshotId;
 
     private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
       if (flagJson == null || flagJson.length == 0) {
@@ -382,6 +405,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder flagsSnapshotId(@Nullable String flagsSnapshotId) {
+      this.flagsSnapshotId = flagsSnapshotId;
+      return this;
+    }
+
     public Configuration build() {
       // Record the time when configuration is built/fetched
       Date configFetchedAt = new Date();
@@ -393,6 +421,7 @@ public class Configuration {
           environmentName,
           configFetchedAt,
           configPublishedAt,
+          flagsSnapshotId,
           flagJson,
           banditParamsJson);
     }
