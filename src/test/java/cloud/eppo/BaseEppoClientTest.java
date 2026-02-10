@@ -291,8 +291,21 @@ public class BaseEppoClientTest {
         "", spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
 
     assertEquals(
+        mapper.readTree("{\"a\": 1, \"b\": false}").toString(),
+        spyClient
+            .getJSONAssignment(
+                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}"))
+            .toString());
+
+    assertEquals(
         "{\"a\": 1, \"b\": false}",
         spyClient.getJSONStringAssignment("subject1", "experiment1", "{\"a\": 1, \"b\": false}"));
+
+    assertEquals(
+        mapper.readTree("{}").toString(),
+        spyClient
+            .getJSONAssignment("subject1", "experiment1", new Attributes(), mapper.readTree("{}"))
+            .toString());
   }
 
   @Test
@@ -333,6 +346,17 @@ public class BaseEppoClientTest {
     assertThrows(
         RuntimeException.class,
         () -> spyClient.getStringAssignment("experiment1", "subject1", new Attributes(), ""));
+
+    assertThrows(
+        RuntimeException.class,
+        () ->
+            spyClient.getJSONAssignment(
+                "subject1", "experiment1", mapper.readTree("{\"a\": 1, \"b\": false}")));
+    assertThrows(
+        RuntimeException.class,
+        () ->
+            spyClient.getJSONAssignment(
+                "subject1", "experiment1", new Attributes(), mapper.readTree("{}")));
   }
 
   @Test

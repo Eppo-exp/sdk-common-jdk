@@ -59,14 +59,6 @@ public class AssignmentTestCase {
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(assignmentTestCaseModule());
 
-  private static JsonNode parseJson(String jsonString) {
-    try {
-      return mapper.readTree(jsonString);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to parse JSON: " + jsonString, e);
-    }
-  }
-
   public static SimpleModule assignmentTestCaseModule() {
     SimpleModule module = new SimpleModule();
     module.addDeserializer(AssignmentTestCase.class, new AssignmentTestCaseDeserializer());
@@ -176,25 +168,16 @@ public class AssignmentTestCase {
           }
           break;
         case JSON:
-          // JSON assignments use getJSONStringAssignment and parse the result
-          String defaultJsonString =
-              testCase.getDefaultValue().jsonValue() != null
-                  ? testCase.getDefaultValue().jsonValue().toString()
-                  : null;
           if (validateDetails) {
-            AssignmentDetails<String> details =
-                eppoClient.getJSONStringAssignmentDetails(
-                    flagKey, subjectKey, subjectAttributes, defaultJsonString);
-            JsonNode jsonValue =
-                details.getVariation() != null ? parseJson(details.getVariation()) : null;
-            assertAssignment(flagKey, subjectAssignment, jsonValue);
+            AssignmentDetails<JsonNode> details =
+                eppoClient.getJSONAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
+            assertAssignment(flagKey, subjectAssignment, details.getVariation());
             assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
           } else {
-            String jsonStringAssignment =
-                eppoClient.getJSONStringAssignment(
-                    flagKey, subjectKey, subjectAttributes, defaultJsonString);
             JsonNode jsonAssignment =
-                jsonStringAssignment != null ? parseJson(jsonStringAssignment) : null;
+                eppoClient.getJSONAssignment(
+                    flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
             assertAssignment(flagKey, subjectAssignment, jsonAssignment);
           }
           break;
