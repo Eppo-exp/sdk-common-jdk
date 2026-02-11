@@ -248,7 +248,7 @@ public class BaseEppoClientTest {
             null,
             null,
             null,
-            null,
+            parser,
             new OkHttpEppoClient());
 
     eppoClient.loadConfiguration();
@@ -868,7 +868,7 @@ public class BaseEppoClientTest {
             null,
             null,
             null,
-            null,
+            parser,
             new OkHttpEppoClient());
 
     // Get configuration before loading

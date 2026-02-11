@@ -14,7 +14,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +23,7 @@ public class ConfigurationRequestor {
   private final IConfigurationStore configurationStore;
   private final boolean supportBandits;
 
-  @Nullable private final ConfigurationParser configurationParser;
+  @NotNull private final ConfigurationParser configurationParser;
   @NotNull private final EppoConfigurationClient configurationClient;
   @NotNull private final EppoConfigurationRequestFactory requestFactory;
 
@@ -37,7 +36,7 @@ public class ConfigurationRequestor {
   public ConfigurationRequestor(
       @NotNull IConfigurationStore configurationStore,
       boolean supportBandits,
-      @Nullable ConfigurationParser configurationParser,
+      @NotNull ConfigurationParser configurationParser,
       @NotNull EppoConfigurationClient configurationClient,
       @NotNull EppoConfigurationRequestFactory requestFactory) {
     this.configurationStore = configurationStore;
@@ -123,22 +122,16 @@ public class ConfigurationRequestor {
 
     byte[] flagConfigurationJsonBytes = flagResponse.getBody();
 
-    // Use ConfigurationParser if available, otherwise use Configuration.builder
     Configuration.Builder configBuilder;
-    if (configurationParser != null) {
-      try {
-        FlagConfigResponse flagConfigResponse =
-            configurationParser.parseFlagConfig(flagConfigurationJsonBytes);
-        configBuilder =
-            new Configuration.Builder(flagConfigurationJsonBytes, flagConfigResponse)
-                .banditParametersFromConfig(lastConfig);
-      } catch (ConfigurationParseException e) {
-        log.error("Failed to parse flag configuration", e);
-        throw new RuntimeException(e);
-      }
-    } else {
+    try {
+      FlagConfigResponse flagConfigResponse =
+          configurationParser.parseFlagConfig(flagConfigurationJsonBytes);
       configBuilder =
-          Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
+          new Configuration.Builder(flagConfigurationJsonBytes, flagConfigResponse)
+              .banditParametersFromConfig(lastConfig);
+    } catch (ConfigurationParseException e) {
+      log.error("Failed to parse flag configuration", e);
+      throw new RuntimeException(e);
     }
 
     configBuilder.flagsSnapshotId(flagResponse.getVersionId());
@@ -146,17 +139,13 @@ public class ConfigurationRequestor {
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = fetchBanditParameters();
       if (banditParametersJsonBytes != null) {
-        if (configurationParser != null) {
-          try {
-            BanditParametersResponse bandits =
-                configurationParser.parseBanditParams(banditParametersJsonBytes);
-            configBuilder.banditParameters(bandits);
-          } catch (ConfigurationParseException e) {
-            log.error("Failed to parse bandit parameters", e);
-            throw new RuntimeException(e);
-          }
-        } else {
-          configBuilder.banditParameters(banditParametersJsonBytes);
+        try {
+          BanditParametersResponse bandits =
+              configurationParser.parseBanditParams(banditParametersJsonBytes);
+          configBuilder.banditParameters(bandits);
+        } catch (ConfigurationParseException e) {
+          log.error("Failed to parse bandit parameters", e);
+          throw new RuntimeException(e);
         }
       }
     }
@@ -224,21 +213,15 @@ public class ConfigurationRequestor {
       EppoConfigurationResponse flagResponse, Configuration lastConfig) {
     Configuration.Builder configBuilder;
 
-    // Use ConfigurationParser if available
-    if (configurationParser != null) {
-      try {
-        FlagConfigResponse flagConfigResponse =
-            configurationParser.parseFlagConfig(flagResponse.getBody());
-        configBuilder =
-            new Configuration.Builder(flagResponse.getBody(), flagConfigResponse)
-                .banditParametersFromConfig(lastConfig);
-      } catch (ConfigurationParseException e) {
-        log.error("Failed to parse flag configuration", e);
-        throw new RuntimeException(e);
-      }
-    } else {
+    try {
+      FlagConfigResponse flagConfigResponse =
+          configurationParser.parseFlagConfig(flagResponse.getBody());
       configBuilder =
-          Configuration.builder(flagResponse.getBody()).banditParametersFromConfig(lastConfig);
+          new Configuration.Builder(flagResponse.getBody(), flagConfigResponse)
+              .banditParametersFromConfig(lastConfig);
+    } catch (ConfigurationParseException e) {
+      log.error("Failed to parse flag configuration", e);
+      throw new RuntimeException(e);
     }
 
     configBuilder.flagsSnapshotId(flagResponse.getVersionId());
@@ -246,17 +229,13 @@ public class ConfigurationRequestor {
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = fetchBanditParametersAsync();
       if (banditParametersJsonBytes != null) {
-        if (configurationParser != null) {
-          try {
-            BanditParametersResponse bandits =
-                configurationParser.parseBanditParams(banditParametersJsonBytes);
-            configBuilder.banditParameters(bandits);
-          } catch (ConfigurationParseException e) {
-            log.error("Failed to parse bandit parameters", e);
-            throw new RuntimeException(e);
-          }
-        } else {
-          configBuilder.banditParameters(banditParametersJsonBytes);
+        try {
+          BanditParametersResponse bandits =
+              configurationParser.parseBanditParams(banditParametersJsonBytes);
+          configBuilder.banditParameters(bandits);
+        } catch (ConfigurationParseException e) {
+          log.error("Failed to parse bandit parameters", e);
+          throw new RuntimeException(e);
         }
       }
     }

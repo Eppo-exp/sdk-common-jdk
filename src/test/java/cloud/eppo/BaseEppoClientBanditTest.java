@@ -12,6 +12,7 @@ import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
+import cloud.eppo.parser.ConfigurationParser;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -40,6 +41,7 @@ public class BaseEppoClientBanditTest {
 
   private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
   private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
+  private static final ConfigurationParser parser = new JacksonConfigurationParser();
   private static final Date testStart = new Date();
 
   private static BaseEppoClient eppoClient;
@@ -79,7 +81,7 @@ public class BaseEppoClientBanditTest {
             new AbstractAssignmentCache(assignmentCache) {},
             new ExpiringInMemoryAssignmentCache(
                 banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {},
-            null,
+            parser,
             new OkHttpEppoClient());
 
     eppoClient.loadConfiguration();
@@ -110,7 +112,7 @@ public class BaseEppoClientBanditTest {
         initialConfig,
         null,
         null,
-        null,
+        parser,
         new OkHttpEppoClient());
   }
 

@@ -64,7 +64,7 @@ public class BaseEppoClient {
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache,
-      @Nullable ConfigurationParser configurationParser,
+      @NotNull ConfigurationParser configurationParser,
       @NotNull EppoConfigurationClient configurationClient) {
 
     if (apiBaseUrl == null) {

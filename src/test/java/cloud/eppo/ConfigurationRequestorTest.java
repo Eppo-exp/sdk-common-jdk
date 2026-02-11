@@ -51,15 +51,17 @@ public class ConfigurationRequestorTest {
   class InitialConfigurationTests {
     private IConfigurationStore configStore;
     private EppoConfigurationClient mockConfigClient;
+    private ConfigurationParser parser;
     private ConfigurationRequestor requestor;
 
     @BeforeEach
     void setUp() {
       configStore = Mockito.spy(new ConfigurationStore());
       mockConfigClient = mock(EppoConfigurationClient.class);
+      parser = new JacksonConfigurationParser();
       requestor =
           new ConfigurationRequestor(
-              configStore, true, null, mockConfigClient, createTestRequestFactory());
+              configStore, true, parser, mockConfigClient, createTestRequestFactory());
     }
 
     @Test
@@ -178,16 +180,18 @@ public class ConfigurationRequestorTest {
   class ConfigurationChangeListenerTests {
     private ConfigurationStore mockConfigStore;
     private EppoConfigurationClient mockConfigClient;
+    private ConfigurationParser parser;
     private ConfigurationRequestor requestor;
 
     @BeforeEach
     void setUp() {
       mockConfigStore = mock(ConfigurationStore.class);
       mockConfigClient = mock(EppoConfigurationClient.class);
-      when(mockConfigStore.getConfiguration()).thenReturn(Configuration.emptyConfig());
+when(mockConfigStore.getConfiguration()).thenReturn(Configuration.emptyConfig());
+      parser = new JacksonConfigurationParser();
       requestor =
           new ConfigurationRequestor(
-              mockConfigStore, true, null, mockConfigClient, createTestRequestFactory());
+              mockConfigStore, true, parser, mockConfigClient, createTestRequestFactory());
     }
 
     private void stubConfigClientSuccess(byte[] responseBody) {
@@ -373,6 +377,7 @@ public class ConfigurationRequestorTest {
   class EppoConfigurationClientTests {
     private IConfigurationStore configStore;
     private EppoConfigurationClient mockConfigClient;
+    private ConfigurationParser parser;
     private EppoConfigurationRequestFactory requestFactory;
     private byte[] flagConfigBytes;
 
@@ -380,12 +385,14 @@ public class ConfigurationRequestorTest {
     void setUp() throws IOException {
       configStore = Mockito.spy(new ConfigurationStore());
       mockConfigClient = mock(EppoConfigurationClient.class);
+      parser = new JacksonConfigurationParser();
       requestFactory = createTestRequestFactory();
       flagConfigBytes = loadInitialFlagConfig();
     }
 
     private ConfigurationRequestor createRequestor() {
-      return new ConfigurationRequestor(configStore, false, null, mockConfigClient, requestFactory);
+      return new ConfigurationRequestor(
+          configStore, false, parser, mockConfigClient, requestFactory);
     }
 
     @Test

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import cloud.eppo.api.Attributes;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
+import cloud.eppo.parser.ConfigurationParser;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ public class ProfileBaseEppoClientTest {
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
 
   private static BaseEppoClient eppoClient;
+  private static final ConfigurationParser parser = new JacksonConfigurationParser();
   private static final AssignmentLogger noOpAssignmentLogger =
       new AssignmentLogger() {
         @Override
@@ -49,7 +51,7 @@ public class ProfileBaseEppoClientTest {
             null,
             null,
             null,
-            null,
+            parser,
             new OkHttpEppoClient());
 
     eppoClient.loadConfiguration();
