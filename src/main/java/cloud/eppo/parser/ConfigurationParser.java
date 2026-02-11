@@ -2,6 +2,7 @@ package cloud.eppo.parser;
 
 import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfigResponse;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Defines the contract for parsing configuration JSON responses.
@@ -20,7 +21,9 @@ public interface ConfigurationParser {
    * @return parsed FlagConfigResponse containing flags, bandit references, format, etc.
    * @throws ConfigurationParseException if parsing fails
    */
-  FlagConfigResponse parseFlagConfig(byte[] flagConfigJson) throws ConfigurationParseException;
+  @NotNull
+  FlagConfigResponse parseFlagConfig(@NotNull byte[] flagConfigJson)
+      throws ConfigurationParseException;
 
   /**
    * Parses raw bandit parameters JSON bytes.
@@ -29,6 +32,7 @@ public interface ConfigurationParser {
    * @return parsed BanditParametersResponse containing bandit models
    * @throws ConfigurationParseException if parsing fails
    */
-  BanditParametersResponse parseBanditParams(byte[] banditParamsJson)
+  @NotNull
+  BanditParametersResponse parseBanditParams(@NotNull byte[] banditParamsJson)
       throws ConfigurationParseException;
 }

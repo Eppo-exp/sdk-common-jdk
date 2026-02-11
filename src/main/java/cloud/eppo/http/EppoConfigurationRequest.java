@@ -43,6 +43,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the base URL (e.g., "https://fscdn.eppo.cloud")
    */
+  @NotNull
   public String getBaseUrl() {
     return baseUrl;
   }
@@ -52,6 +53,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the resource path (e.g., "/api/flag-config/v1/config")
    */
+  @NotNull
   public String getResourcePath() {
     return resourcePath;
   }
@@ -61,6 +63,7 @@ public final class EppoConfigurationRequest {
    *
    * @return an unmodifiable map of query parameters
    */
+  @NotNull
   public Map<String, String> getQueryParams() {
     return queryParams;
   }

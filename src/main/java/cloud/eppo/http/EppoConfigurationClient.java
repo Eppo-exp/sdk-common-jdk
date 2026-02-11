@@ -1,6 +1,7 @@
 package cloud.eppo.http;
 
 import java.util.concurrent.CompletableFuture;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Defines the contract for configuration clients utilized by the Eppo SDK.
@@ -22,5 +23,6 @@ public interface EppoConfigurationClient {
    * @param request the request to execute
    * @return a CompletableFuture that will complete with the response
    */
-  CompletableFuture<EppoConfigurationResponse> get(EppoConfigurationRequest request);
+  @NotNull
+  CompletableFuture<EppoConfigurationResponse> get(@NotNull EppoConfigurationRequest request);
 }

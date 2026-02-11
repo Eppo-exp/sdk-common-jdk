@@ -1,5 +1,8 @@
 package cloud.eppo.http;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Represents a configuration response from an {@link EppoConfigurationClient}.
  *
@@ -11,7 +14,8 @@ public final class EppoConfigurationResponse {
   private final String versionId;
   private final byte[] body;
 
-  private EppoConfigurationResponse(int statusCode, String versionId, byte[] body) {
+  private EppoConfigurationResponse(
+      int statusCode, @Nullable String versionId, @Nullable byte[] body) {
     this.statusCode = statusCode;
     this.versionId = versionId;
     this.body = body;
@@ -25,7 +29,9 @@ public final class EppoConfigurationResponse {
    * @param body the response body
    * @return a new successful response
    */
-  public static EppoConfigurationResponse success(int statusCode, String versionId, byte[] body) {
+  @NotNull
+  public static EppoConfigurationResponse success(
+      int statusCode, @Nullable String versionId, @NotNull byte[] body) {
     return new EppoConfigurationResponse(statusCode, versionId, body);
   }
 
@@ -35,7 +41,8 @@ public final class EppoConfigurationResponse {
    * @param versionId the version identifier, or null if not present
    * @return a new not modified response
    */
-  public static EppoConfigurationResponse notModified(String versionId) {
+  @NotNull
+  public static EppoConfigurationResponse notModified(@Nullable String versionId) {
     return new EppoConfigurationResponse(304, versionId, null);
   }
 
@@ -46,7 +53,8 @@ public final class EppoConfigurationResponse {
    * @param body the error response body, or null
    * @return a new error response
    */
-  public static EppoConfigurationResponse error(int statusCode, byte[] body) {
+  @NotNull
+  public static EppoConfigurationResponse error(int statusCode, @Nullable byte[] body) {
     return new EppoConfigurationResponse(statusCode, null, body);
   }
 
@@ -66,6 +74,7 @@ public final class EppoConfigurationResponse {
    *
    * @return the version ID, or null if not present
    */
+  @Nullable
   public String getVersionId() {
     return versionId;
   }
@@ -75,6 +84,7 @@ public final class EppoConfigurationResponse {
    *
    * @return the body bytes, or null for 304 responses
    */
+  @Nullable
   public byte[] getBody() {
     return body;
   }
