@@ -30,28 +30,4 @@ public interface ConfigurationParser {
    */
   BanditParametersResponse parseBanditParams(byte[] banditParamsJson)
       throws ConfigurationParseException;
-
-  /**
-   * Serializes a FlagConfigResponse to JSON bytes.
-   *
-   * <p>This is used for caching and debugging purposes.
-   *
-   * @param flagConfigResponse the response to serialize
-   * @return JSON bytes representing the flag configuration
-   * @throws ConfigurationParseException if serialization fails
-   */
-  byte[] serializeFlagConfig(FlagConfigResponse flagConfigResponse)
-      throws ConfigurationParseException;
-
-  /**
-   * Serializes bandit parameters to JSON bytes.
-   *
-   * <p>This is used for caching and debugging purposes.
-   *
-   * @param banditParamsResponse the bandit parameters response to serialize
-   * @return JSON bytes representing the bandit parameters
-   * @throws ConfigurationParseException if serialization fails
-   */
-  byte[] serializeBanditParams(BanditParametersResponse banditParamsResponse)
-      throws ConfigurationParseException;
 }
