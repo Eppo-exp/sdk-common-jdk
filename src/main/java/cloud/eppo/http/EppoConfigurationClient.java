@@ -3,11 +3,13 @@ package cloud.eppo.http;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Interface for HTTP client implementations used by the Eppo SDK.
+ * Defines the contract for configuration clients utilized by the Eppo SDK.
  *
- * <p>Implementations of this interface handle all HTTP communication with Eppo's servers. The SDK
- * provides a default implementation using OkHttp in the eppo-sdk-common module, but custom
- * implementations can be provided for specialized use cases.
+ * <p>
+ * Implementations of this interface are responsible for all interactions with configuration endpoint servers,
+ * whether hosted by Eppo or others. The SDK includes a default implementation using OKHttp (in the eppo-sdk-common module),
+ * but users can supply custom implementations to accommodate specialized needs, such as custom logging, 
+ * authentication, or networking requirements.
  */
 public interface EppoConfigurationClient {
 

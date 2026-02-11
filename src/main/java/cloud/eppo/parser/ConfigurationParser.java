@@ -4,11 +4,12 @@ import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfigResponse;
 
 /**
- * Interface for parsing configuration JSON responses.
+ * Defines the contract for parsing configuration JSON responses.
  *
  * <p>Implementations of this interface handle deserialization of flag configuration and bandit
- * parameters from raw JSON bytes. The SDK provides a default implementation using Jackson in the
- * eppo-sdk-common module.
+ * parameters from raw JSON bytes. The SDK includes a default implementation using Jackson (in the
+ * eppo-sdk-common module), but users can supply custom implementations to accommodate specialized
+ * needs.
  */
 public interface ConfigurationParser {
 

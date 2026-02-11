@@ -378,12 +378,10 @@ public class Configuration {
 
     public Builder banditParameters(BanditParametersResponse banditParametersResponse) {
       if (banditParametersResponse == null || banditParametersResponse.getBandits() == null) {
-        log.debug("Bandit parameters response is null or has no bandits");
         bandits = Collections.emptyMap();
         return this;
       }
       bandits = Collections.unmodifiableMap(banditParametersResponse.getBandits());
-      log.debug("Loaded {} bandit models from bandit parameters response", bandits.size());
       return this;
     }
 
