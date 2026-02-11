@@ -4,6 +4,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
@@ -47,9 +48,11 @@ public class JacksonConfigurationParserTest {
   public void testParseBanditParams() throws IOException {
     byte[] banditParamsJson = loadTestResource("shared/ufc/bandit-models-v1.json");
 
-    Map<String, ? extends BanditParameters> bandits = parser.parseBanditParams(banditParamsJson);
+    BanditParametersResponse banditsResponse = parser.parseBanditParams(banditParamsJson);
 
-    assertNotNull(bandits);
+    assertNotNull(banditsResponse);
+    assertNotNull(banditsResponse.getBandits());
+    Map<String, BanditParameters> bandits = banditsResponse.getBandits();
     assertThat(bandits).containsKey("banner_bandit");
 
     BanditParameters bannerBandit = bandits.get("banner_bandit");
@@ -98,8 +101,10 @@ public class JacksonConfigurationParserTest {
   public void testParseBanditParamsEmptyBandits() {
     byte[] emptyBanditsJson = "{\"bandits\": {}}".getBytes();
 
-    Map<String, ? extends BanditParameters> bandits = parser.parseBanditParams(emptyBanditsJson);
+    BanditParametersResponse banditsResponse = parser.parseBanditParams(emptyBanditsJson);
+    Map<String, BanditParameters> bandits = banditsResponse.getBandits();
 
+    assertNotNull(banditsResponse);
     assertNotNull(bandits);
     assertThat(bandits).isEmpty();
   }
