@@ -187,7 +187,7 @@ public class ConfigurationRequestorTest {
     void setUp() {
       mockConfigStore = mock(ConfigurationStore.class);
       mockConfigClient = mock(EppoConfigurationClient.class);
-when(mockConfigStore.getConfiguration()).thenReturn(Configuration.emptyConfig());
+      when(mockConfigStore.getConfiguration()).thenReturn(Configuration.emptyConfig());
       parser = new JacksonConfigurationParser();
       requestor =
           new ConfigurationRequestor(
