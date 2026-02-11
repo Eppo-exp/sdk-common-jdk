@@ -30,9 +30,6 @@ public class ConfigurationRequestor {
   @Nullable private final EppoConfigurationClient eppoConfigurationClient;
   @NotNull private final EppoConfigurationRequestFactory requestFactory;
 
-  // Track version IDs for conditional requests (used with EppoConfigurationClient)
-  private String lastFlagConfigVersionId = null;
-
   private CompletableFuture<Void> remoteFetchFuture = null;
   private CompletableFuture<Boolean> configurationFuture = null;
   private boolean initialConfigSet = false;
@@ -112,10 +109,11 @@ public class ConfigurationRequestor {
     byte[] flagConfigurationJsonBytes;
     FlagConfigResponse flagConfigResponse = null;
 
+    String flagsSnapshotId = null;
     // Use EppoConfigurationClient if available, otherwise fall back to EppoHttpClient
     if (eppoConfigurationClient != null) {
       EppoConfigurationRequest flagRequest =
-          requestFactory.createFlagConfigRequest(lastFlagConfigVersionId);
+          requestFactory.createFlagConfigRequest(lastConfig.getFlagsSnapshotId());
       EppoConfigurationResponse flagResponse;
       try {
         flagResponse = eppoConfigurationClient.get(flagRequest).get();
@@ -134,8 +132,8 @@ public class ConfigurationRequestor {
             "Failed to fetch flag configuration. Status: " + flagResponse.getStatusCode());
       }
 
-      lastFlagConfigVersionId = flagResponse.getVersionId();
       flagConfigurationJsonBytes = flagResponse.getBody();
+      flagsSnapshotId = flagResponse.getVersionId();
     } else {
       flagConfigurationJsonBytes = client.get(Constants.FLAG_CONFIG_ENDPOINT);
     }
@@ -156,6 +154,8 @@ public class ConfigurationRequestor {
       configBuilder =
           Configuration.builder(flagConfigurationJsonBytes).banditParametersFromConfig(lastConfig);
     }
+
+    configBuilder.flagsSnapshotId(flagsSnapshotId);
 
     if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
       byte[] banditParametersJsonBytes = fetchBanditParameters();
@@ -213,7 +213,7 @@ public class ConfigurationRequestor {
     // Use EppoConfigurationClient if available, otherwise fall back to EppoHttpClient
     if (eppoConfigurationClient != null) {
       EppoConfigurationRequest flagRequest =
-          requestFactory.createFlagConfigRequest(lastFlagConfigVersionId);
+          requestFactory.createFlagConfigRequest(lastConfig.getFlagsSnapshotId());
 
       remoteFetchFuture =
           eppoConfigurationClient
@@ -232,7 +232,6 @@ public class ConfigurationRequestor {
                                 + flagResponse.getStatusCode());
                       }
 
-                      lastFlagConfigVersionId = flagResponse.getVersionId();
                       byte[] flagConfigJsonBytes = flagResponse.getBody();
 
                       return buildAndSaveConfiguration(flagConfigJsonBytes, lastConfig);
