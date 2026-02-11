@@ -277,8 +277,7 @@ public class Configuration {
    *
    * @return the snapshot ID, or null if not available
    */
-  @Nullable
-  public String getFlagsSnapshotId() {
+  @Nullable public String getFlagsSnapshotId() {
     return flagsSnapshotId;
   }
 
