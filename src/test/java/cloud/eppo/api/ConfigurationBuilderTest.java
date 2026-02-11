@@ -84,6 +84,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
+            null, // flagsSnapshotId
             null, // flagConfigJson
             null); // banditParamsJson
 
@@ -118,6 +119,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
+            null, // flagsSnapshotId
             null, // flagConfigJson
             null); // banditParamsJson
 
