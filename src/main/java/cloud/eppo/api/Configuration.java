@@ -10,9 +10,7 @@ import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
@@ -98,21 +96,6 @@ public class Configuration {
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
     this.flagsSnapshotId = flagsSnapshotId;
-
-    // Graft the `format` field into the flagConfigJson'
-    if (flagConfigJson != null && flagConfigJson.length != 0) {
-      try {
-        JsonNode jNode = mapper.readTree(flagConfigJson);
-        FlagConfigResponse.Format format =
-            isConfigObfuscated
-                ? FlagConfigResponse.Format.CLIENT
-                : FlagConfigResponse.Format.SERVER;
-        ((ObjectNode) jNode).put("format", format.toString());
-        flagConfigJson = mapper.writeValueAsBytes(jNode);
-      } catch (IOException e) {
-        log.error("Error adding `format` field to FlagConfigResponse JSON");
-      }
-    }
     this.flagConfigJson = flagConfigJson;
     this.banditParamsJson = banditParamsJson;
   }
