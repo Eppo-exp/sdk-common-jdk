@@ -33,6 +33,9 @@ tasks.register('javadocJar', Jar) {
   archiveClassifier.set('javadoc')
   from javadoc
   from project(':').tasks.javadoc
+
+  // Temporary fix until the clean-up is down and jackson parsing is removed from the framework.
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 dependencies {
