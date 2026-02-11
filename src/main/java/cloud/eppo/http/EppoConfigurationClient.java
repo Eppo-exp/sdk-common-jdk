@@ -23,6 +23,5 @@ public interface EppoConfigurationClient {
    * @param request the request to execute
    * @return a CompletableFuture that will complete with the response
    */
-  @NotNull
-  CompletableFuture<EppoConfigurationResponse> get(@NotNull EppoConfigurationRequest request);
+  @NotNull CompletableFuture<EppoConfigurationResponse> get(@NotNull EppoConfigurationRequest request);
 }

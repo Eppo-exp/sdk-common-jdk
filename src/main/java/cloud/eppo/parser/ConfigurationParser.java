@@ -21,8 +21,7 @@ public interface ConfigurationParser {
    * @return parsed FlagConfigResponse containing flags, bandit references, format, etc.
    * @throws ConfigurationParseException if parsing fails
    */
-  @NotNull
-  FlagConfigResponse parseFlagConfig(@NotNull byte[] flagConfigJson)
+  @NotNull FlagConfigResponse parseFlagConfig(@NotNull byte[] flagConfigJson)
       throws ConfigurationParseException;
 
   /**
@@ -32,7 +31,6 @@ public interface ConfigurationParser {
    * @return parsed BanditParametersResponse containing bandit models
    * @throws ConfigurationParseException if parsing fails
    */
-  @NotNull
-  BanditParametersResponse parseBanditParams(@NotNull byte[] banditParamsJson)
+  @NotNull BanditParametersResponse parseBanditParams(@NotNull byte[] banditParamsJson)
       throws ConfigurationParseException;
 }

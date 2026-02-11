@@ -29,8 +29,7 @@ public final class EppoConfigurationResponse {
    * @param body the response body
    * @return a new successful response
    */
-  @NotNull
-  public static EppoConfigurationResponse success(
+  @NotNull public static EppoConfigurationResponse success(
       int statusCode, @Nullable String versionId, @NotNull byte[] body) {
     return new EppoConfigurationResponse(statusCode, versionId, body);
   }
@@ -41,8 +40,7 @@ public final class EppoConfigurationResponse {
    * @param versionId the version identifier, or null if not present
    * @return a new not modified response
    */
-  @NotNull
-  public static EppoConfigurationResponse notModified(@Nullable String versionId) {
+  @NotNull public static EppoConfigurationResponse notModified(@Nullable String versionId) {
     return new EppoConfigurationResponse(304, versionId, null);
   }
 
@@ -53,8 +51,7 @@ public final class EppoConfigurationResponse {
    * @param body the error response body, or null
    * @return a new error response
    */
-  @NotNull
-  public static EppoConfigurationResponse error(int statusCode, @Nullable byte[] body) {
+  @NotNull public static EppoConfigurationResponse error(int statusCode, @Nullable byte[] body) {
     return new EppoConfigurationResponse(statusCode, null, body);
   }
 
@@ -74,8 +71,7 @@ public final class EppoConfigurationResponse {
    *
    * @return the version ID, or null if not present
    */
-  @Nullable
-  public String getVersionId() {
+  @Nullable public String getVersionId() {
     return versionId;
   }
 
@@ -84,8 +80,7 @@ public final class EppoConfigurationResponse {
    *
    * @return the body bytes, or null for 304 responses
    */
-  @Nullable
-  public byte[] getBody() {
+  @Nullable public byte[] getBody() {
     return body;
   }
 

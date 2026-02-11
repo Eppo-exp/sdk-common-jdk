@@ -47,8 +47,7 @@ public class EppoConfigurationRequestFactory {
    *     support). If the server's current version matches, a 304 response will be returned.
    * @return the configured request
    */
-  @NotNull
-  public EppoConfigurationRequest createFlagConfigRequest(@Nullable String lastVersionId) {
+  @NotNull public EppoConfigurationRequest createFlagConfigRequest(@Nullable String lastVersionId) {
     return new EppoConfigurationRequest(
         baseUrl, Constants.FLAG_CONFIG_ENDPOINT, sdkQueryParams, lastVersionId);
   }
@@ -58,8 +57,7 @@ public class EppoConfigurationRequestFactory {
    *
    * @return the configured request
    */
-  @NotNull
-  public EppoConfigurationRequest createBanditParamsRequest() {
+  @NotNull public EppoConfigurationRequest createBanditParamsRequest() {
     return new EppoConfigurationRequest(baseUrl, Constants.BANDIT_ENDPOINT, sdkQueryParams, null);
   }
 }
