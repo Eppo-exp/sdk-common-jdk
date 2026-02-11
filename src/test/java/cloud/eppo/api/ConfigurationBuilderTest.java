@@ -3,6 +3,9 @@ package cloud.eppo.api;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.api.dto.BanditModelData;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
@@ -12,6 +15,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
@@ -237,5 +241,57 @@ public class ConfigurationBuilderTest {
     assertNull(config.getEnvironmentName());
     assertNull(config.getConfigFetchedAt());
     assertNull(config.getConfigPublishedAt());
+  }
+
+  @Test
+  public void testBanditParametersFromNullResponse() {
+    String json = "{ \"flags\": {} }";
+    Configuration config =
+        new Configuration.Builder(json.getBytes())
+            .banditParameters((BanditParametersResponse) null)
+            .build();
+
+    // Should not throw and bandit should not be found
+    assertNull(config.getBanditParameters("any-bandit"));
+  }
+
+  @Test
+  public void testBanditParametersFromResponseWithNullBandits() {
+    // Create response with null bandits map (simulating edge case)
+    BanditParametersResponse response = new BanditParametersResponse.Default(null);
+
+    String json = "{ \"flags\": {} }";
+    Configuration config =
+        new Configuration.Builder(json.getBytes()).banditParameters(response).build();
+
+    // Should not throw and bandit should not be found
+    assertNull(config.getBanditParameters("any-bandit"));
+  }
+
+  @Test
+  public void testBanditParametersFromResponseWithMultipleBandits() {
+    BanditModelData mockModelData =
+        new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+
+    BanditParameters bandit1 =
+        new BanditParameters.Default("bandit-1", new Date(), "falcon", "v1", mockModelData);
+    BanditParameters bandit2 =
+        new BanditParameters.Default(
+            "bandit-2", new Date(), "contextual-bandit", "v2", mockModelData);
+
+    Map<String, BanditParameters> banditsMap = new HashMap<>();
+    banditsMap.put("bandit-1", bandit1);
+    banditsMap.put("bandit-2", bandit2);
+    BanditParametersResponse response = new BanditParametersResponse.Default(banditsMap);
+
+    String json = "{ \"flags\": {} }";
+    Configuration config =
+        new Configuration.Builder(json.getBytes()).banditParameters(response).build();
+
+    // Verify both bandits are accessible
+    assertNotNull(config.getBanditParameters("bandit-1"));
+    assertNotNull(config.getBanditParameters("bandit-2"));
+    assertEquals("falcon", config.getBanditParameters("bandit-1").getModelName());
+    assertEquals("contextual-bandit", config.getBanditParameters("bandit-2").getModelName());
   }
 }
