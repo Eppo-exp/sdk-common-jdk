@@ -50,7 +50,7 @@ public class ProfileBaseEppoClientTest {
             null,
             null,
             null,
-            null);
+            new OkHttpEppoClient());
 
     eppoClient.loadConfiguration();
 

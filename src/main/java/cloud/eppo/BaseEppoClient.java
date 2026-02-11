@@ -47,42 +47,6 @@ public class BaseEppoClient {
 
   private final CompletableFuture<Boolean> initialConfigFuture;
 
-  // Fields useful for testing in situations where we want to mock the http client or configuration
-  // store (accessed via reflection)
-  /** @noinspection FieldMayBeFinal */
-  private static EppoHttpClient httpClientOverride = null;
-
-  protected BaseEppoClient(
-      @NotNull String apiKey,
-      @NotNull String sdkName,
-      @NotNull String sdkVersion,
-      @Nullable String apiBaseUrl,
-      @Nullable AssignmentLogger assignmentLogger,
-      @Nullable BanditLogger banditLogger,
-      @Nullable IConfigurationStore configurationStore,
-      boolean isGracefulMode,
-      boolean expectObfuscatedConfig,
-      boolean supportBandits,
-      @Nullable CompletableFuture<Configuration> initialConfiguration,
-      @Nullable IAssignmentCache assignmentCache,
-      @Nullable IAssignmentCache banditAssignmentCache) {
-    this(
-        apiKey,
-        sdkName,
-        sdkVersion,
-        apiBaseUrl,
-        assignmentLogger,
-        banditLogger,
-        configurationStore,
-        isGracefulMode,
-        expectObfuscatedConfig,
-        supportBandits,
-        initialConfiguration,
-        assignmentCache,
-        banditAssignmentCache,
-        null,
-        null);
-  }
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
@@ -101,7 +65,7 @@ public class BaseEppoClient {
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache,
       @Nullable ConfigurationParser configurationParser,
-      @Nullable EppoConfigurationClient eppoConfigurationClient) {
+      @NotNull EppoConfigurationClient configurationClient) {
 
     if (apiBaseUrl == null) {
       apiBaseUrl = Constants.DEFAULT_BASE_URL;
@@ -114,7 +78,6 @@ public class BaseEppoClient {
     ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
     String effectiveBaseUrl = endpointHelper.getBaseUrl();
 
-    EppoHttpClient httpClient = buildHttpClient(apiBaseUrl, sdkKey, sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
@@ -122,15 +85,12 @@ public class BaseEppoClient {
         new EppoConfigurationRequestFactory(
             effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
 
-    // For now, the configuration is only obfuscated for Android clients
     requestor =
         new ConfigurationRequestor(
             this.configurationStore,
-            httpClient,
-            expectObfuscatedConfig,
             supportBandits,
             configurationParser,
-            eppoConfigurationClient,
+            configurationClient,
             requestFactory);
     initialConfigFuture =
         initialConfiguration != null
@@ -143,15 +103,6 @@ public class BaseEppoClient {
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-  }
-
-  private EppoHttpClient buildHttpClient(
-      String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
-    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
-
-    return httpClientOverride != null
-        ? httpClientOverride
-        : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {

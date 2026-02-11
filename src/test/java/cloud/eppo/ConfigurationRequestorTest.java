@@ -2,7 +2,6 @@ package cloud.eppo;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
@@ -51,16 +50,16 @@ public class ConfigurationRequestorTest {
   @Nested
   class InitialConfigurationTests {
     private IConfigurationStore configStore;
-    private EppoHttpClient mockHttpClient;
+    private EppoConfigurationClient mockConfigClient;
     private ConfigurationRequestor requestor;
 
     @BeforeEach
     void setUp() {
       configStore = Mockito.spy(new ConfigurationStore());
-      mockHttpClient = mock(EppoHttpClient.class);
+      mockConfigClient = mock(EppoConfigurationClient.class);
       requestor =
           new ConfigurationRequestor(
-              configStore, mockHttpClient, false, true, null, null, createTestRequestFactory());
+              configStore, true, null, mockConfigClient, createTestRequestFactory());
     }
 
     @Test
@@ -87,11 +86,12 @@ public class ConfigurationRequestorTest {
     void testInitialConfigurationDoesntClobberFetch() throws IOException {
       CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
       String flagConfig = loadInitialFlagConfigString();
-      CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
       String fetchedFlagConfig =
           FileUtils.readFileToString(DIFFERENT_FLAG_CONFIG_FILE, StandardCharsets.UTF_8);
 
-      when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
+      // Mock the config client to return a completable future that we control
+      CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
 
@@ -104,7 +104,9 @@ public class ConfigurationRequestorTest {
       // overwrite.
       CompletableFuture<Void> handle = requestor.fetchAndSaveFromRemoteAsync();
 
-      configFetchFuture.complete(fetchedFlagConfig.getBytes(StandardCharsets.UTF_8));
+      configFetchFuture.complete(
+          EppoConfigurationResponse.success(
+              200, "version-1", fetchedFlagConfig.getBytes(StandardCharsets.UTF_8)));
       initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
 
       assertFalse(configStore.getConfiguration().isEmpty());
@@ -121,9 +123,9 @@ public class ConfigurationRequestorTest {
     void testBrokenFetchDoesntClobberCache() throws IOException {
       CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
       String flagConfig = loadInitialFlagConfigString();
-      CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
 
-      when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
+      CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
 
@@ -148,9 +150,9 @@ public class ConfigurationRequestorTest {
     void testCacheWritesAfterBrokenFetch() throws IOException {
       CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
       String flagConfig = loadInitialFlagConfigString();
-      CompletableFuture<byte[]> configFetchFuture = new CompletableFuture<>();
 
-      when(mockHttpClient.getAsync("/flag-config/v1/config")).thenReturn(configFetchFuture);
+      CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
       verify(configStore, times(0)).saveConfiguration(any());
@@ -175,22 +177,35 @@ public class ConfigurationRequestorTest {
   @Nested
   class ConfigurationChangeListenerTests {
     private ConfigurationStore mockConfigStore;
-    private EppoHttpClient mockHttpClient;
+    private EppoConfigurationClient mockConfigClient;
     private ConfigurationRequestor requestor;
 
     @BeforeEach
     void setUp() {
       mockConfigStore = mock(ConfigurationStore.class);
-      mockHttpClient = mock(EppoHttpClient.class);
+      mockConfigClient = mock(EppoConfigurationClient.class);
+      when(mockConfigStore.getConfiguration()).thenReturn(Configuration.emptyConfig());
       requestor =
           new ConfigurationRequestor(
-              mockConfigStore, mockHttpClient, false, true, null, null, createTestRequestFactory());
+              mockConfigStore, true, null, mockConfigClient, createTestRequestFactory());
+    }
+
+    private void stubConfigClientSuccess(byte[] responseBody) {
+      EppoConfigurationResponse successResponse =
+          EppoConfigurationResponse.success(200, "version-1", responseBody);
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+          .thenReturn(CompletableFuture.completedFuture(successResponse));
+    }
+
+    private void stubConfigClientFailure() {
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+          .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Fetch failed")));
     }
 
     @Test
     void testConfigurationChangeListener() throws IOException {
       String flagConfig = loadInitialFlagConfigString();
-      when(mockHttpClient.get(anyString())).thenReturn(flagConfig.getBytes());
+      stubConfigClientSuccess(flagConfig.getBytes());
       when(mockConfigStore.saveConfiguration(any()))
           .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -210,7 +225,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testMultipleConfigurationChangeListeners() {
-      when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+      stubConfigClientSuccess("{}".getBytes());
       when(mockConfigStore.saveConfiguration(any()))
           .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -237,7 +252,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testConfigurationChangeListenerIgnoresFailedFetch() {
-      when(mockHttpClient.get(anyString())).thenThrow(new RuntimeException("Fetch failed"));
+      stubConfigClientFailure();
 
       AtomicInteger callCount = new AtomicInteger(0);
       requestor.onConfigurationChange(v -> callCount.incrementAndGet());
@@ -252,7 +267,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testConfigurationChangeListenerIgnoresFailedSave() {
-      when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+      stubConfigClientSuccess("{}".getBytes());
       when(mockConfigStore.saveConfiguration(any()))
           .thenReturn(
               CompletableFuture.supplyAsync(
@@ -273,8 +288,10 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testConfigurationChangeListenerAsyncSave() {
-      when(mockHttpClient.getAsync(anyString()))
-          .thenReturn(CompletableFuture.completedFuture("{\"flags\":{}}".getBytes()));
+      EppoConfigurationResponse successResponse =
+          EppoConfigurationResponse.success(200, "version-1", "{\"flags\":{}}".getBytes());
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+          .thenReturn(CompletableFuture.completedFuture(successResponse));
 
       CompletableFuture<Void> saveFuture = new CompletableFuture<>();
       when(mockConfigStore.saveConfiguration(any())).thenReturn(saveFuture);
@@ -293,7 +310,7 @@ public class ConfigurationRequestorTest {
     @Test
     void testUnsubscribeFromConfigurationChangeByReference() throws IOException {
       String flagConfig = loadInitialFlagConfigString();
-      when(mockHttpClient.get(anyString())).thenReturn(flagConfig.getBytes());
+      stubConfigClientSuccess(flagConfig.getBytes());
       when(mockConfigStore.saveConfiguration(any()))
           .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -321,7 +338,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testUnsubscribeOneOfMultipleConfigurationChangeListeners() {
-      when(mockHttpClient.get(anyString())).thenReturn("{}".getBytes());
+      stubConfigClientSuccess("{}".getBytes());
       when(mockConfigStore.saveConfiguration(any()))
           .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -355,7 +372,6 @@ public class ConfigurationRequestorTest {
   @Nested
   class EppoConfigurationClientTests {
     private IConfigurationStore configStore;
-    private EppoHttpClient mockHttpClient;
     private EppoConfigurationClient mockConfigClient;
     private EppoConfigurationRequestFactory requestFactory;
     private byte[] flagConfigBytes;
@@ -363,15 +379,13 @@ public class ConfigurationRequestorTest {
     @BeforeEach
     void setUp() throws IOException {
       configStore = Mockito.spy(new ConfigurationStore());
-      mockHttpClient = mock(EppoHttpClient.class);
       mockConfigClient = mock(EppoConfigurationClient.class);
       requestFactory = createTestRequestFactory();
       flagConfigBytes = loadInitialFlagConfig();
     }
 
     private ConfigurationRequestor createRequestor() {
-      return new ConfigurationRequestor(
-          configStore, mockHttpClient, false, false, null, mockConfigClient, requestFactory);
+      return new ConfigurationRequestor(configStore, false, null, mockConfigClient, requestFactory);
     }
 
     @Test
@@ -394,7 +408,6 @@ public class ConfigurationRequestorTest {
                           && request.getQueryParams().get("sdkVersion").equals("1.0.0")
                           && request.getLastVersionId() == null));
 
-      verify(mockHttpClient, never()).get(anyString());
       assertFalse(configStore.getConfiguration().isEmpty());
       assertNotNull(configStore.getConfiguration().getFlag("numeric_flag"));
     }
@@ -446,7 +459,6 @@ public class ConfigurationRequestorTest {
       requestor.fetchAndSaveFromRemoteAsync().join();
 
       verify(mockConfigClient).get(any(EppoConfigurationRequest.class));
-      verify(mockHttpClient, never()).getAsync(anyString());
       assertFalse(configStore.getConfiguration().isEmpty());
     }
 
@@ -467,7 +479,6 @@ public class ConfigurationRequestorTest {
   @Nested
   class ConfigurationParserTests {
     private IConfigurationStore configStore;
-    private EppoHttpClient mockHttpClient;
     private EppoConfigurationClient mockConfigClient;
     private ConfigurationParser mockParser;
     private EppoConfigurationRequestFactory requestFactory;
@@ -476,7 +487,6 @@ public class ConfigurationRequestorTest {
     @BeforeEach
     void setUp() throws IOException {
       configStore = Mockito.spy(new ConfigurationStore());
-      mockHttpClient = mock(EppoHttpClient.class);
       mockConfigClient = mock(EppoConfigurationClient.class);
       mockParser = mock(ConfigurationParser.class);
       requestFactory = createTestRequestFactory();
@@ -502,13 +512,7 @@ public class ConfigurationRequestorTest {
 
       ConfigurationRequestor requestor =
           new ConfigurationRequestor(
-              configStore,
-              mockHttpClient,
-              false,
-              false,
-              mockParser,
-              mockConfigClient,
-              requestFactory);
+              configStore, false, mockParser, mockConfigClient, requestFactory);
 
       requestor.fetchAndSaveFromRemote();
 
@@ -523,39 +527,10 @@ public class ConfigurationRequestorTest {
 
       ConfigurationRequestor requestor =
           new ConfigurationRequestor(
-              configStore,
-              mockHttpClient,
-              false,
-              false,
-              mockParser,
-              mockConfigClient,
-              requestFactory);
+              configStore, false, mockParser, mockConfigClient, requestFactory);
 
       requestor.fetchAndSaveFromRemoteAsync().join();
 
-      verify(mockParser).parseFlagConfig(flagConfigBytes);
-      verify(configStore).saveConfiguration(any());
-    }
-
-    @Test
-    void testFetchWithParserOnly() throws Exception {
-      // Test using parser with the default EppoHttpClient (not EppoConfigurationClient)
-      when(mockHttpClient.get(Constants.FLAG_CONFIG_ENDPOINT)).thenReturn(flagConfigBytes);
-      stubParserSuccess();
-
-      ConfigurationRequestor requestor =
-          new ConfigurationRequestor(
-              configStore,
-              mockHttpClient,
-              false,
-              false,
-              mockParser,
-              null, // No EppoConfigurationClient
-              requestFactory);
-
-      requestor.fetchAndSaveFromRemote();
-
-      verify(mockHttpClient).get(Constants.FLAG_CONFIG_ENDPOINT);
       verify(mockParser).parseFlagConfig(flagConfigBytes);
       verify(configStore).saveConfiguration(any());
     }
@@ -575,13 +550,7 @@ public class ConfigurationRequestorTest {
 
       ConfigurationRequestor requestor =
           new ConfigurationRequestor(
-              configStore,
-              mockHttpClient,
-              false,
-              false,
-              mockParser,
-              mockConfigClient,
-              requestFactory);
+              configStore, false, mockParser, mockConfigClient, requestFactory);
 
       assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
       verify(configStore, never()).saveConfiguration(any());
@@ -614,13 +583,7 @@ public class ConfigurationRequestorTest {
 
     private ConfigurationRequestor createRequestor(IConfigurationStore configStore) {
       return new ConfigurationRequestor(
-          configStore,
-          mock(EppoHttpClient.class), // Not used when EppoConfigurationClient is provided
-          false,
-          false,
-          jacksonParser,
-          okHttpClient,
-          createMockServerRequestFactory());
+          configStore, false, jacksonParser, okHttpClient, createMockServerRequestFactory());
     }
 
     private void enqueueSuccessResponse(String body, String etag) {

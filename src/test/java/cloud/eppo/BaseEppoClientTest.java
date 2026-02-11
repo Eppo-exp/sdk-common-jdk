@@ -178,9 +178,10 @@ public class BaseEppoClientTest {
   }
 
   @BeforeEach
-  public void cleanUp() {
-    // Reset mock config client before each test
-    mockConfigClient = null;
+  public void setUp() {
+    // Use real OkHttpEppoClient by default for integration tests that fetch real test data
+    // Individual tests can override with a mock if needed
+    mockConfigClient = new OkHttpEppoClient();
   }
 
   @ParameterizedTest
@@ -248,7 +249,7 @@ public class BaseEppoClientTest {
             null,
             null,
             null,
-            null);
+            new OkHttpEppoClient());
 
     eppoClient.loadConfiguration();
 
@@ -868,7 +869,7 @@ public class BaseEppoClientTest {
             null,
             null,
             null,
-            null);
+            new OkHttpEppoClient());
 
     // Get configuration before loading
     Configuration config = eppoClient.getConfiguration();
