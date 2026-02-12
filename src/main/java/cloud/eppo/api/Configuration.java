@@ -9,8 +9,6 @@ import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,16 +31,19 @@ import org.slf4j.LoggerFactory;
  * there are no bandits referenced by the flag configuration.
  *
  * <p>Usage: Building with just flag configuration (unobfuscated is default) <code>
- *     Configuration config = new Configuration.Builder(flagConfigJsonString).build();
+ *     FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ *     Configuration config = new Configuration.Builder(flagConfigJsonBytes, flagConfig).build();
  * </code>
  *
  * <p>Building with bandits (known configuration) <code>
- *     Configuration config = new Configuration.Builder(flagConfigJsonString).banditParameters(banditConfigJson).build();
+ *     FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ *     Configuration config = new Configuration.Builder(flagConfigJsonBytes, flagConfig).banditParameters(banditConfigJson).build();
  *     </code>
  *
  * <p>Conditionally loading bandit models (with or without an existing bandit config JSON string).
  * <code>
- *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonString).banditParameters(banditConfigJson);
+ *  FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonBytes, flagConfig).banditParameters(banditConfigJson);
  *  if (configBuilder.requiresBanditModels()) {
  *    // Load the bandit parameters encoded in a JSON string
  *    configBuilder.banditParameters(banditParameterJsonString);
@@ -56,9 +57,6 @@ import org.slf4j.LoggerFactory;
  * then check `requiresBanditModels()`.
  */
 public class Configuration {
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(EppoModule.eppoModule());
-
   private static final byte[] emptyFlagsBytes =
       "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
 
@@ -223,14 +221,6 @@ public class Configuration {
     return isConfigObfuscated;
   }
 
-  public byte[] serializeFlagConfigToBytes() {
-    return flagConfigJson;
-  }
-
-  public byte[] serializeBanditParamsToBytes() {
-    return banditParamsJson;
-  }
-
   public boolean isEmpty() {
     return flags == null || flags.isEmpty();
   }
@@ -264,8 +254,8 @@ public class Configuration {
     return flagsSnapshotId;
   }
 
-  public static Builder builder(byte[] flagJson) {
-    return new Builder(flagJson);
+  public static Builder builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
+    return new Builder(flagJson, flagConfigResponse);
   }
 
   /**
@@ -284,22 +274,6 @@ public class Configuration {
     private final String environmentName;
     private final Date configPublishedAt;
     @Nullable private String flagsSnapshotId;
-
-    private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
-      if (flagJson == null || flagJson.length == 0) {
-        log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
-        return null;
-      }
-      try {
-        return mapper.readValue(flagJson, FlagConfigResponse.class);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    public Builder(byte[] flagJson) {
-      this(flagJson, parseFlagResponse(flagJson));
-    }
 
     public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
       this(
@@ -365,34 +339,6 @@ public class Configuration {
         return this;
       }
       bandits = Collections.unmodifiableMap(banditParametersResponse.getBandits());
-      return this;
-    }
-
-    public Builder banditParameters(String banditParameterJson) {
-      return banditParameters(banditParameterJson.getBytes());
-    }
-
-    public Builder banditParameters(byte[] banditParameterJson) {
-      if (banditParameterJson == null || banditParameterJson.length == 0) {
-        log.debug("Bandit parameters are null or empty");
-        return this;
-      }
-      BanditParametersResponse config;
-      try {
-        config = mapper.readValue(banditParameterJson, BanditParametersResponse.class);
-      } catch (IOException e) {
-        log.error("Unable to parse bandit parameters JSON");
-        throw new RuntimeException(e);
-      }
-
-      if (config == null || config.getBandits() == null) {
-        log.warn("`bandits` map missing in bandit parameters JSON");
-        bandits = Collections.emptyMap();
-      } else {
-        bandits = Collections.unmodifiableMap(config.getBandits());
-        log.debug("Loaded {} bandit models from bandit parameters JSON", bandits.size());
-      }
-
       return this;
     }
 

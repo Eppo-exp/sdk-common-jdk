@@ -3,15 +3,17 @@ package cloud.eppo.api;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.JacksonConfigurationParser;
 import cloud.eppo.api.dto.BanditModelData;
 import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
+import cloud.eppo.parser.ConfigurationParser;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -25,44 +27,43 @@ public class ConfigurationBuilderTest {
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 
+  private static final ConfigurationParser<JsonNode> parser = new JacksonConfigurationParser();
+
+  private Configuration buildConfig(byte[] jsonBytes) {
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
+    return new Configuration.Builder(jsonBytes, flagConfigResponse).build();
+  }
+
+  private Configuration buildConfig(String json) {
+    return buildConfig(json.getBytes());
+  }
+
   @Test
   public void testHydrateConfigFromBytesForServer_true() {
     byte[] jsonBytes = "{ \"format\": \"SERVER\", \"flags\":{} }".getBytes();
-    Configuration config = new Configuration.Builder(jsonBytes).build();
+    Configuration config = buildConfig(jsonBytes);
     assertFalse(config.isConfigObfuscated());
   }
 
   @Test
   public void testHydrateConfigFromBytesForServer_false() {
     byte[] jsonBytes = "{ \"format\": \"CLIENT\", \"flags\":{} }".getBytes();
-    Configuration config = new Configuration.Builder(jsonBytes).build();
+    Configuration config = buildConfig(jsonBytes);
     assertTrue(config.isConfigObfuscated());
   }
 
   @Test
-  public void testBuildConfigAutoDetectsServerFormat() throws IOException {
+  public void testBuildConfigAutoDetectsServerFormat() {
     byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"SERVER\" }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes).build();
+    Configuration config = buildConfig(jsonBytes);
     assertFalse(config.isConfigObfuscated());
-
-    byte[] serializedFlags = config.serializeFlagConfigToBytes();
-    FlagConfigResponse rehydratedConfig =
-        mapper.readValue(serializedFlags, FlagConfigResponse.class);
-
-    assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.SERVER);
   }
 
   @Test
-  public void testBuildConfigAutoDetectsClientFormat() throws IOException {
+  public void testBuildConfigAutoDetectsClientFormat() {
     byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"CLIENT\" }".getBytes();
-    Configuration config = Configuration.builder(jsonBytes).build();
+    Configuration config = buildConfig(jsonBytes);
     assertTrue(config.isConfigObfuscated());
-
-    byte[] serializedFlags = config.serializeFlagConfigToBytes();
-    FlagConfigResponse rehydratedConfig =
-        mapper.readValue(serializedFlags, FlagConfigResponse.class);
-
-    assertEquals(rehydratedConfig.getFormat(), FlagConfigResponse.Format.CLIENT);
   }
 
   @Test
@@ -146,7 +147,7 @@ public class ConfigurationBuilderTest {
     // Environment name is nested inside an "environment" object
     String json =
         "{ \"flags\": {}, \"environment\": { \"name\": \"Production\" }, \"createdAt\": \"2024-01-01T00:00:00.000Z\" }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = buildConfig(json);
 
     assertEquals("Production", config.getEnvironmentName());
   }
@@ -155,7 +156,7 @@ public class ConfigurationBuilderTest {
   public void testEnvironmentNameNullWhenNotInJson() {
     // When flags are present but no environment object
     String json = "{ \"flags\": {} }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = buildConfig(json);
 
     assertNull(config.getEnvironmentName());
   }
@@ -163,7 +164,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testConfigPublishedAtParsedFromCreatedAt() throws Exception {
     String json = "{ \"flags\": {}, \"createdAt\": \"2024-04-17T19:40:53.716Z\" }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = buildConfig(json);
 
     // configPublishedAt should be set from the createdAt field in the JSON
     Date publishedAt = config.getConfigPublishedAt();
@@ -178,7 +179,7 @@ public class ConfigurationBuilderTest {
   @Test
   public void testConfigPublishedAtNullWhenCreatedAtNotInJson() {
     String json = "{ \"flags\": {} }";
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = buildConfig(json);
 
     assertNull(config.getConfigPublishedAt());
   }
@@ -191,7 +192,7 @@ public class ConfigurationBuilderTest {
     // Small sleep to ensure time difference is measurable
     Thread.sleep(10);
 
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = buildConfig(json);
 
     Thread.sleep(10);
     Date afterBuild = new Date();
@@ -213,7 +214,7 @@ public class ConfigurationBuilderTest {
         "{ \"flags\": {}, \"environment\": { \"name\": \"Staging\" }, \"createdAt\": \"2024-06-15T12:30:00.000Z\", \"format\": \"SERVER\" }";
 
     Date beforeBuild = new Date();
-    Configuration config = new Configuration.Builder(json.getBytes()).build();
+    Configuration config = buildConfig(json);
     Date afterBuild = new Date();
 
     // Verify environmentName
@@ -246,8 +247,10 @@ public class ConfigurationBuilderTest {
   @Test
   public void testBanditParametersFromNullResponse() {
     String json = "{ \"flags\": {} }";
+    byte[] jsonBytes = json.getBytes();
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
     Configuration config =
-        new Configuration.Builder(json.getBytes())
+        new Configuration.Builder(jsonBytes, flagConfigResponse)
             .banditParameters((BanditParametersResponse) null)
             .build();
 
@@ -261,8 +264,10 @@ public class ConfigurationBuilderTest {
     BanditParametersResponse response = new BanditParametersResponse.Default(null);
 
     String json = "{ \"flags\": {} }";
+    byte[] jsonBytes = json.getBytes();
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
     Configuration config =
-        new Configuration.Builder(json.getBytes()).banditParameters(response).build();
+        new Configuration.Builder(jsonBytes, flagConfigResponse).banditParameters(response).build();
 
     // Should not throw and bandit should not be found
     assertNull(config.getBanditParameters("any-bandit"));
@@ -285,8 +290,10 @@ public class ConfigurationBuilderTest {
     BanditParametersResponse response = new BanditParametersResponse.Default(banditsMap);
 
     String json = "{ \"flags\": {} }";
+    byte[] jsonBytes = json.getBytes();
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
     Configuration config =
-        new Configuration.Builder(json.getBytes()).banditParameters(response).build();
+        new Configuration.Builder(jsonBytes, flagConfigResponse).banditParameters(response).build();
 
     // Verify both bandits are accessible
     assertNotNull(config.getBanditParameters("bandit-1"));

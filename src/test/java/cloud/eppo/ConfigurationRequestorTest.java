@@ -12,6 +12,7 @@ import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.parser.ConfigurationParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,19 @@ public class ConfigurationRequestorTest {
     return FileUtils.readFileToString(INITIAL_FLAG_CONFIG_FILE, StandardCharsets.UTF_8);
   }
 
+  private static ConfigurationParser<JsonNode> configurationParser =
+      new JacksonConfigurationParser();
+
+  private Configuration buildConfig(String json) {
+    FlagConfigResponse flagConfigResponse = configurationParser.parseFlagConfig(json.getBytes());
+    return new Configuration.Builder(json.getBytes(), flagConfigResponse).build();
+  }
+
+  private Configuration buildConfig(byte[] json) {
+    FlagConfigResponse flagConfigResponse = configurationParser.parseFlagConfig(json);
+    return new Configuration.Builder(json, flagConfigResponse).build();
+  }
+
   @Nested
   class InitialConfigurationTests {
     private IConfigurationStore configStore;
@@ -76,7 +90,7 @@ public class ConfigurationRequestorTest {
       assertEquals(Collections.emptySet(), configStore.getConfiguration().getFlagKeys());
       verify(configStore, times(0)).saveConfiguration(any());
 
-      futureConfig.complete(Configuration.builder(flagConfig).build());
+      futureConfig.complete(buildConfig(flagConfig));
 
       assertFalse(configStore.getConfiguration().isEmpty());
       assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
@@ -109,7 +123,7 @@ public class ConfigurationRequestorTest {
       configFetchFuture.complete(
           EppoConfigurationResponse.success(
               200, "version-1", fetchedFlagConfig.getBytes(StandardCharsets.UTF_8)));
-      initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
+      initialConfigFuture.complete(buildConfig(flagConfig));
 
       assertFalse(configStore.getConfiguration().isEmpty());
       assertFalse(configStore.getConfiguration().getFlagKeys().isEmpty());
@@ -137,7 +151,7 @@ public class ConfigurationRequestorTest {
 
       requestor.fetchAndSaveFromRemoteAsync();
 
-      initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
+      initialConfigFuture.complete(buildConfig(flagConfig));
       configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
       assertFalse(configStore.getConfiguration().isEmpty());
@@ -165,7 +179,7 @@ public class ConfigurationRequestorTest {
       requestor.fetchAndSaveFromRemoteAsync();
       configFetchFuture.completeExceptionally(new Exception("Intentional exception"));
 
-      initialConfigFuture.complete(new Configuration.Builder(flagConfig.getBytes()).build());
+      initialConfigFuture.complete(buildConfig(flagConfig));
 
       verify(configStore, times(1)).saveConfiguration(any());
       assertFalse(configStore.getConfiguration().isEmpty());
