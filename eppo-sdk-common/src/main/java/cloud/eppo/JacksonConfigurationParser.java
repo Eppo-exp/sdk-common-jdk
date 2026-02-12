@@ -5,8 +5,10 @@ import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +19,7 @@ import org.slf4j.LoggerFactory;
  * format. The deserializers are hand-rolled to avoid reliance on annotations and method names,
  * which can be unreliable when ProGuard minification is in use.
  */
-public class JacksonConfigurationParser implements ConfigurationParser {
+public class JacksonConfigurationParser implements ConfigurationParser<JsonNode> {
   private static final Logger log = LoggerFactory.getLogger(JacksonConfigurationParser.class);
 
   private final ObjectMapper objectMapper;
@@ -64,6 +66,16 @@ public class JacksonConfigurationParser implements ConfigurationParser {
       return objectMapper.readValue(banditParamsJson, BanditParametersResponse.class);
     } catch (IOException e) {
       throw new ConfigurationParseException("Failed to parse bandit parameters", e);
+    }
+  }
+
+  @Override
+  public @NotNull JsonNode parseJsonValue(@NotNull String jsonValue)
+      throws ConfigurationParseException {
+    try {
+      return objectMapper.readTree(jsonValue);
+    } catch (IOException e) {
+      throw new ConfigurationParseException("Failed to parse JSON value", e);
     }
   }
 }
