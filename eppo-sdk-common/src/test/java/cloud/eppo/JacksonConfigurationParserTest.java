@@ -12,6 +12,7 @@ import cloud.eppo.parser.ConfigurationParseException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -121,7 +122,7 @@ public class JacksonConfigurationParserTest {
 
   private byte[] loadTestResource(String relativePath) throws IOException {
     // Test resources are in the root project, so we need to go up from eppo-sdk-common
-    Path path = Path.of("../src/test/resources", relativePath);
+    Path path = Paths.get("../src/test/resources", relativePath);
     return Files.readAllBytes(path);
   }
 }
