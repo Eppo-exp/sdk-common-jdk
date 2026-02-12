@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  * eppo-sdk-common module), but users can supply custom implementations to accommodate specialized
  * needs.
  */
-public interface ConfigurationParser {
+public interface ConfigurationParser<JSONFlagType> {
 
   /**
    * Parses raw flag configuration JSON bytes.
@@ -33,4 +33,13 @@ public interface ConfigurationParser {
    */
   @NotNull BanditParametersResponse parseBanditParams(@NotNull byte[] banditParamsJson)
       throws ConfigurationParseException;
+
+  /**
+   * Unwraps a JSON value to the appropriate JSONFlagType.
+   *
+   * @param jsonValue the encoded JSON value
+   * @return the parsed JSON value
+   * @throws ConfigurationParseException if unwrapping fails
+   */
+  @NotNull JSONFlagType parseJsonValue(@NotNull String jsonValue) throws ConfigurationParseException;
 }
