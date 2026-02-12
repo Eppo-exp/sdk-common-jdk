@@ -252,7 +252,7 @@ public class ConfigurationRequestor {
     return remoteFetchFuture;
   }
 
-  /** Builds configuration from flag bytes and saves it. Used by async fetch. */
+  // Common handling for building config and conditionally loading bandit parameters, async.
   private CompletableFuture<Void> buildAndSaveConfiguration(
       byte[] flagConfigJsonBytes, Configuration lastConfig) {
     Configuration.Builder configBuilder;
