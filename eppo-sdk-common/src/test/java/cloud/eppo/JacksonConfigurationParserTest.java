@@ -49,11 +49,11 @@ public class JacksonConfigurationParserTest {
   public void testParseBanditParams() throws IOException {
     byte[] banditParamsJson = loadTestResource("shared/ufc/bandit-models-v1.json");
 
-    BanditParametersResponse banditResponse = parser.parseBanditParams(banditParamsJson);
-    assertNotNull(banditResponse);
+    BanditParametersResponse banditsResponse = parser.parseBanditParams(banditParamsJson);
 
-    Map<String, BanditParameters> bandits = banditResponse.getBandits();
-
+    assertNotNull(banditsResponse);
+    assertNotNull(banditsResponse.getBandits());
+    Map<String, BanditParameters> bandits = banditsResponse.getBandits();
     assertThat(bandits).containsKey("banner_bandit");
 
     BanditParameters bannerBandit = bandits.get("banner_bandit");
@@ -103,9 +103,9 @@ public class JacksonConfigurationParserTest {
     byte[] emptyBanditsJson = "{\"bandits\": {}}".getBytes();
 
     BanditParametersResponse banditsResponse = parser.parseBanditParams(emptyBanditsJson);
-    assertNotNull(banditsResponse);
     Map<String, BanditParameters> bandits = banditsResponse.getBandits();
 
+    assertNotNull(banditsResponse);
     assertNotNull(bandits);
     assertThat(bandits).isEmpty();
   }
