@@ -9,7 +9,6 @@ import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
-import java.io.*;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
@@ -29,31 +28,37 @@ import org.slf4j.LoggerFactory;
  * accommodate the as-needed loading of bandit parameters as a network call may not be needed if
  * there are no bandits referenced by the flag configuration.
  *
- * <p>Usage: Building with just flag configuration (unobfuscated is default) <code>
- *     FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- *     Configuration config = new Configuration.Builder(flagConfigJsonBytes, flagConfig).build();
- * </code>
+ * <p>Usage: Building with just flag configuration (obfuscation auto-detected from format):
  *
- * <p>Building with bandits (known configuration) <code>
- *     FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- *     BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
- *     Configuration config = new Configuration.Builder(flagConfigJsonBytes, flagConfig)
- *         .banditParameters(banditParams)
- *         .build();
- * </code>
+ * <pre>{@code
+ * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ * Configuration config = new Configuration.Builder(flagConfig).build();
+ * }</pre>
  *
- * <p>Conditionally loading bandit models (with or without an existing bandit configuration). <code>
- *  FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonBytes, flagConfig)
- *      .banditParametersFromConfig(existingConfig);
- *  if (configBuilder.requiresUpdatedBanditModels()) {
- *    BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
- *    configBuilder.banditParameters(banditParams);
- *  }
- *  Configuration config = configBuilder.build();
- * </code>
+ * <p>Building with bandits (known configuration):
  *
- * <p>Hint: when loading new Flag configuration values, set the current bandit models in the builder
+ * <pre>{@code
+ * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ * BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
+ * Configuration config = new Configuration.Builder(flagConfig)
+ *     .banditParameters(banditParams)
+ *     .build();
+ * }</pre>
+ *
+ * <p>Conditionally loading bandit models (with or without an existing bandit configuration):
+ *
+ * <pre>{@code
+ * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ * Configuration.Builder configBuilder = new Configuration.Builder(flagConfig)
+ *     .banditParametersFromConfig(existingConfig);
+ * if (configBuilder.requiresUpdatedBanditModels()) {
+ *   BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
+ *   configBuilder.banditParameters(banditParams);
+ * }
+ * Configuration config = configBuilder.build();
+ * }</pre>
+ *
+ * <p>Hint: when loading new flag configuration values, set the current bandit models in the builder
  * using {@link Builder#banditParametersFromConfig(Configuration)}, then check {@link
  * Builder#requiresUpdatedBanditModels()}.
  */
