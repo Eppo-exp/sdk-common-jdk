@@ -19,6 +19,7 @@ import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
@@ -62,9 +63,9 @@ public class BaseEppoClientTest {
       new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
 
   // Use JacksonConfigurationParser for all tests
-  private final ConfigurationParser parser = new JacksonConfigurationParser();
+  private final ConfigurationParser<JsonNode> parser = new JacksonConfigurationParser();
 
-  private BaseEppoClient eppoClient;
+  private BaseEppoClient<JsonNode> eppoClient;
   private AssignmentLogger mockAssignmentLogger;
   private EppoConfigurationClient mockConfigClient;
 
@@ -84,7 +85,7 @@ public class BaseEppoClientTest {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
@@ -106,7 +107,7 @@ public class BaseEppoClientTest {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
@@ -132,7 +133,7 @@ public class BaseEppoClientTest {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             isConfigObfuscated ? "android" : "java",
             "100.1.0",
@@ -156,7 +157,7 @@ public class BaseEppoClientTest {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
@@ -234,7 +235,7 @@ public class BaseEppoClientTest {
     mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
 
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",
@@ -268,8 +269,8 @@ public class BaseEppoClientTest {
   public void testErrorGracefulModeOn() throws JsonProcessingException {
     initClient(true, false);
 
-    BaseEppoClient realClient = eppoClient;
-    BaseEppoClient spyClient = spy(realClient);
+    BaseEppoClient<JsonNode> realClient = eppoClient;
+    BaseEppoClient<JsonNode> spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
@@ -313,8 +314,8 @@ public class BaseEppoClientTest {
   public void testErrorGracefulModeOff() {
     initClient(false, false);
 
-    BaseEppoClient realClient = eppoClient;
-    BaseEppoClient spyClient = spy(realClient);
+    BaseEppoClient<JsonNode> realClient = eppoClient;
+    BaseEppoClient<JsonNode> spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
@@ -736,9 +737,9 @@ public class BaseEppoClientTest {
     mockConfigClient = mockConfigurationClient(BOOL_FLAG_CONFIG);
 
     mockAssignmentLogger = mock(AssignmentLogger.class);
-    BaseEppoClient client =
+    BaseEppoClient<JsonNode> client =
         eppoClient =
-            new BaseEppoClient(
+            new BaseEppoClient<>(
                 DUMMY_FLAG_API_KEY,
                 "java",
                 "100.1.0",
@@ -857,7 +858,7 @@ public class BaseEppoClientTest {
     mockAssignmentLogger = mock(AssignmentLogger.class);
 
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             "java",
             "100.1.0",

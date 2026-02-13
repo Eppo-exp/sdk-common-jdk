@@ -89,17 +89,17 @@ public class AssignmentTestCase {
     return testCase;
   }
 
-  public static void runTestCase(AssignmentTestCase testCase, BaseEppoClient eppoClient) {
+  public static void runTestCase(AssignmentTestCase testCase, BaseEppoClient<JsonNode> eppoClient) {
     runTestCaseBase(testCase, eppoClient, false);
   }
 
   public static void runTestCaseWithDetails(
-      AssignmentTestCase testCase, BaseEppoClient eppoClient) {
+      AssignmentTestCase testCase, BaseEppoClient<JsonNode> eppoClient) {
     runTestCaseBase(testCase, eppoClient, true);
   }
 
   private static void runTestCaseBase(
-      AssignmentTestCase testCase, BaseEppoClient eppoClient, boolean validateDetails) {
+      AssignmentTestCase testCase, BaseEppoClient<JsonNode> eppoClient, boolean validateDetails) {
     String flagKey = testCase.getFlag();
     TestCaseValue defaultValue = testCase.getDefaultValue();
     assertFalse(testCase.getSubjects().isEmpty());

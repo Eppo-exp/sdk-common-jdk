@@ -16,7 +16,6 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.parser.ConfigurationParser;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -27,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BaseEppoClient {
+public class BaseEppoClient<JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
   protected final ConfigurationRequestor requestor;
@@ -64,7 +63,7 @@ public class BaseEppoClient {
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache,
-      @NotNull ConfigurationParser configurationParser,
+      @NotNull ConfigurationParser<JsonFlagType> configurationParser,
       @NotNull EppoConfigurationClient configurationClient) {
 
     if (apiBaseUrl == null) {
@@ -518,23 +517,24 @@ public class BaseEppoClient {
     }
   }
 
-  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
+  public JsonFlagType getJSONAssignment(
+      String flagKey, String subjectKey, JsonFlagType defaultValue) {
     return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+  public JsonFlagType getJSONAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonFlagType defaultValue) {
     return this.getJSONAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
         .getVariation();
   }
 
-  public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
-      String flagKey, String subjectKey, JsonNode defaultValue) {
+  public AssignmentDetails<JsonFlagType> getJSONAssignmentDetails(
+      String flagKey, String subjectKey, JsonFlagType defaultValue) {
     return this.getJSONAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+  public AssignmentDetails<JsonFlagType> getJSONAssignmentDetails(
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonFlagType defaultValue) {
     try {
       return this.getTypedAssignmentWithDetails(
           flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
