@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * Encapsulates the Flag Configuration and Bandit parameters in an immutable object with a complete
  * and coherent state.
  *
- * <p>A Builder is used to prepare and then create am immutable data structure containing both flag
+ * <p>A Builder is used to prepare and then create an immutable data structure containing both flag
  * and bandit configurations. An intermediate step is required in building the configuration to
  * accommodate the as-needed loading of bandit parameters as a network call may not be needed if
  * there are no bandits referenced by the flag configuration.
@@ -37,24 +37,26 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Building with bandits (known configuration) <code>
  *     FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- *     Configuration config = new Configuration.Builder(flagConfigJsonBytes, flagConfig).banditParameters(banditConfigJson).build();
- *     </code>
+ *     BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
+ *     Configuration config = new Configuration.Builder(flagConfigJsonBytes, flagConfig)
+ *         .banditParameters(banditParams)
+ *         .build();
+ * </code>
  *
- * <p>Conditionally loading bandit models (with or without an existing bandit config JSON string).
- * <code>
+ * <p>Conditionally loading bandit models (with or without an existing bandit configuration). <code>
  *  FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonBytes, flagConfig).banditParameters(banditConfigJson);
- *  if (configBuilder.requiresBanditModels()) {
- *    // Load the bandit parameters encoded in a JSON string
- *    configBuilder.banditParameters(banditParameterJsonString);
+ *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonBytes, flagConfig)
+ *      .banditParametersFromConfig(existingConfig);
+ *  if (configBuilder.requiresUpdatedBanditModels()) {
+ *    BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
+ *    configBuilder.banditParameters(banditParams);
  *  }
  *  Configuration config = configBuilder.build();
  * </code>
  *
- * <p>
- *
  * <p>Hint: when loading new Flag configuration values, set the current bandit models in the builder
- * then check `requiresBanditModels()`.
+ * using {@link Builder#banditParametersFromConfig(Configuration)}, then check {@link
+ * Builder#requiresUpdatedBanditModels()}.
  */
 public class Configuration {
   private static final byte[] emptyFlagsBytes =
