@@ -1,15 +1,17 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface BanditReference {
+public interface BanditReference extends Serializable {
   @NotNull String getModelVersion();
 
   @NotNull List<BanditFlagVariation> getFlagVariations();
 
   class Default implements BanditReference {
+    private static final long serialVersionUID = 1L;
     private final String modelVersion;
     private final List<BanditFlagVariation> flagVariations;
 

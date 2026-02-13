@@ -13,7 +13,8 @@ import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.*;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -57,7 +58,8 @@ import org.slf4j.LoggerFactory;
  * <p>Hint: when loading new Flag configuration values, set the current bandit models in the builder
  * then check `requiresBanditModels()`.
  */
-public class Configuration {
+public class Configuration implements Serializable {
+  private static final long serialVersionUID = 1L;
   private static final ObjectMapper mapper =
       new ObjectMapper().registerModule(EppoModule.eppoModule());
 
@@ -373,15 +375,6 @@ public class Configuration {
         bandits = currentConfig.bandits;
         banditParamsJson = currentConfig.banditParamsJson;
       }
-      return this;
-    }
-
-    public Builder banditParameters(BanditParametersResponse banditParametersResponse) {
-      if (banditParametersResponse == null || banditParametersResponse.getBandits() == null) {
-        bandits = Collections.emptyMap();
-        return this;
-      }
-      bandits = Collections.unmodifiableMap(banditParametersResponse.getBandits());
       return this;
     }
 

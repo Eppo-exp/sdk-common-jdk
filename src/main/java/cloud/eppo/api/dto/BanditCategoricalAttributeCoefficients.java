@@ -10,6 +10,7 @@ public interface BanditCategoricalAttributeCoefficients extends BanditAttributeC
   @NotNull Map<String, Double> getValueCoefficients();
 
   class Default implements BanditCategoricalAttributeCoefficients {
+    private static final long serialVersionUID = 1L;
     private final String attributeKey;
     private final Double missingValueCoefficient;
     private final Map<String, Double> valueCoefficients;

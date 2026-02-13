@@ -1,9 +1,10 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface BanditFlagVariation {
+public interface BanditFlagVariation extends Serializable {
   @NotNull String getBanditKey();
 
   @NotNull String getFlagKey();
@@ -15,6 +16,7 @@ public interface BanditFlagVariation {
   @NotNull String getVariationValue();
 
   class Default implements BanditFlagVariation {
+    private static final long serialVersionUID = 1L;
     private final String banditKey;
     private final String flagKey;
     private final String allocationKey;

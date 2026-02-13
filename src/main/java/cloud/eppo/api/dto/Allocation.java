@@ -1,5 +1,6 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -7,7 +8,7 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface Allocation {
+public interface Allocation extends Serializable {
   @NotNull String getKey();
 
   @Nullable Set<TargetingRule> getRules();
@@ -21,6 +22,7 @@ public interface Allocation {
   boolean doLog();
 
   class Default implements Allocation {
+    private static final long serialVersionUID = 1L;
     private final String key;
     private final Set<TargetingRule> rules;
     private final Date startAt;

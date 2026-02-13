@@ -1,16 +1,18 @@
 package cloud.eppo.api.dto;
 
 import cloud.eppo.model.ShardRange;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-public interface Shard {
+public interface Shard extends Serializable {
   @NotNull String getSalt();
 
   @NotNull Set<ShardRange> getRanges();
 
   class Default implements Shard {
+    private static final long serialVersionUID = 1L;
     private final String salt;
     private final Set<ShardRange> ranges;
 

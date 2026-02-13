@@ -1,11 +1,12 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-public interface Split {
+public interface Split extends Serializable {
   @NotNull String getVariationKey();
 
   @NotNull Set<Shard> getShards();
@@ -13,6 +14,7 @@ public interface Split {
   @NotNull Map<String, String> getExtraLogging();
 
   class Default implements Split {
+    private static final long serialVersionUID = 1L;
     private final String variationKey;
     private final Set<Shard> shards;
     private final Map<String, String> extraLogging;

@@ -1,10 +1,11 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface BanditModelData {
+public interface BanditModelData extends Serializable {
   @NotNull Double getGamma();
 
   @NotNull Double getDefaultActionScore();
@@ -14,6 +15,7 @@ public interface BanditModelData {
   @NotNull Map<String, BanditCoefficients> getCoefficients();
 
   class Default implements BanditModelData {
+    private static final long serialVersionUID = 1L;
     private final Double gamma;
     private final Double defaultActionScore;
     private final Double actionProbabilityFloor;

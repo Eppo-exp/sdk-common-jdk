@@ -1,10 +1,11 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface BanditCoefficients {
+public interface BanditCoefficients extends Serializable {
   @NotNull String getActionKey();
 
   @NotNull Double getIntercept();
@@ -18,6 +19,7 @@ public interface BanditCoefficients {
   @NotNull Map<String, BanditCategoricalAttributeCoefficients> getActionCategoricalCoefficients();
 
   class Default implements BanditCoefficients {
+    private static final long serialVersionUID = 1L;
     private final String actionKey;
     private final Double intercept;
     private final Map<String, BanditNumericAttributeCoefficients> subjectNumericCoefficients;

@@ -1,11 +1,12 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface BanditParameters {
+public interface BanditParameters extends Serializable {
   @NotNull String getBanditKey();
 
   @Nullable Date getUpdatedAt();
@@ -17,6 +18,7 @@ public interface BanditParameters {
   @NotNull BanditModelData getModelData();
 
   class Default implements BanditParameters {
+    private static final long serialVersionUID = 1L;
     private final String banditKey;
     private final Date updatedAt;
     private final String modelName;

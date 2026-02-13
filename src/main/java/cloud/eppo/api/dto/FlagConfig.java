@@ -1,11 +1,12 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface FlagConfig {
+public interface FlagConfig extends Serializable {
   @NotNull String getKey();
 
   boolean isEnabled();
@@ -19,6 +20,7 @@ public interface FlagConfig {
   @NotNull List<Allocation> getAllocations();
 
   class Default implements FlagConfig {
+    private static final long serialVersionUID = 1L;
     private final String key;
     private final boolean enabled;
     private final int totalShards;

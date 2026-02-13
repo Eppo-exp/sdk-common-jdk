@@ -1,10 +1,11 @@
 package cloud.eppo.api.dto;
 
 import cloud.eppo.api.EppoValue;
+import java.io.Serializable;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface TargetingCondition {
+public interface TargetingCondition extends Serializable {
   @NotNull OperatorType getOperator();
 
   @NotNull String getAttribute();
@@ -12,6 +13,7 @@ public interface TargetingCondition {
   @NotNull EppoValue getValue();
 
   class Default implements TargetingCondition {
+    private static final long serialVersionUID = 1L;
     private final OperatorType operator;
     private final String attribute;
     private final EppoValue value;

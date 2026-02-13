@@ -9,6 +9,7 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
   @NotNull Double getMissingValueCoefficient();
 
   class Default implements BanditNumericAttributeCoefficients {
+    private static final long serialVersionUID = 1L;
     private final String attributeKey;
     private final Double coefficient;
     private final Double missingValueCoefficient;
