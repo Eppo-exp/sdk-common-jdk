@@ -38,6 +38,7 @@ public class BaseEppoClient<JsonFlagType> {
   private boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
+  private final ConfigurationParser<JsonFlagType> configurationParser;
   private Timer pollTimer;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
@@ -72,6 +73,7 @@ public class BaseEppoClient<JsonFlagType> {
 
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
+    this.configurationParser = configurationParser;
 
     SDKKey sdkKey = new SDKKey(apiKey);
     ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
@@ -199,7 +201,7 @@ public class BaseEppoClient<JsonFlagType> {
 
     T resultValue =
         details.evaluationSuccessful()
-            ? details.getVariationValue().unwrap(expectedType)
+            ? details.getVariationValue().unwrap(expectedType, configurationParser::parseJsonValue)
             : defaultValue;
     return new AssignmentDetails<>(resultValue, null, details);
   }
@@ -372,7 +374,7 @@ public class BaseEppoClient<JsonFlagType> {
             value.isString()
                 // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
                 // unwrapping)
-                && value.unwrap(VariationType.JSON) != null;
+                && value.unwrap(VariationType.JSON, configurationParser::parseJsonValue) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
