@@ -1,8 +1,11 @@
 package cloud.eppo.api.dto;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface BanditCategoricalAttributeCoefficients extends BanditAttributeCoefficients {
   @NotNull Double getMissingValueCoefficient();
@@ -11,17 +14,19 @@ public interface BanditCategoricalAttributeCoefficients extends BanditAttributeC
 
   class Default implements BanditCategoricalAttributeCoefficients {
     private static final long serialVersionUID = 1L;
-    private final String attributeKey;
-    private final Double missingValueCoefficient;
-    private final Map<String, Double> valueCoefficients;
+    private final @NotNull String attributeKey;
+    private final @NotNull Double missingValueCoefficient;
+    private final @NotNull Map<String, Double> valueCoefficients;
 
     public Default(
-        String attributeKey,
-        Double missingValueCoefficient,
-        Map<String, Double> valueCoefficients) {
+        @NotNull String attributeKey,
+        @NotNull Double missingValueCoefficient,
+        @Nullable Map<String, Double> valueCoefficients) {
       this.attributeKey = attributeKey;
       this.missingValueCoefficient = missingValueCoefficient;
-      this.valueCoefficients = valueCoefficients;
+      this.valueCoefficients = valueCoefficients == null
+          ? Collections.emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(valueCoefficients));
     }
 
     @Override
@@ -52,16 +57,19 @@ public interface BanditCategoricalAttributeCoefficients extends BanditAttributeC
     }
 
     @Override
+    @NotNull
     public String getAttributeKey() {
       return attributeKey;
     }
 
     @Override
+    @NotNull
     public Double getMissingValueCoefficient() {
       return missingValueCoefficient;
     }
 
     @Override
+    @NotNull
     public Map<String, Double> getValueCoefficients() {
       return valueCoefficients;
     }

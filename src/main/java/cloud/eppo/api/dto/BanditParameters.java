@@ -19,20 +19,20 @@ public interface BanditParameters extends Serializable {
 
   class Default implements BanditParameters {
     private static final long serialVersionUID = 1L;
-    private final String banditKey;
-    private final Date updatedAt;
-    private final String modelName;
-    private final String modelVersion;
-    private final BanditModelData modelData;
+    private final @NotNull String banditKey;
+    private final @Nullable Date updatedAt;
+    private final @NotNull String modelName;
+    private final @NotNull String modelVersion;
+    private final @NotNull BanditModelData modelData;
 
     public Default(
-        String banditKey,
-        Date updatedAt,
-        String modelName,
-        String modelVersion,
-        BanditModelData modelData) {
+        @NotNull String banditKey,
+        @Nullable Date updatedAt,
+        @NotNull String modelName,
+        @NotNull String modelVersion,
+        @NotNull BanditModelData modelData) {
       this.banditKey = banditKey;
-      this.updatedAt = updatedAt;
+      this.updatedAt = updatedAt == null ? null : new Date(updatedAt.getTime());
       this.modelName = modelName;
       this.modelVersion = modelVersion;
       this.modelData = modelData;
@@ -74,26 +74,31 @@ public interface BanditParameters extends Serializable {
     }
 
     @Override
+    @NotNull
     public String getBanditKey() {
       return banditKey;
     }
 
     @Override
+    @Nullable
     public Date getUpdatedAt() {
-      return updatedAt;
+      return updatedAt == null ? null : new Date(updatedAt.getTime());
     }
 
     @Override
+    @NotNull
     public String getModelName() {
       return modelName;
     }
 
     @Override
+    @NotNull
     public String getModelVersion() {
       return modelVersion;
     }
 
     @Override
+    @NotNull
     public BanditModelData getModelData() {
       return modelData;
     }

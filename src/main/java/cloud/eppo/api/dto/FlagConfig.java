@@ -1,10 +1,14 @@
 package cloud.eppo.api.dto;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface FlagConfig extends Serializable {
   @NotNull String getKey();
@@ -21,26 +25,30 @@ public interface FlagConfig extends Serializable {
 
   class Default implements FlagConfig {
     private static final long serialVersionUID = 1L;
-    private final String key;
+    private final @NotNull String key;
     private final boolean enabled;
     private final int totalShards;
-    private final VariationType variationType;
-    private final Map<String, Variation> variations;
-    private final List<Allocation> allocations;
+    private final @NotNull VariationType variationType;
+    private final @NotNull Map<String, Variation> variations;
+    private final @NotNull List<Allocation> allocations;
 
     public Default(
-        String key,
+        @NotNull String key,
         boolean enabled,
         int totalShards,
-        VariationType variationType,
-        Map<String, Variation> variations,
-        List<Allocation> allocations) {
+        @Nullable VariationType variationType,
+        @Nullable Map<String, Variation> variations,
+        @Nullable List<Allocation> allocations) {
       this.key = key;
       this.enabled = enabled;
       this.totalShards = totalShards;
-      this.variationType = variationType;
-      this.variations = variations;
-      this.allocations = allocations;
+      this.variationType = variationType == null ? VariationType.STRING : variationType;
+      this.variations = variations == null
+          ? Collections.emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(variations));
+      this.allocations = allocations == null
+          ? Collections.emptyList()
+          : Collections.unmodifiableList(new ArrayList<>(allocations));
     }
 
     @Override
@@ -80,6 +88,7 @@ public interface FlagConfig extends Serializable {
     }
 
     @Override
+    @NotNull
     public String getKey() {
       return key;
     }
@@ -95,16 +104,19 @@ public interface FlagConfig extends Serializable {
     }
 
     @Override
+    @NotNull
     public VariationType getVariationType() {
       return variationType;
     }
 
     @Override
+    @NotNull
     public Map<String, Variation> getVariations() {
       return variations;
     }
 
     @Override
+    @NotNull
     public List<Allocation> getAllocations() {
       return allocations;
     }

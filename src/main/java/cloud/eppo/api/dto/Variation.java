@@ -12,10 +12,10 @@ public interface Variation extends Serializable {
 
   class Default implements Variation {
     private static final long serialVersionUID = 1L;
-    private final String key;
-    private final EppoValue value;
+    private final @NotNull String key;
+    private final @NotNull EppoValue value;
 
-    public Default(String key, EppoValue value) {
+    public Default(@NotNull String key, @NotNull EppoValue value) {
       this.key = key;
       this.value = value;
     }
@@ -37,10 +37,14 @@ public interface Variation extends Serializable {
       return Objects.hash(key, value);
     }
 
+    @Override
+    @NotNull
     public String getKey() {
       return this.key;
     }
 
+    @Override
+    @NotNull
     public EppoValue getValue() {
       return value;
     }

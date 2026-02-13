@@ -21,74 +21,74 @@ public class RuleEvaluatorTest {
     return new TargetingRule.Default(conditions);
   }
 
-  public void addConditionToRule(TargetingRule TargetingRule, TargetingCondition condition) {
-    TargetingRule.getConditions().add(condition);
+  public Set<TargetingCondition> createNumericConditions() {
+    Set<TargetingCondition> conditions = new HashSet<>();
+    conditions.add(
+        new TargetingCondition.Default(
+            OperatorType.GREATER_THAN_OR_EQUAL_TO, "price", EppoValue.valueOf(10)));
+    conditions.add(
+        new TargetingCondition.Default(
+            OperatorType.LESS_THAN_OR_EQUAL_TO, "price", EppoValue.valueOf(20)));
+    return conditions;
   }
 
-  public void addNumericConditionToRule(TargetingRule TargetingRule) {
-    TargetingCondition condition1 =
+  public Set<TargetingCondition> createSemVerConditions() {
+    Set<TargetingCondition> conditions = new HashSet<>();
+    conditions.add(
         new TargetingCondition.Default(
-            OperatorType.GREATER_THAN_OR_EQUAL_TO, "price", EppoValue.valueOf(10));
-    TargetingCondition condition2 =
+            OperatorType.GREATER_THAN_OR_EQUAL_TO, "appVersion", EppoValue.valueOf("1.5.0")));
+    conditions.add(
         new TargetingCondition.Default(
-            OperatorType.LESS_THAN_OR_EQUAL_TO, "price", EppoValue.valueOf(20));
-
-    addConditionToRule(TargetingRule, condition1);
-    addConditionToRule(TargetingRule, condition2);
+            OperatorType.LESS_THAN, "appVersion", EppoValue.valueOf("2.2.0")));
+    return conditions;
   }
 
-  public void addSemVerConditionToRule(TargetingRule TargetingRule) {
-    TargetingCondition condition1 =
+  public Set<TargetingCondition> createRegexConditions() {
+    Set<TargetingCondition> conditions = new HashSet<>();
+    conditions.add(
         new TargetingCondition.Default(
-            OperatorType.GREATER_THAN_OR_EQUAL_TO, "appVersion", EppoValue.valueOf("1.5.0"));
-    TargetingCondition condition2 =
-        new TargetingCondition.Default(
-            OperatorType.LESS_THAN, "appVersion", EppoValue.valueOf("2.2.0"));
-
-    addConditionToRule(TargetingRule, condition1);
-    addConditionToRule(TargetingRule, condition2);
+            OperatorType.MATCHES, "match", EppoValue.valueOf("example\\.(com|org)")));
+    return conditions;
   }
 
-  public void addRegexConditionToRule(TargetingRule TargetingRule) {
-    TargetingCondition condition =
-        new TargetingCondition.Default(
-            OperatorType.MATCHES, "match", EppoValue.valueOf("example\\.(com|org)"));
-    addConditionToRule(TargetingRule, condition);
-  }
-
-  public void addOneOfConditionWithStrings(TargetingRule rule) {
+  public Set<TargetingCondition> createOneOfConditionsWithStrings() {
+    Set<TargetingCondition> conditions = new HashSet<>();
     List<String> values = Arrays.asList("value1", "value2");
-    TargetingCondition condition =
-        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values));
-    addConditionToRule(rule, condition);
+    conditions.add(
+        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values)));
+    return conditions;
   }
 
-  public void addOneOfConditionWithIntegers(TargetingRule rule) {
+  public Set<TargetingCondition> createOneOfConditionsWithIntegers() {
+    Set<TargetingCondition> conditions = new HashSet<>();
     List<String> values = Arrays.asList("1", "2");
-    TargetingCondition condition =
-        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values));
-    addConditionToRule(rule, condition);
+    conditions.add(
+        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values)));
+    return conditions;
   }
 
-  public void addOneOfConditionWithDoubles(TargetingRule rule) {
+  public Set<TargetingCondition> createOneOfConditionsWithDoubles() {
+    Set<TargetingCondition> conditions = new HashSet<>();
     List<String> values = Arrays.asList("1.5", "2.7");
-    TargetingCondition condition =
-        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values));
-    addConditionToRule(rule, condition);
+    conditions.add(
+        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values)));
+    return conditions;
   }
 
-  public void addOneOfConditionWithBoolean(TargetingRule rule) {
+  public Set<TargetingCondition> createOneOfConditionsWithBoolean() {
+    Set<TargetingCondition> conditions = new HashSet<>();
     List<String> values = Collections.singletonList("true");
-    TargetingCondition condition =
-        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values));
-    addConditionToRule(rule, condition);
+    conditions.add(
+        new TargetingCondition.Default(OperatorType.ONE_OF, "oneOf", EppoValue.valueOf(values)));
+    return conditions;
   }
 
-  public void addNotOneOfTargetingCondition(TargetingRule TargetingRule) {
+  public Set<TargetingCondition> createNotOneOfConditions() {
+    Set<TargetingCondition> conditions = new HashSet<>();
     List<String> values = Arrays.asList("value1", "value2");
-    TargetingCondition condition =
-        new TargetingCondition.Default(OperatorType.NOT_ONE_OF, "oneOf", EppoValue.valueOf(values));
-    addConditionToRule(TargetingRule, condition);
+    conditions.add(
+        new TargetingCondition.Default(OperatorType.NOT_ONE_OF, "oneOf", EppoValue.valueOf(values)));
+    return conditions;
   }
 
   public void addNameToSubjectAttribute(Attributes subjectAttributes) {
@@ -124,8 +124,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWhenNoRuleMatches() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addNumericConditionToRule(targetingRule);
+    TargetingRule targetingRule = createRule(createNumericConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -137,8 +136,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWhenRuleMatches() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addNumericConditionToRule(targetingRule);
+    TargetingRule targetingRule = createRule(createNumericConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -151,8 +149,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWhenRuleMatchesWithSemVer() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addSemVerConditionToRule(targetingRule);
+    TargetingRule targetingRule = createRule(createSemVerConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -165,8 +162,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWhenThrowInvalidSubjectAttribute() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addNumericConditionToRule(targetingRule);
+    TargetingRule targetingRule = createRule(createNumericConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -178,8 +174,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithRegexCondition() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addRegexConditionToRule(targetingRule);
+    TargetingRule targetingRule = createRule(createRegexConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -192,8 +187,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithRegexConditionNotMatched() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addRegexConditionToRule(targetingRule);
+    TargetingRule targetingRule = createRule(createRegexConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -205,8 +199,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithNotOneOfRule() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addNotOneOfTargetingCondition(targetingRule);
+    TargetingRule targetingRule = createRule(createNotOneOfConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -219,8 +212,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithNotOneOfRuleNotPassed() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addNotOneOfTargetingCondition(targetingRule);
+    TargetingRule targetingRule = createRule(createNotOneOfConditions());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -232,8 +224,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithOneOfRuleOnString() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addOneOfConditionWithStrings(targetingRule);
+    TargetingRule targetingRule = createRule(createOneOfConditionsWithStrings());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -246,8 +237,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithOneOfRuleOnInteger() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addOneOfConditionWithIntegers(targetingRule);
+    TargetingRule targetingRule = createRule(createOneOfConditionsWithIntegers());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -260,8 +250,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithOneOfRuleOnDouble() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addOneOfConditionWithDoubles(targetingRule);
+    TargetingRule targetingRule = createRule(createOneOfConditionsWithDoubles());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();
@@ -274,8 +263,7 @@ public class RuleEvaluatorTest {
   @Test
   public void testMatchesAnyRuleWithOneOfRuleOnBoolean() {
     Set<TargetingRule> targetingRules = new HashSet<>();
-    TargetingRule targetingRule = createRule(new HashSet<>());
-    addOneOfConditionWithBoolean(targetingRule);
+    TargetingRule targetingRule = createRule(createOneOfConditionsWithBoolean());
     targetingRules.add(targetingRule);
 
     Attributes subjectAttributes = new Attributes();

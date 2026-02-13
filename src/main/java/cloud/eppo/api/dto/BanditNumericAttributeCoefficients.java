@@ -10,11 +10,14 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
 
   class Default implements BanditNumericAttributeCoefficients {
     private static final long serialVersionUID = 1L;
-    private final String attributeKey;
-    private final Double coefficient;
-    private final Double missingValueCoefficient;
+    private final @NotNull String attributeKey;
+    private final @NotNull Double coefficient;
+    private final @NotNull Double missingValueCoefficient;
 
-    public Default(String attributeKey, Double coefficient, Double missingValueCoefficient) {
+    public Default(
+        @NotNull String attributeKey,
+        @NotNull Double coefficient,
+        @NotNull Double missingValueCoefficient) {
       this.attributeKey = attributeKey;
       this.coefficient = coefficient;
       this.missingValueCoefficient = missingValueCoefficient;
@@ -48,16 +51,19 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
     }
 
     @Override
+    @NotNull
     public String getAttributeKey() {
       return attributeKey;
     }
 
     @Override
+    @NotNull
     public Double getCoefficient() {
       return coefficient;
     }
 
     @Override
+    @NotNull
     public Double getMissingValueCoefficient() {
       return missingValueCoefficient;
     }

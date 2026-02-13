@@ -17,18 +17,18 @@ public interface BanditFlagVariation extends Serializable {
 
   class Default implements BanditFlagVariation {
     private static final long serialVersionUID = 1L;
-    private final String banditKey;
-    private final String flagKey;
-    private final String allocationKey;
-    private final String variationKey;
-    private final String variationValue;
+    private final @NotNull String banditKey;
+    private final @NotNull String flagKey;
+    private final @NotNull String allocationKey;
+    private final @NotNull String variationKey;
+    private final @NotNull String variationValue;
 
     public Default(
-        String banditKey,
-        String flagKey,
-        String allocationKey,
-        String variationKey,
-        String variationValue) {
+        @NotNull String banditKey,
+        @NotNull String flagKey,
+        @NotNull String allocationKey,
+        @NotNull String variationKey,
+        @NotNull String variationValue) {
       this.banditKey = banditKey;
       this.flagKey = flagKey;
       this.allocationKey = allocationKey;
@@ -74,26 +74,31 @@ public interface BanditFlagVariation extends Serializable {
     }
 
     @Override
+    @NotNull
     public String getBanditKey() {
       return banditKey;
     }
 
     @Override
+    @NotNull
     public String getFlagKey() {
       return flagKey;
     }
 
     @Override
+    @NotNull
     public String getAllocationKey() {
       return allocationKey;
     }
 
     @Override
+    @NotNull
     public String getVariationKey() {
       return variationKey;
     }
 
     @Override
+    @NotNull
     public String getVariationValue() {
       return variationValue;
     }

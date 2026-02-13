@@ -14,11 +14,14 @@ public interface TargetingCondition extends Serializable {
 
   class Default implements TargetingCondition {
     private static final long serialVersionUID = 1L;
-    private final OperatorType operator;
-    private final String attribute;
-    private final EppoValue value;
+    private final @NotNull OperatorType operator;
+    private final @NotNull String attribute;
+    private final @NotNull EppoValue value;
 
-    public Default(OperatorType operator, String attribute, EppoValue value) {
+    public Default(
+        @NotNull OperatorType operator,
+        @NotNull String attribute,
+        @NotNull EppoValue value) {
       this.operator = operator;
       this.attribute = attribute;
       this.value = value;
@@ -52,16 +55,19 @@ public interface TargetingCondition extends Serializable {
     }
 
     @Override
+    @NotNull
     public OperatorType getOperator() {
       return operator;
     }
 
     @Override
+    @NotNull
     public String getAttribute() {
       return attribute;
     }
 
     @Override
+    @NotNull
     public EppoValue getValue() {
       return value;
     }

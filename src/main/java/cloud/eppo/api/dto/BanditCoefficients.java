@@ -1,9 +1,12 @@
 package cloud.eppo.api.dto;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface BanditCoefficients extends Serializable {
   @NotNull String getActionKey();
@@ -20,28 +23,38 @@ public interface BanditCoefficients extends Serializable {
 
   class Default implements BanditCoefficients {
     private static final long serialVersionUID = 1L;
-    private final String actionKey;
-    private final Double intercept;
-    private final Map<String, BanditNumericAttributeCoefficients> subjectNumericCoefficients;
-    private final Map<String, BanditCategoricalAttributeCoefficients>
+    private final @NotNull String actionKey;
+    private final @NotNull Double intercept;
+    private final @NotNull Map<String, BanditNumericAttributeCoefficients> subjectNumericCoefficients;
+    private final @NotNull Map<String, BanditCategoricalAttributeCoefficients>
         subjectCategoricalCoefficients;
-    private final Map<String, BanditNumericAttributeCoefficients> actionNumericCoefficients;
-    private final Map<String, BanditCategoricalAttributeCoefficients> actionCategoricalCoefficients;
+    private final @NotNull Map<String, BanditNumericAttributeCoefficients> actionNumericCoefficients;
+    private final @NotNull Map<String, BanditCategoricalAttributeCoefficients>
+        actionCategoricalCoefficients;
 
     public Default(
-        String actionKey,
-        Double intercept,
-        Map<String, BanditNumericAttributeCoefficients> subjectNumericAttributeCoefficients,
-        Map<String, BanditCategoricalAttributeCoefficients> subjectCategoricalAttributeCoefficients,
-        Map<String, BanditNumericAttributeCoefficients> actionNumericAttributeCoefficients,
-        Map<String, BanditCategoricalAttributeCoefficients>
+        @NotNull String actionKey,
+        @NotNull Double intercept,
+        @Nullable Map<String, BanditNumericAttributeCoefficients> subjectNumericAttributeCoefficients,
+        @Nullable Map<String, BanditCategoricalAttributeCoefficients>
+            subjectCategoricalAttributeCoefficients,
+        @Nullable Map<String, BanditNumericAttributeCoefficients> actionNumericAttributeCoefficients,
+        @Nullable Map<String, BanditCategoricalAttributeCoefficients>
             actionCategoricalAttributeCoefficients) {
       this.actionKey = actionKey;
       this.intercept = intercept;
-      this.subjectNumericCoefficients = subjectNumericAttributeCoefficients;
-      this.subjectCategoricalCoefficients = subjectCategoricalAttributeCoefficients;
-      this.actionNumericCoefficients = actionNumericAttributeCoefficients;
-      this.actionCategoricalCoefficients = actionCategoricalAttributeCoefficients;
+      this.subjectNumericCoefficients = subjectNumericAttributeCoefficients == null
+          ? Collections.emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(subjectNumericAttributeCoefficients));
+      this.subjectCategoricalCoefficients = subjectCategoricalAttributeCoefficients == null
+          ? Collections.emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(subjectCategoricalAttributeCoefficients));
+      this.actionNumericCoefficients = actionNumericAttributeCoefficients == null
+          ? Collections.emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(actionNumericAttributeCoefficients));
+      this.actionCategoricalCoefficients = actionCategoricalAttributeCoefficients == null
+          ? Collections.emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(actionCategoricalAttributeCoefficients));
     }
 
     @Override
@@ -88,31 +101,37 @@ public interface BanditCoefficients extends Serializable {
     }
 
     @Override
+    @NotNull
     public String getActionKey() {
       return actionKey;
     }
 
     @Override
+    @NotNull
     public Double getIntercept() {
       return intercept;
     }
 
     @Override
+    @NotNull
     public Map<String, BanditNumericAttributeCoefficients> getSubjectNumericCoefficients() {
       return subjectNumericCoefficients;
     }
 
     @Override
+    @NotNull
     public Map<String, BanditCategoricalAttributeCoefficients> getSubjectCategoricalCoefficients() {
       return subjectCategoricalCoefficients;
     }
 
     @Override
+    @NotNull
     public Map<String, BanditNumericAttributeCoefficients> getActionNumericCoefficients() {
       return actionNumericCoefficients;
     }
 
     @Override
+    @NotNull
     public Map<String, BanditCategoricalAttributeCoefficients> getActionCategoricalCoefficients() {
       return actionCategoricalCoefficients;
     }

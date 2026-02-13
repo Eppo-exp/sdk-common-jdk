@@ -1,7 +1,10 @@
 package cloud.eppo.api.dto;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -23,25 +26,29 @@ public interface Allocation extends Serializable {
 
   class Default implements Allocation {
     private static final long serialVersionUID = 1L;
-    private final String key;
-    private final Set<TargetingRule> rules;
-    private final Date startAt;
-    private final Date endAt;
-    private final List<Split> splits;
+    private final @NotNull String key;
+    private final @Nullable Set<TargetingRule> rules;
+    private final @Nullable Date startAt;
+    private final @Nullable Date endAt;
+    private final @NotNull List<Split> splits;
     private final boolean doLog;
 
     public Default(
-        String key,
-        Set<TargetingRule> rules,
-        Date startAt,
-        Date endAt,
-        List<Split> splits,
+        @NotNull String key,
+        @Nullable Set<TargetingRule> rules,
+        @Nullable Date startAt,
+        @Nullable Date endAt,
+        @Nullable List<Split> splits,
         boolean doLog) {
       this.key = key;
-      this.rules = rules;
-      this.startAt = startAt;
-      this.endAt = endAt;
-      this.splits = splits;
+      this.rules = rules == null
+          ? null
+          : Collections.unmodifiableSet(new HashSet<>(rules));
+      this.startAt = startAt == null ? null : new Date(startAt.getTime());
+      this.endAt = endAt == null ? null : new Date(endAt.getTime());
+      this.splits = splits == null
+          ? Collections.emptyList()
+          : Collections.unmodifiableList(new ArrayList<>(splits));
       this.doLog = doLog;
     }
 
@@ -82,26 +89,31 @@ public interface Allocation extends Serializable {
     }
 
     @Override
+    @NotNull
     public String getKey() {
       return key;
     }
 
     @Override
+    @Nullable
     public Set<TargetingRule> getRules() {
       return rules;
     }
 
     @Override
+    @Nullable
     public Date getStartAt() {
-      return startAt;
+      return startAt == null ? null : new Date(startAt.getTime());
     }
 
     @Override
+    @Nullable
     public Date getEndAt() {
-      return endAt;
+      return endAt == null ? null : new Date(endAt.getTime());
     }
 
     @Override
+    @NotNull
     public List<Split> getSplits() {
       return splits;
     }

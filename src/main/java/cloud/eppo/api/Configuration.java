@@ -13,8 +13,7 @@ import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -375,6 +374,15 @@ public class Configuration implements Serializable {
         bandits = currentConfig.bandits;
         banditParamsJson = currentConfig.banditParamsJson;
       }
+      return this;
+    }
+
+    public Builder banditParameters(BanditParametersResponse banditParametersResponse) {
+      if (banditParametersResponse == null || banditParametersResponse.getBandits() == null) {
+        bandits = Collections.emptyMap();
+        return this;
+      }
+      bandits = Collections.unmodifiableMap(banditParametersResponse.getBandits());
       return this;
     }
 
