@@ -2,11 +2,10 @@ package cloud.eppo.api;
 
 import cloud.eppo.api.dto.EppoValueType;
 import cloud.eppo.api.dto.VariationType;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class EppoValue {
   protected final EppoValueType type;
@@ -100,14 +99,39 @@ public class EppoValue {
   }
 
   /**
-   * Unwraps this EppoValue to the appropriate Java type based on the variation type.
+   * Unwraps this EppoValue to the appropriate Java type based on the variation type. For JSON
+   * types, use {@link #unwrap(VariationType, Function)} instead.
    *
-   * @param expectedType the expected variation type
-   * @param <T> the target type (Boolean, Integer, Double, String, or JsonNode)
+   * @param expectedType the expected variation type (must not be JSON)
+   * @param <T> the target type (Boolean, Integer, Double, or String)
    * @return the unwrapped value
+   * @throws IllegalArgumentException if expectedType is JSON (use the overload with jsonParser)
    */
   @SuppressWarnings("unchecked")
   public <T> T unwrap(VariationType expectedType) {
+    if (expectedType == VariationType.JSON) {
+      throw new IllegalArgumentException(
+          "JSON unwrap requires a parser function; use unwrap(expectedType, jsonParser)");
+    }
+    return unwrapInternal(expectedType, null);
+  }
+
+  /**
+   * Unwraps this EppoValue to the appropriate Java type based on the variation type, using the
+   * provided parser for JSON values.
+   *
+   * @param expectedType the expected variation type
+   * @param jsonParser function to parse JSON strings (required for JSON type, ignored otherwise)
+   * @param <T> the target type (Boolean, Integer, Double, String, or the JSON parser's return type)
+   * @return the unwrapped value
+   */
+  @SuppressWarnings("unchecked")
+  public <T> T unwrap(VariationType expectedType, Function<String, ?> jsonParser) {
+    return unwrapInternal(expectedType, jsonParser);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> T unwrapInternal(VariationType expectedType, Function<String, ?> jsonParser) {
     switch (expectedType) {
       case BOOLEAN:
         return (T) Boolean.valueOf(booleanValue());
@@ -118,13 +142,10 @@ public class EppoValue {
       case STRING:
         return (T) stringValue();
       case JSON:
-        String jsonString = stringValue();
-        try {
-          ObjectMapper mapper = new ObjectMapper();
-          return (T) mapper.readTree(jsonString);
-        } catch (JsonProcessingException e) {
-          return null;
+        if (jsonParser == null) {
+          throw new IllegalArgumentException("JSON parser required for JSON type");
         }
+        return (T) jsonParser.apply(stringValue());
     }
     throw new IllegalArgumentException("Unknown variation type: " + expectedType);
   }

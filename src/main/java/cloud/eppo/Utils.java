@@ -1,10 +1,8 @@
 package cloud.eppo;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
@@ -90,32 +88,6 @@ public final class Utils {
 
     // Modulo into the shard space
     return (int) (value % maxShardValue);
-  }
-
-  public static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
-    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
-      return null;
-    }
-    String isoDateString = isoDateStringElement.asText();
-    Date result = null;
-    try {
-      result = UTC_ISO_DATE_FORMAT.get().parse(isoDateString);
-    } catch (ParseException e) {
-      // We expect to fail parsing if the date is base 64 encoded
-      // Thus we'll leave the result null for now and try again with the decoded value
-    }
-
-    if (result == null) {
-      // Date may be encoded
-      String decodedIsoDateString = base64Decode(isoDateString);
-      try {
-        result = UTC_ISO_DATE_FORMAT.get().parse(decodedIsoDateString);
-      } catch (ParseException e) {
-        log.warn("Date \"{}\" not in ISO date format", isoDateString);
-      }
-    }
-
-    return result;
   }
 
   public static String getISODate(Date date) {
