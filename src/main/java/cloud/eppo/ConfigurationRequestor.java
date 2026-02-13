@@ -127,8 +127,7 @@ public class ConfigurationRequestor {
       FlagConfigResponse flagConfigResponse =
           configurationParser.parseFlagConfig(flagConfigurationJsonBytes);
       configBuilder =
-          new Configuration.Builder(flagConfigurationJsonBytes, flagConfigResponse)
-              .banditParametersFromConfig(lastConfig);
+          new Configuration.Builder(flagConfigResponse).banditParametersFromConfig(lastConfig);
     } catch (ConfigurationParseException e) {
       log.error("Failed to parse flag configuration", e);
       throw new RuntimeException(e);
@@ -217,8 +216,7 @@ public class ConfigurationRequestor {
       FlagConfigResponse flagConfigResponse =
           configurationParser.parseFlagConfig(flagResponse.getBody());
       configBuilder =
-          new Configuration.Builder(flagResponse.getBody(), flagConfigResponse)
-              .banditParametersFromConfig(lastConfig);
+          new Configuration.Builder(flagConfigResponse).banditParametersFromConfig(lastConfig);
     } catch (ConfigurationParseException e) {
       log.error("Failed to parse flag configuration", e);
       throw new RuntimeException(e);

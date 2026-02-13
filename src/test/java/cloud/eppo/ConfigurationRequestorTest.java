@@ -53,12 +53,12 @@ public class ConfigurationRequestorTest {
 
   private Configuration buildConfig(String json) {
     FlagConfigResponse flagConfigResponse = configurationParser.parseFlagConfig(json.getBytes());
-    return new Configuration.Builder(json.getBytes(), flagConfigResponse).build();
+    return new Configuration.Builder(flagConfigResponse).build();
   }
 
   private Configuration buildConfig(byte[] json) {
     FlagConfigResponse flagConfigResponse = configurationParser.parseFlagConfig(json);
-    return new Configuration.Builder(json, flagConfigResponse).build();
+    return new Configuration.Builder(flagConfigResponse).build();
   }
 
   @Nested

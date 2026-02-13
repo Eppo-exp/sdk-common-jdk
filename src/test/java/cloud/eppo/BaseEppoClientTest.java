@@ -374,8 +374,7 @@ public class BaseEppoClientTest {
   private CompletableFuture<Configuration> immediateConfigFuture(
       String config, boolean isObfuscated) {
     return CompletableFuture.completedFuture(
-        Configuration.builder(config.getBytes(), parser.parseFlagConfig(config.getBytes()))
-            .build());
+        Configuration.builder(parser.parseFlagConfig(config.getBytes())).build());
   }
 
   @Test
@@ -480,8 +479,7 @@ public class BaseEppoClientTest {
     assertEquals(0, result);
 
     // Now, complete the initial config future and check the value.
-    futureConfig.complete(
-        Configuration.builder(flagConfig, parser.parseFlagConfig(flagConfig)).build());
+    futureConfig.complete(Configuration.builder(parser.parseFlagConfig(flagConfig)).build());
 
     result = eppoClient.getDoubleAssignment("numeric_flag", "dummy subject", 0);
     assertEquals(5, result);

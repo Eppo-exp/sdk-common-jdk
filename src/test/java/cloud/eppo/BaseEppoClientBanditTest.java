@@ -94,9 +94,7 @@ public class BaseEppoClientBanditTest {
 
     CompletableFuture<Configuration> initialConfig =
         CompletableFuture.completedFuture(
-            Configuration.builder(
-                    initialFlagConfiguration.getBytes(),
-                    parser.parseFlagConfig(initialFlagConfiguration.getBytes()))
+            Configuration.builder(parser.parseFlagConfig(initialFlagConfiguration.getBytes()))
                 .banditParameters(parser.parseBanditParams(initialBanditParameters.getBytes()))
                 .build());
 

@@ -31,7 +31,7 @@ public class ConfigurationBuilderTest {
 
   private Configuration buildConfig(byte[] jsonBytes) {
     FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
-    return new Configuration.Builder(jsonBytes, flagConfigResponse).build();
+    return new Configuration.Builder(flagConfigResponse).build();
   }
 
   private Configuration buildConfig(String json) {
@@ -89,9 +89,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
-            null, // flagsSnapshotId
-            null, // flagConfigJson
-            null); // banditParamsJson
+            null); // flagsSnapshotId
 
     // Test successful case
     assertEquals(VariationType.STRING, config.getFlagType("test-flag"));
@@ -124,9 +122,7 @@ public class ConfigurationBuilderTest {
             null, // environmentName
             null, // configFetchedAt
             null, // configPublishedAt
-            null, // flagsSnapshotId
-            null, // flagConfigJson
-            null); // banditParamsJson
+            null); // flagsSnapshotId
 
     // Test successful case with obfuscated config
     assertEquals(VariationType.NUMERIC, config.getFlagType("test-flag"));
@@ -250,7 +246,7 @@ public class ConfigurationBuilderTest {
     byte[] jsonBytes = json.getBytes();
     FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
     Configuration config =
-        new Configuration.Builder(jsonBytes, flagConfigResponse)
+        new Configuration.Builder(flagConfigResponse)
             .banditParameters((BanditParametersResponse) null)
             .build();
 
@@ -267,7 +263,7 @@ public class ConfigurationBuilderTest {
     byte[] jsonBytes = json.getBytes();
     FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
     Configuration config =
-        new Configuration.Builder(jsonBytes, flagConfigResponse).banditParameters(response).build();
+        new Configuration.Builder(flagConfigResponse).banditParameters(response).build();
 
     // Should not throw and bandit should not be found
     assertNull(config.getBanditParameters("any-bandit"));
@@ -293,7 +289,7 @@ public class ConfigurationBuilderTest {
     byte[] jsonBytes = json.getBytes();
     FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
     Configuration config =
-        new Configuration.Builder(jsonBytes, flagConfigResponse).banditParameters(response).build();
+        new Configuration.Builder(flagConfigResponse).banditParameters(response).build();
 
     // Verify both bandits are accessible
     assertNotNull(config.getBanditParameters("bandit-1"));

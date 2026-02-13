@@ -10,7 +10,6 @@ import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
 import java.io.*;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
@@ -59,9 +58,6 @@ import org.slf4j.LoggerFactory;
  * Builder#requiresUpdatedBanditModels()}.
  */
 public class Configuration {
-  private static final byte[] emptyFlagsBytes =
-      "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
-
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   private final Map<String, BanditReference> banditReferences;
   private final Map<String, FlagConfig> flags;
@@ -72,10 +68,6 @@ public class Configuration {
   private final Date configPublishedAt;
   @Nullable private final String flagsSnapshotId;
 
-  private final byte[] flagConfigJson;
-
-  private final byte[] banditParamsJson;
-
   /** Default visibility for tests. */
   Configuration(
       Map<String, FlagConfig> flags,
@@ -85,9 +77,7 @@ public class Configuration {
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt,
-      @Nullable String flagsSnapshotId,
-      byte[] flagConfigJson,
-      byte[] banditParamsJson) {
+      @Nullable String flagsSnapshotId) {
     this.flags = flags;
     this.banditReferences = banditReferences;
     this.bandits = bandits;
@@ -96,8 +86,6 @@ public class Configuration {
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
     this.flagsSnapshotId = flagsSnapshotId;
-    this.flagConfigJson = flagConfigJson;
-    this.banditParamsJson = banditParamsJson;
   }
 
   public static Configuration emptyConfig() {
@@ -109,8 +97,6 @@ public class Configuration {
         null,
         null,
         null,
-        null,
-        emptyFlagsBytes,
         null);
   }
 
@@ -134,10 +120,6 @@ public class Configuration {
         + configPublishedAt
         + ", flagsSnapshotId="
         + flagsSnapshotId
-        + ", flagConfigJson="
-        + Arrays.toString(flagConfigJson)
-        + ", banditParamsJson="
-        + Arrays.toString(banditParamsJson)
         + '}';
   }
 
@@ -152,9 +134,7 @@ public class Configuration {
         && Objects.equals(environmentName, that.environmentName)
         && Objects.equals(configFetchedAt, that.configFetchedAt)
         && Objects.equals(configPublishedAt, that.configPublishedAt)
-        && Objects.equals(flagsSnapshotId, that.flagsSnapshotId)
-        && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
-        && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+        && Objects.equals(flagsSnapshotId, that.flagsSnapshotId);
   }
 
   @Override
@@ -167,9 +147,7 @@ public class Configuration {
         environmentName,
         configFetchedAt,
         configPublishedAt,
-        flagsSnapshotId,
-        Arrays.hashCode(flagConfigJson),
-        Arrays.hashCode(banditParamsJson));
+        flagsSnapshotId);
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -256,8 +234,8 @@ public class Configuration {
     return flagsSnapshotId;
   }
 
-  public static Builder builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
-    return new Builder(flagJson, flagConfigResponse);
+  public static Builder builder(FlagConfigResponse flagConfigResponse) {
+    return new Builder(flagConfigResponse);
   }
 
   /**
@@ -271,25 +249,16 @@ public class Configuration {
     private final Map<String, FlagConfig> flags;
     private final Map<String, BanditReference> banditReferences;
     private Map<String, BanditParameters> bandits = Collections.emptyMap();
-    private final byte[] flagJson;
-    private byte[] banditParamsJson;
     private final String environmentName;
     private final Date configPublishedAt;
     @Nullable private String flagsSnapshotId;
 
-    public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
-      this(
-          flagJson,
-          flagConfigResponse,
-          flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
+    public Builder(FlagConfigResponse flagConfigResponse) {
+      this(flagConfigResponse, flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
     }
 
-    public Builder(
-        byte[] flagJson,
-        @Nullable FlagConfigResponse flagConfigResponse,
-        boolean isConfigObfuscated) {
+    public Builder(@Nullable FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated) {
       this.isConfigObfuscated = isConfigObfuscated;
-      this.flagJson = flagJson;
       if (flagConfigResponse == null || flagConfigResponse.getFlags() == null) {
         log.warn("'flags' map missing in flag definition JSON");
         flags = Collections.emptyMap();
@@ -330,7 +299,6 @@ public class Configuration {
         bandits = Collections.emptyMap();
       } else {
         bandits = currentConfig.bandits;
-        banditParamsJson = currentConfig.banditParamsJson;
       }
       return this;
     }
@@ -360,9 +328,7 @@ public class Configuration {
           environmentName,
           configFetchedAt,
           configPublishedAt,
-          flagsSnapshotId,
-          flagJson,
-          banditParamsJson);
+          flagsSnapshotId);
     }
   }
 }
