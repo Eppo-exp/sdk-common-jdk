@@ -216,8 +216,9 @@ public class ConfigurationRequestorTest {
     }
 
     private void stubConfigClientFailure() {
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
-          .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Fetch failed")));
+      CompletableFuture<EppoConfigurationResponse> failedFuture = new CompletableFuture<>();
+      failedFuture.completeExceptionally(new RuntimeException("Fetch failed"));
+      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
     }
 
     @Test
