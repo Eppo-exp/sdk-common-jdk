@@ -14,6 +14,24 @@ public final class Utils {
   private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
+  private static Base64Codec base64Codec = new DefaultBase64Codec();
+
+  /** Interface for Base64 encoding/decoding operations. */
+  public interface Base64Codec {
+    String base64Encode(String input);
+
+    String base64Decode(String input);
+  }
+
+  /**
+   * Sets the Base64 codec implementation to use for encoding and decoding operations. This allows
+   * platform-specific implementations (e.g., Android SDK using android.util.Base64).
+   *
+   * @param codec the Base64 codec implementation to use
+   */
+  public static void setBase64Codec(Base64Codec codec) {
+    base64Codec = codec;
+  }
 
   @SuppressWarnings("AnonymousHasLambdaAlternative")
   private static ThreadLocal<MessageDigest> buildMd5MessageDigest() {
@@ -95,21 +113,34 @@ public final class Utils {
   }
 
   public static String base64Encode(String input) {
-    if (input == null) {
-      return null;
-    }
-    return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
+    return base64Codec.base64Encode(input);
   }
 
   public static String base64Decode(String input) {
-    if (input == null) {
-      return null;
+    return base64Codec.base64Decode(input);
+  }
+
+  private static class DefaultBase64Codec implements Base64Codec {
+    @Override
+    public String base64Encode(String input) {
+      if (input == null) {
+        return null;
+      }
+      return new String(Base64.getEncoder().encode(input.getBytes(StandardCharsets.UTF_8)));
     }
-    byte[] decodedBytes = Base64.getDecoder().decode(input);
-    if (decodedBytes.length == 0 && !input.isEmpty()) {
-      throw new RuntimeException(
-          "zero byte output from Base64; if not running on Android hardware be sure to use RobolectricTestRunner");
+
+    @Override
+    public String base64Decode(String input) {
+      if (input == null) {
+        return null;
+      }
+      byte[] decodedBytes = Base64.getDecoder().decode(input);
+      if (decodedBytes.length == 0 && !input.isEmpty()) {
+        throw new RuntimeException(
+            "zero byte output from Base64; if not running on Android hardware be sure to use"
+                + " RobolectricTestRunner");
+      }
+      return new String(decodedBytes);
     }
-    return new String(decodedBytes);
   }
 }
