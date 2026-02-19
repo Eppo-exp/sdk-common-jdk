@@ -10,9 +10,42 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
+
+  @AfterEach
+  void resetBase64Codec() {
+    // Reset to default codec to ensure test isolation
+    Utils.setBase64Codec(
+        new Utils.Base64Codec() {
+          @Override
+          public String base64Encode(String input) {
+            if (input == null) {
+              return null;
+            }
+            return new String(
+                java.util.Base64.getEncoder()
+                    .encode(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+          }
+
+          @Override
+          public String base64Decode(String input) {
+            if (input == null) {
+              return null;
+            }
+            byte[] decodedBytes = java.util.Base64.getDecoder().decode(input);
+            if (decodedBytes.length == 0 && !input.isEmpty()) {
+              throw new RuntimeException(
+                  "zero byte output from Base64; if not running on Android hardware be sure to use"
+                      + " RobolectricTestRunner");
+            }
+            return new String(decodedBytes);
+          }
+        });
+  }
+
   @Test
   public void testGetMd5Hash() {
     // empty string
@@ -148,5 +181,53 @@ public class UtilsTest {
             + incorrectFormatResults.get();
     assertFalse(collisionDetected.get(), failureMessage);
     assertEquals(0, unexpectedExceptions.get(), failureMessage);
+  }
+
+  @Test
+  void testCustomBase64Codec() {
+    AtomicBoolean encodeCalled = new AtomicBoolean(false);
+    AtomicBoolean decodeCalled = new AtomicBoolean(false);
+
+    Utils.Base64Codec customCodec =
+        new Utils.Base64Codec() {
+          @Override
+          public String base64Encode(String input) {
+            encodeCalled.set(true);
+            return "encoded:" + input;
+          }
+
+          @Override
+          public String base64Decode(String input) {
+            decodeCalled.set(true);
+            return "decoded:" + input;
+          }
+        };
+
+    Utils.setBase64Codec(customCodec);
+
+    assertEquals("encoded:test", Utils.base64Encode("test"));
+    assertTrue(encodeCalled.get());
+
+    assertEquals("decoded:test", Utils.base64Decode("test"));
+    assertTrue(decodeCalled.get());
+  }
+
+  @Test
+  void testBase64EncodeDecodeDefault() {
+    // Test null handling
+    assertNull(Utils.base64Encode(null));
+    assertNull(Utils.base64Decode(null));
+
+    // Test encoding
+    String original = "Hello, World!";
+    String encoded = Utils.base64Encode(original);
+    assertEquals("SGVsbG8sIFdvcmxkIQ==", encoded);
+
+    // Test decoding
+    String decoded = Utils.base64Decode(encoded);
+    assertEquals(original, decoded);
+
+    // Test round-trip
+    assertEquals(original, Utils.base64Decode(Utils.base64Encode(original)));
   }
 }
