@@ -376,6 +376,15 @@ public class Configuration {
       return this;
     }
 
+    public Builder banditParameters(BanditParametersResponse banditParametersResponse) {
+      if (banditParametersResponse == null || banditParametersResponse.getBandits() == null) {
+        bandits = Collections.emptyMap();
+        return this;
+      }
+      bandits = Collections.unmodifiableMap(banditParametersResponse.getBandits());
+      return this;
+    }
+
     public Builder banditParameters(String banditParameterJson) {
       return banditParameters(banditParameterJson.getBytes());
     }
