@@ -16,34 +16,8 @@ import org.junit.jupiter.api.Test;
 public class UtilsTest {
 
   @AfterEach
-  void resetBase64Codec() {
-    // Reset to default codec to ensure test isolation
-    Utils.setBase64Codec(
-        new Utils.Base64Codec() {
-          @Override
-          public String base64Encode(String input) {
-            if (input == null) {
-              return null;
-            }
-            return new String(
-                java.util.Base64.getEncoder()
-                    .encode(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-          }
-
-          @Override
-          public String base64Decode(String input) {
-            if (input == null) {
-              return null;
-            }
-            byte[] decodedBytes = java.util.Base64.getDecoder().decode(input);
-            if (decodedBytes.length == 0 && !input.isEmpty()) {
-              throw new RuntimeException(
-                  "zero byte output from Base64; if not running on Android hardware be sure to use"
-                      + " RobolectricTestRunner");
-            }
-            return new String(decodedBytes);
-          }
-        });
+  void resetCodec() {
+    Utils.resetBase64Codec();
   }
 
   @Test
@@ -229,5 +203,10 @@ public class UtilsTest {
 
     // Test round-trip
     assertEquals(original, Utils.base64Decode(Utils.base64Encode(original)));
+  }
+
+  @Test
+  void testSetBase64CodecWithNullThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> Utils.setBase64Codec(null));
   }
 }

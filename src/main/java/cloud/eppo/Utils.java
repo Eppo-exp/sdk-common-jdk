@@ -14,7 +14,7 @@ public final class Utils {
   private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT = buildUtcIsoDateFormat();
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
   private static final ThreadLocal<MessageDigest> md = buildMd5MessageDigest();
-  private static Base64Codec base64Codec = new DefaultBase64Codec();
+  private static volatile Base64Codec base64Codec = new DefaultBase64Codec();
 
   /** Interface for Base64 encoding/decoding operations. */
   public interface Base64Codec {
@@ -28,9 +28,20 @@ public final class Utils {
    * platform-specific implementations (e.g., Android SDK using android.util.Base64).
    *
    * @param codec the Base64 codec implementation to use
+   * @throws IllegalArgumentException if codec is null
    */
   public static void setBase64Codec(Base64Codec codec) {
+    if (codec == null) {
+      throw new IllegalArgumentException("Base64Codec cannot be null");
+    }
     base64Codec = codec;
+  }
+
+  /**
+   * Resets the Base64 codec to the default implementation. Primarily intended for testing purposes.
+   */
+  public static void resetBase64Codec() {
+    base64Codec = new DefaultBase64Codec();
   }
 
   @SuppressWarnings("AnonymousHasLambdaAlternative")
@@ -140,7 +151,7 @@ public final class Utils {
             "zero byte output from Base64; if not running on Android hardware be sure to use"
                 + " RobolectricTestRunner");
       }
-      return new String(decodedBytes);
+      return new String(decodedBytes, StandardCharsets.UTF_8);
     }
   }
 }
