@@ -1,10 +1,10 @@
 package cloud.eppo;
 
 import static cloud.eppo.helpers.AssignmentTestCase.*;
-import static cloud.eppo.helpers.TestUtils.mockHttpError;
-import static cloud.eppo.helpers.TestUtils.mockHttpResponse;
-import static cloud.eppo.helpers.TestUtils.setBaseClientHttpClientOverrideField;
+import static cloud.eppo.helpers.TestUtils.mockConfigurationClient;
+import static cloud.eppo.helpers.TestUtils.mockConfigurationClientError;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.*;
@@ -12,8 +12,12 @@ import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.cache.LRUInMemoryAssignmentCache;
 import cloud.eppo.helpers.AssignmentTestCase;
+import cloud.eppo.http.EppoConfigurationClient;
+import cloud.eppo.http.EppoConfigurationRequest;
+import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
+import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
@@ -57,8 +61,12 @@ public class BaseEppoClientTest {
   private final ObjectMapper mapper =
       new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
 
+  // Use JacksonConfigurationParser for all tests
+  private final ConfigurationParser parser = new JacksonConfigurationParser();
+
   private BaseEppoClient eppoClient;
   private AssignmentLogger mockAssignmentLogger;
+  private EppoConfigurationClient mockConfigClient;
 
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
@@ -89,7 +97,9 @@ public class BaseEppoClientTest {
             true,
             initialFlagConfiguration,
             null,
-            null);
+            null,
+            parser,
+            mockConfigClient);
   }
 
   private void initClient(boolean isGracefulMode, boolean isConfigObfuscated) {
@@ -109,7 +119,9 @@ public class BaseEppoClientTest {
             true,
             null,
             null,
-            null);
+            null,
+            parser,
+            mockConfigClient);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -133,7 +145,9 @@ public class BaseEppoClientTest {
             true,
             null,
             null,
-            null);
+            null,
+            parser,
+            mockConfigClient);
 
     return eppoClient.loadConfigurationAsync();
   }
@@ -155,7 +169,9 @@ public class BaseEppoClientTest {
             true,
             null,
             cache,
-            null);
+            null,
+            parser,
+            mockConfigClient);
 
     eppoClient.loadConfiguration();
     log.info("Test client initialized");
@@ -163,8 +179,8 @@ public class BaseEppoClientTest {
 
   @BeforeEach
   public void cleanUp() {
-    // TODO: Clear any caches
-    setBaseClientHttpClientOverrideField(null);
+    // Reset mock config client before each test
+    mockConfigClient = null;
   }
 
   @ParameterizedTest
@@ -228,6 +244,8 @@ public class BaseEppoClientTest {
             false,
             false,
             true,
+            null,
+            null,
             null,
             null,
             null);
@@ -343,8 +361,7 @@ public class BaseEppoClientTest {
 
   @Test
   public void testInvalidConfigJSON() {
-
-    mockHttpResponse("{}");
+    mockConfigClient = mockConfigurationClient("{}");
 
     initClient(false, false);
 
@@ -359,8 +376,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testGracefulInitializationFailure() {
-    // Set up bad HTTP response
-    mockHttpError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and no exception should be thrown.
     assertDoesNotThrow(() -> initClient(true, false));
@@ -368,8 +385,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testClientMakesDefaultAssignmentsAfterFailingToInitialize() {
-    // Set up bad HTTP response
-    mockHttpError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and no exception should be thrown.
     assertDoesNotThrow(() -> initClient(true, false));
@@ -379,15 +396,15 @@ public class BaseEppoClientTest {
 
   @Test
   public void testClientMakesDefaultAssignmentsAfterFailingToInitializeNonGracefulMode() {
-    // Set up bad HTTP response
-    mockHttpError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and no exception should be thrown.
     try {
       initClient(false, false);
     } catch (RuntimeException e) {
       // Expected
-      assertEquals("Intentional Error", e.getMessage());
+      assertTrue(e.getMessage().contains("Intentional Error"));
     } finally {
       assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
     }
@@ -395,8 +412,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testNonGracefulInitializationFailure() {
-    // Set up bad HTTP response
-    mockHttpError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and assert exception thrown
     assertThrows(Exception.class, () -> initClient(false, false));
@@ -404,8 +421,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testGracefulAsyncInitializationFailure() {
-    // Set up bad HTTP response
-    mockHttpError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize
     CompletableFuture<Void> init = initClientAsync(true, false);
@@ -418,8 +435,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testNonGracefulAsyncInitializationFailure() {
-    // Set up bad HTTP response
-    mockHttpError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize
     CompletableFuture<Void> init = initClientAsync(false, false);
@@ -712,8 +729,9 @@ public class BaseEppoClientTest {
 
   @Test
   public void testPolling() {
-    EppoHttpClient httpClient = mockHttpResponse(BOOL_FLAG_CONFIG);
+    mockConfigClient = mockConfigurationClient(BOOL_FLAG_CONFIG);
 
+    mockAssignmentLogger = mock(AssignmentLogger.class);
     BaseEppoClient client =
         eppoClient =
             new BaseEppoClient(
@@ -729,20 +747,22 @@ public class BaseEppoClientTest {
                 true,
                 null,
                 null,
-                null);
+                null,
+                parser,
+                mockConfigClient);
 
     client.loadConfiguration();
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(httpClient, times(1)).get(anyString());
+    verify(mockConfigClient, times(1)).get(any(EppoConfigurationRequest.class));
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(httpClient, times(2)).get(anyString());
+    verify(mockConfigClient, times(2)).get(any(EppoConfigurationRequest.class));
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -750,10 +770,13 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(httpClient, times(2)).get(anyString());
+    verify(mockConfigClient, times(2)).get(any(EppoConfigurationRequest.class));
 
     // Set up a different config to be served
-    when(httpClient.get(anyString())).thenReturn(DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    EppoConfigurationResponse disabledResponse =
+        EppoConfigurationResponse.success(200, "v2", DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+        .thenReturn(CompletableFuture.completedFuture(disabledResponse));
     client.startPolling(20);
 
     // True until the next config is fetched.
@@ -841,6 +864,8 @@ public class BaseEppoClientTest {
             false,
             false,
             true,
+            null,
+            null,
             null,
             null,
             null);
