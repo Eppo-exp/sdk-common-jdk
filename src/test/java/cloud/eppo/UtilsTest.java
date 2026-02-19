@@ -10,9 +10,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
+
+  @AfterEach
+  void resetCodec() {
+    Utils.resetBase64Codec();
+  }
+
   @Test
   public void testGetMd5Hash() {
     // empty string
@@ -148,5 +155,58 @@ public class UtilsTest {
             + incorrectFormatResults.get();
     assertFalse(collisionDetected.get(), failureMessage);
     assertEquals(0, unexpectedExceptions.get(), failureMessage);
+  }
+
+  @Test
+  void testCustomBase64Codec() {
+    AtomicBoolean encodeCalled = new AtomicBoolean(false);
+    AtomicBoolean decodeCalled = new AtomicBoolean(false);
+
+    Utils.Base64Codec customCodec =
+        new Utils.Base64Codec() {
+          @Override
+          public String base64Encode(String input) {
+            encodeCalled.set(true);
+            return "encoded:" + input;
+          }
+
+          @Override
+          public String base64Decode(String input) {
+            decodeCalled.set(true);
+            return "decoded:" + input;
+          }
+        };
+
+    Utils.setBase64Codec(customCodec);
+
+    assertEquals("encoded:test", Utils.base64Encode("test"));
+    assertTrue(encodeCalled.get());
+
+    assertEquals("decoded:test", Utils.base64Decode("test"));
+    assertTrue(decodeCalled.get());
+  }
+
+  @Test
+  void testBase64EncodeDecodeDefault() {
+    // Test null handling
+    assertNull(Utils.base64Encode(null));
+    assertNull(Utils.base64Decode(null));
+
+    // Test encoding
+    String original = "Hello, World!";
+    String encoded = Utils.base64Encode(original);
+    assertEquals("SGVsbG8sIFdvcmxkIQ==", encoded);
+
+    // Test decoding
+    String decoded = Utils.base64Decode(encoded);
+    assertEquals(original, decoded);
+
+    // Test round-trip
+    assertEquals(original, Utils.base64Decode(Utils.base64Encode(original)));
+  }
+
+  @Test
+  void testSetBase64CodecWithNullThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> Utils.setBase64Codec(null));
   }
 }
