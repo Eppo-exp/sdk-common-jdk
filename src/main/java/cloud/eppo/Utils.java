@@ -38,9 +38,10 @@ public final class Utils {
   }
 
   /**
-   * Resets the Base64 codec to the default implementation. Primarily intended for testing purposes.
+   * Resets the Base64 codec to the default implementation. Package-private: intended for testing
+   * purposes only.
    */
-  public static void resetBase64Codec() {
+  static void resetBase64Codec() {
     base64Codec = new DefaultBase64Codec();
   }
 
