@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'cloud.eppo'
-version = '4.0.0-SNAPSHOT'
+version = '0.1.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 java {
@@ -75,7 +75,7 @@ publishing {
   publications {
     maven(MavenPublication) {
       groupId = 'cloud.eppo'
-      artifactId = 'sdk-common-jvm'
+      artifactId = 'eppo-sdk-framework'
 
       from components.java
       artifact testJar // Include the test-jar in the published artifacts
@@ -88,8 +88,8 @@ publishing {
         }
       }
       pom {
-        name = 'Eppo JVM SDK shared library'
-        description = 'Eppo SDK for JVM shared library'
+        name = 'Eppo SDK Framework'
+        description = 'Core framework for Eppo JVM SDKs'
         url = 'https://github.com/Eppo-exp/sdk-common-jvm'
         licenses {
           license {
