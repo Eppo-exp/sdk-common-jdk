@@ -184,6 +184,172 @@ public class OkHttpEppoClientTest {
     assertNull(response.getVersionId());
   }
 
+  @Test
+  public void testSuccessfulPostWithJsonBody()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    String responseBody = "{\"result\": \"success\"}";
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(200).setHeader("ETag", "v2").setBody(responseBody));
+
+    String requestBody = "{\"subjectKey\": \"user-123\", \"subjectAttributes\": {}}";
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/assignments")
+            .queryParam("apiKey", "test-key")
+            .queryParam("sdkName", "test-sdk")
+            .queryParam("sdkVersion", "1.0.0")
+            .post()
+            .jsonBody(requestBody)
+            .build();
+
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+    assertEquals(200, response.getStatusCode());
+    assertEquals("v2", response.getVersionId());
+    assertThat(new String(response.getBody())).isEqualTo(responseBody);
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertEquals("application/json; charset=utf-8", recordedRequest.getHeader("Content-Type"));
+    assertEquals(requestBody, recordedRequest.getBody().readUtf8());
+  }
+
+  @Test
+  public void testPostWithEmptyBody() throws ExecutionException, InterruptedException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
+            .queryParam("apiKey", "test-key")
+            .post()
+            .build();
+
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertEquals(0, recordedRequest.getBodySize());
+  }
+
+  @Test
+  public void testPostWithCustomContentType()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    String requestBody = "key=value&foo=bar";
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
+            .queryParam("apiKey", "test-key")
+            .post()
+            .body(requestBody)
+            .contentType("application/x-www-form-urlencoded")
+            .build();
+
+    client.execute(request).get();
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertEquals("application/x-www-form-urlencoded", recordedRequest.getHeader("Content-Type"));
+    assertEquals(requestBody, recordedRequest.getBody().readUtf8());
+  }
+
+  @Test
+  public void testPostWithBytesBody()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    byte[] requestBody = new byte[] {0x01, 0x02, 0x03, 0x04};
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
+            .queryParam("apiKey", "test-key")
+            .post()
+            .body(requestBody)
+            .contentType("application/octet-stream")
+            .build();
+
+    client.execute(request).get();
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertArrayEquals(requestBody, recordedRequest.getBody().readByteArray());
+  }
+
+  @Test
+  public void testExecuteWithGetRequest() throws ExecutionException, InterruptedException {
+    String responseBody = "{\"flags\": {}}";
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(200).setHeader("ETag", "v1").setBody(responseBody));
+
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/flag-config/v1/config")
+            .queryParam("apiKey", "test-key")
+            .queryParam("sdkName", "test-sdk")
+            .build();
+
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("GET", recordedRequest.getMethod());
+  }
+
+  @Test
+  public void testBuilderLastVersionId()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(304).setHeader("ETag", "v2"));
+
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/config")
+            .queryParam("apiKey", "test-key")
+            .lastVersionId("v2")
+            .build();
+
+    EppoConfigurationResponse response = client.execute(request).get();
+
+    assertTrue(response.isNotModified());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("v2", recordedRequest.getHeader("If-None-Match"));
+  }
+
+  @Test
+  public void testBackwardCompatibilityWithGetMethod()
+      throws ExecutionException, InterruptedException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    EppoConfigurationRequest request = createRequest(null);
+    // Using deprecated get() method should still work
+    @SuppressWarnings("deprecation")
+    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+  }
+
+  @Test
+  public void testStaticGetFactoryMethod() throws ExecutionException, InterruptedException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put("apiKey", "test-key");
+
+    EppoConfigurationRequest request =
+        EppoConfigurationRequest.get(baseUrl, "/api/config", queryParams, null);
+
+    EppoConfigurationResponse response = client.execute(request).get();
+
+    assertTrue(response.isSuccessful());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("GET", recordedRequest.getMethod());
+  }
+
   private EppoConfigurationRequest createRequest(String lastVersionId) {
     Map<String, String> queryParams = new HashMap<>();
     queryParams.put("apiKey", "test-key");

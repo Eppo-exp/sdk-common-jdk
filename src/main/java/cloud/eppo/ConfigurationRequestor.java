@@ -104,7 +104,7 @@ public class ConfigurationRequestor {
         requestFactory.createFlagConfigRequest(lastConfig.getFlagsSnapshotId());
     EppoConfigurationResponse flagResponse;
     try {
-      flagResponse = configurationClient.get(flagRequest).get();
+      flagResponse = configurationClient.execute(flagRequest).get();
     } catch (InterruptedException | ExecutionException e) {
       log.error("Config fetch interrupted", e);
       throw new RuntimeException(e);
@@ -157,7 +157,7 @@ public class ConfigurationRequestor {
     EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
     EppoConfigurationResponse banditResponse;
     try {
-      banditResponse = configurationClient.get(banditRequest).get();
+      banditResponse = configurationClient.execute(banditRequest).get();
     } catch (InterruptedException | ExecutionException e) {
       log.error("Bandit fetch interrupted", e);
       throw new RuntimeException(e);
@@ -185,7 +185,7 @@ public class ConfigurationRequestor {
 
     remoteFetchFuture =
         configurationClient
-            .get(flagRequest)
+            .execute(flagRequest)
             .thenCompose(
                 flagResponse -> {
                   synchronized (this) {
@@ -245,7 +245,7 @@ public class ConfigurationRequestor {
   private byte[] fetchBanditParametersAsync() {
     EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
     try {
-      EppoConfigurationResponse banditResponse = configurationClient.get(banditRequest).get();
+      EppoConfigurationResponse banditResponse = configurationClient.execute(banditRequest).get();
       if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
         return banditResponse.getBody();
       }

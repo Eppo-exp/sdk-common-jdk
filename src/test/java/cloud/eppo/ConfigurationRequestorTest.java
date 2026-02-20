@@ -107,7 +107,8 @@ public class ConfigurationRequestorTest {
 
       // Mock the config client to return a completable future that we control
       CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
 
@@ -141,7 +142,8 @@ public class ConfigurationRequestorTest {
       String flagConfig = loadInitialFlagConfigString();
 
       CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
 
@@ -168,7 +170,8 @@ public class ConfigurationRequestorTest {
       String flagConfig = loadInitialFlagConfigString();
 
       CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
       verify(configStore, times(0)).saveConfiguration(any());
@@ -211,14 +214,14 @@ public class ConfigurationRequestorTest {
     private void stubConfigClientSuccess(byte[] responseBody) {
       EppoConfigurationResponse successResponse =
           EppoConfigurationResponse.success(200, "version-1", responseBody);
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
     }
 
     private void stubConfigClientFailure() {
       CompletableFuture<EppoConfigurationResponse> failedFuture = new CompletableFuture<>();
       failedFuture.completeExceptionally(new RuntimeException("Fetch failed"));
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
     }
 
     @Test
@@ -309,7 +312,7 @@ public class ConfigurationRequestorTest {
     void testConfigurationChangeListenerAsyncSave() {
       EppoConfigurationResponse successResponse =
           EppoConfigurationResponse.success(200, "version-1", "{\"flags\":{}}".getBytes());
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
       CompletableFuture<Void> saveFuture = new CompletableFuture<>();
@@ -414,14 +417,14 @@ public class ConfigurationRequestorTest {
     void testFetchWithEppoConfigurationClient() {
       EppoConfigurationResponse successResponse =
           EppoConfigurationResponse.success(200, "version-123", flagConfigBytes);
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
       ConfigurationRequestor requestor = createRequestor();
       requestor.fetchAndSaveFromRemote();
 
       verify(mockConfigClient)
-          .get(
+          .execute(
               argThat(
                   request ->
                       request.getResourcePath().equals(Constants.FLAG_CONFIG_ENDPOINT)
@@ -441,18 +444,18 @@ public class ConfigurationRequestorTest {
       EppoConfigurationResponse notModifiedResponse =
           EppoConfigurationResponse.notModified("version-123");
 
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(firstResponse))
           .thenReturn(CompletableFuture.completedFuture(notModifiedResponse));
 
       ConfigurationRequestor requestor = createRequestor();
 
       requestor.fetchAndSaveFromRemote();
-      verify(mockConfigClient).get(argThat(request -> request.getLastVersionId() == null));
+      verify(mockConfigClient).execute(argThat(request -> request.getLastVersionId() == null));
 
       requestor.fetchAndSaveFromRemote();
       verify(mockConfigClient)
-          .get(argThat(request -> "version-123".equals(request.getLastVersionId())));
+          .execute(argThat(request -> "version-123".equals(request.getLastVersionId())));
 
       verify(configStore, times(1)).saveConfiguration(any());
     }
@@ -461,7 +464,7 @@ public class ConfigurationRequestorTest {
     void testFetchWithEppoConfigurationClientHandles304NotModified() {
       EppoConfigurationResponse notModifiedResponse =
           EppoConfigurationResponse.notModified("version-123");
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(notModifiedResponse));
 
       ConfigurationRequestor requestor = createRequestor();
@@ -474,13 +477,13 @@ public class ConfigurationRequestorTest {
     void testFetchAsyncWithEppoConfigurationClient() {
       EppoConfigurationResponse successResponse =
           EppoConfigurationResponse.success(200, "version-456", flagConfigBytes);
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
       ConfigurationRequestor requestor = createRequestor();
       requestor.fetchAndSaveFromRemoteAsync().join();
 
-      verify(mockConfigClient).get(any(EppoConfigurationRequest.class));
+      verify(mockConfigClient).execute(any(EppoConfigurationRequest.class));
       assertFalse(configStore.getConfiguration().isEmpty());
     }
 
@@ -488,7 +491,7 @@ public class ConfigurationRequestorTest {
     void testFetchWithEppoConfigurationClientErrorResponse() {
       EppoConfigurationResponse errorResponse =
           EppoConfigurationResponse.error(500, "Internal Server Error".getBytes());
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(errorResponse));
 
       ConfigurationRequestor requestor = createRequestor();
@@ -518,7 +521,7 @@ public class ConfigurationRequestorTest {
     private void stubConfigClientSuccess(String versionId) {
       EppoConfigurationResponse successResponse =
           EppoConfigurationResponse.success(200, versionId, flagConfigBytes);
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
     }
 
@@ -563,7 +566,7 @@ public class ConfigurationRequestorTest {
 
       EppoConfigurationResponse successResponse =
           EppoConfigurationResponse.success(200, "version-error", invalidBytes);
-      when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
       when(mockParser.parseFlagConfig(invalidBytes))

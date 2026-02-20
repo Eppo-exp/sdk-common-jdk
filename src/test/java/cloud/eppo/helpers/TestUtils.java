@@ -31,7 +31,7 @@ public class TestUtils {
     EppoConfigurationResponse successResponse =
         EppoConfigurationResponse.success(200, "test-version", responseBody);
 
-    when(mockClient.get(any(EppoConfigurationRequest.class)))
+    when(mockClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(successResponse));
 
     return mockClient;
@@ -48,7 +48,7 @@ public class TestUtils {
     CompletableFuture<EppoConfigurationResponse> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(new RuntimeException("Intentional Error"));
 
-    when(mockClient.get(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
+    when(mockClient.execute(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
 
     return mockClient;
   }
@@ -63,7 +63,7 @@ public class TestUtils {
     EppoConfigurationResponse errorResponse =
         EppoConfigurationResponse.error(500, "Internal Server Error".getBytes());
 
-    when(mockClient.get(any(EppoConfigurationRequest.class)))
+    when(mockClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(errorResponse));
 
     return mockClient;
