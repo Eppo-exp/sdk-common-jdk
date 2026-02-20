@@ -758,14 +758,14 @@ public class BaseEppoClientTest {
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(mockConfigClient, times(1)).get(any(EppoConfigurationRequest.class));
+    verify(mockConfigClient, times(1)).execute(any(EppoConfigurationRequest.class));
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(mockConfigClient, times(2)).get(any(EppoConfigurationRequest.class));
+    verify(mockConfigClient, times(2)).execute(any(EppoConfigurationRequest.class));
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -773,12 +773,12 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(mockConfigClient, times(2)).get(any(EppoConfigurationRequest.class));
+    verify(mockConfigClient, times(2)).execute(any(EppoConfigurationRequest.class));
 
     // Set up a different config to be served
     EppoConfigurationResponse disabledResponse =
         EppoConfigurationResponse.success(200, "v2", DISABLED_BOOL_FLAG_CONFIG.getBytes());
-    when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+    when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(disabledResponse));
     client.startPolling(20);
 
