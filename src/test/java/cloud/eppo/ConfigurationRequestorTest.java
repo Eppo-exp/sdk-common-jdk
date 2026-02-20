@@ -107,7 +107,8 @@ public class ConfigurationRequestorTest {
 
       // Mock the config client to return a completable future that we control
       CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
-      when(mockConfigClient.execute(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
 
@@ -141,7 +142,8 @@ public class ConfigurationRequestorTest {
       String flagConfig = loadInitialFlagConfigString();
 
       CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
-      when(mockConfigClient.execute(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
 
@@ -168,7 +170,8 @@ public class ConfigurationRequestorTest {
       String flagConfig = loadInitialFlagConfigString();
 
       CompletableFuture<EppoConfigurationResponse> configFetchFuture = new CompletableFuture<>();
-      when(mockConfigClient.execute(any(EppoConfigurationRequest.class))).thenReturn(configFetchFuture);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenReturn(configFetchFuture);
 
       requestor.setInitialConfiguration(initialConfigFuture);
       verify(configStore, times(0)).saveConfiguration(any());

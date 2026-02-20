@@ -26,8 +26,7 @@ public interface EppoConfigurationClient {
    * @param request the request to execute
    * @return a CompletableFuture that will complete with the response
    */
-  @NotNull
-  CompletableFuture<EppoConfigurationResponse> execute(@NotNull EppoConfigurationRequest request);
+  @NotNull CompletableFuture<EppoConfigurationResponse> execute(@NotNull EppoConfigurationRequest request);
 
   /**
    * Performs an asynchronous GET request.
@@ -38,8 +37,7 @@ public interface EppoConfigurationClient {
    *     for backward compatibility.
    */
   @Deprecated
-  @NotNull
-  default CompletableFuture<EppoConfigurationResponse> get(
+  @NotNull default CompletableFuture<EppoConfigurationResponse> get(
       @NotNull EppoConfigurationRequest request) {
     return execute(request);
   }

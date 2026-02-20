@@ -72,8 +72,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the base URL (e.g., "https://fscdn.eppo.cloud")
    */
-  @NotNull
-  public String getBaseUrl() {
+  @NotNull public String getBaseUrl() {
     return baseUrl;
   }
 
@@ -82,8 +81,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the resource path (e.g., "/api/flag-config/v1/config")
    */
-  @NotNull
-  public String getResourcePath() {
+  @NotNull public String getResourcePath() {
     return resourcePath;
   }
 
@@ -92,8 +90,7 @@ public final class EppoConfigurationRequest {
    *
    * @return an unmodifiable map of query parameters
    */
-  @NotNull
-  public Map<String, String> getQueryParams() {
+  @NotNull public Map<String, String> getQueryParams() {
     return queryParams;
   }
 
@@ -105,8 +102,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the last version ID, or null if not set
    */
-  @Nullable
-  public String getLastVersionId() {
+  @Nullable public String getLastVersionId() {
     return lastVersionId;
   }
 
@@ -115,8 +111,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the HTTP method (GET or POST)
    */
-  @NotNull
-  public HttpMethod getMethod() {
+  @NotNull public HttpMethod getMethod() {
     return method;
   }
 
@@ -125,8 +120,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the body bytes, or null if not set
    */
-  @Nullable
-  public byte[] getBody() {
+  @Nullable public byte[] getBody() {
     return body;
   }
 
@@ -135,8 +129,7 @@ public final class EppoConfigurationRequest {
    *
    * @return the content type (e.g., "application/json; charset=utf-8"), or null if not set
    */
-  @Nullable
-  public String getContentType() {
+  @Nullable public String getContentType() {
     return contentType;
   }
 
@@ -149,8 +142,7 @@ public final class EppoConfigurationRequest {
    * @param lastVersionId the last known version ID for conditional requests, or null
    * @return a new GET configuration request
    */
-  @NotNull
-  public static EppoConfigurationRequest get(
+  @NotNull public static EppoConfigurationRequest get(
       @NotNull String baseUrl,
       @NotNull String resourcePath,
       @NotNull Map<String, String> queryParams,
