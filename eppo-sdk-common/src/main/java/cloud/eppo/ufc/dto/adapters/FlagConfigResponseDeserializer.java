@@ -1,7 +1,5 @@
 package cloud.eppo.ufc.dto.adapters;
 
-import static cloud.eppo.Utils.parseUtcISODateNode;
-
 import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.dto.Allocation;
 import cloud.eppo.api.dto.BanditFlagVariation;
@@ -21,6 +19,8 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -33,6 +33,15 @@ import org.slf4j.LoggerFactory;
  */
 public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigResponse> {
   private static final Logger log = LoggerFactory.getLogger(FlagConfigResponseDeserializer.class);
+  private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT =
+      ThreadLocal.withInitial(
+          () -> {
+            SimpleDateFormat dateFormat =
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return dateFormat;
+          });
+
   private final EppoValueDeserializer eppoValueDeserializer = new EppoValueDeserializer();
 
   protected FlagConfigResponseDeserializer(Class<?> vc) {
@@ -233,5 +242,46 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
       }
     }
     return new BanditReference.Default(modelVersion, flagVariations);
+  }
+
+  // ===== Date Parsing Helpers =====
+
+  private static Date parseUtcISODateNode(JsonNode isoDateStringElement) {
+    if (isoDateStringElement == null || isoDateStringElement.isNull()) {
+      return null;
+    }
+    String isoDateString = isoDateStringElement.asText();
+    Date result = null;
+    try {
+      result = UTC_ISO_DATE_FORMAT.get().parse(isoDateString);
+    } catch (ParseException e) {
+      // We expect to fail parsing if the date is base 64 encoded
+      // Thus we'll leave the result null for now and try again with the decoded value
+    }
+
+    if (result == null) {
+      // Date may be encoded
+      String decodedIsoDateString = base64Decode(isoDateString);
+      try {
+        result = UTC_ISO_DATE_FORMAT.get().parse(decodedIsoDateString);
+      } catch (ParseException e) {
+        log.warn("Date \"{}\" not in ISO date format", isoDateString);
+      }
+    }
+
+    return result;
+  }
+
+  private static String base64Decode(String input) {
+    if (input == null) {
+      return null;
+    }
+    byte[] decodedBytes = Base64.getDecoder().decode(input);
+    if (decodedBytes.length == 0 && !input.isEmpty()) {
+      throw new RuntimeException(
+          "zero byte output from Base64; if not running on Android hardware be sure to use"
+              + " RobolectricTestRunner");
+    }
+    return new String(decodedBytes);
   }
 }

@@ -1,17 +1,32 @@
 package cloud.eppo.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import cloud.eppo.api.dto.VariationType;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 public class EppoValueTest {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  /** JSON parser function for tests - parses JSON strings to JsonNode */
+  private static final Function<String, JsonNode> JSON_PARSER =
+      jsonString -> {
+        try {
+          return MAPPER.readTree(jsonString);
+        } catch (JsonProcessingException e) {
+          return null;
+        }
+      };
+
   @Test
   public void testDoubleValue() {
     EppoValue eppoValue = EppoValue.valueOf(123.4567);
@@ -118,7 +133,7 @@ public class EppoValueTest {
   public void testUnwrapJsonValid() {
     String jsonString = "{\"foo\":\"bar\",\"count\":42}";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
     assertTrue(result.isObject());
     assertEquals("bar", result.get("foo").asText());
@@ -129,7 +144,7 @@ public class EppoValueTest {
   public void testUnwrapJsonArray() {
     String jsonArrayString = "[1,2,3,4,5]";
     EppoValue jsonValue = EppoValue.valueOf(jsonArrayString);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
     assertTrue(result.isArray());
     assertEquals(5, result.size());
@@ -141,7 +156,7 @@ public class EppoValueTest {
   public void testUnwrapJsonWithSpecialCharacters() {
     String jsonString = "{\"a\":\"kümmert\",\"b\":\"schön\"}";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
     assertTrue(result.isObject());
     assertEquals("kümmert", result.get("a").asText());
@@ -152,7 +167,7 @@ public class EppoValueTest {
   public void testUnwrapJsonWithEmojis() {
     String jsonString = "{\"a\":\"🤗\",\"b\":\"🌸\"}";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
     assertTrue(result.isObject());
     assertEquals("🤗", result.get("a").asText());
@@ -163,7 +178,7 @@ public class EppoValueTest {
   public void testUnwrapJsonWithWhitespace() {
     String jsonString = "{ \"key\": \"value\", \"number\": 123 }";
     EppoValue jsonValue = EppoValue.valueOf(jsonString);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
     assertTrue(result.isObject());
     assertEquals("value", result.get("key").asText());
@@ -174,18 +189,30 @@ public class EppoValueTest {
   public void testUnwrapJsonInvalid() {
     String invalidJson = "not valid json {";
     EppoValue jsonValue = EppoValue.valueOf(invalidJson);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    // Our test JSON_PARSER returns null for invalid JSON
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
-    assertNull(result, "Invalid JSON should return null");
+    assertTrue(result == null, "Invalid JSON should return null from parser");
   }
 
   @Test
   public void testUnwrapJsonEmpty() {
     String emptyJson = "{}";
     EppoValue jsonValue = EppoValue.valueOf(emptyJson);
-    JsonNode result = jsonValue.unwrap(VariationType.JSON);
+    JsonNode result = jsonValue.unwrap(VariationType.JSON, JSON_PARSER);
 
     assertTrue(result.isObject());
     assertEquals(0, result.size());
+  }
+
+  @Test
+  public void testUnwrapJsonWithoutParserThrows() {
+    String jsonString = "{\"foo\":\"bar\"}";
+    EppoValue jsonValue = EppoValue.valueOf(jsonString);
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> jsonValue.unwrap(VariationType.JSON),
+        "Unwrapping JSON without a parser should throw");
   }
 }
