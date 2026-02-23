@@ -364,6 +364,7 @@ public class BaseEppoClientTest {
   @Test
   public void testInvalidConfigJSON() {
     mockConfigClient = mockConfigurationClient("{}");
+    mockConfigClient = mockConfigurationClient("{}");
 
     initClient(false, false);
 
@@ -381,6 +382,8 @@ public class BaseEppoClientTest {
   public void testGracefulInitializationFailure() {
     // Set up failing configuration client
     mockConfigClient = mockConfigurationClientError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and no exception should be thrown.
     assertDoesNotThrow(() -> initClient(true, false));
@@ -388,6 +391,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testClientMakesDefaultAssignmentsAfterFailingToInitialize() {
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
     // Set up failing configuration client
     mockConfigClient = mockConfigurationClientError();
 
@@ -401,12 +406,15 @@ public class BaseEppoClientTest {
   public void testClientMakesDefaultAssignmentsAfterFailingToInitializeNonGracefulMode() {
     // Set up failing configuration client
     mockConfigClient = mockConfigurationClientError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and no exception should be thrown.
     try {
       initClient(false, false);
     } catch (RuntimeException e) {
       // Expected
+      assertTrue(e.getMessage().contains("Intentional Error"));
       assertTrue(e.getMessage().contains("Intentional Error"));
     } finally {
       assertEquals("default", eppoClient.getStringAssignment("experiment1", "subject1", "default"));
@@ -417,6 +425,8 @@ public class BaseEppoClientTest {
   public void testNonGracefulInitializationFailure() {
     // Set up failing configuration client
     mockConfigClient = mockConfigurationClientError();
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
 
     // Initialize and assert exception thrown
     assertThrows(Exception.class, () -> initClient(false, false));
@@ -424,6 +434,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testGracefulAsyncInitializationFailure() {
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
     // Set up failing configuration client
     mockConfigClient = mockConfigurationClientError();
 
@@ -438,6 +450,8 @@ public class BaseEppoClientTest {
 
   @Test
   public void testNonGracefulAsyncInitializationFailure() {
+    // Set up failing configuration client
+    mockConfigClient = mockConfigurationClientError();
     // Set up failing configuration client
     mockConfigClient = mockConfigurationClientError();
 
