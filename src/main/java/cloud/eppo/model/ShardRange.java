@@ -1,9 +1,11 @@
 package cloud.eppo.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /** Shard Range Class */
-public class ShardRange {
+public class ShardRange implements Serializable {
+  private static final long serialVersionUID = 1L;
   private final int start;
   private int end;
 
