@@ -100,6 +100,7 @@ public final class EppoConfigurationResponse {
    * @return true if the status code is between 200 and 299
    */
   public boolean isSuccessful() {
-    return statusCode >= HttpURLConnection.HTTP_OK && statusCode < HttpURLConnection.HTTP_MULT_CHOICE;
+    return statusCode >= HttpURLConnection.HTTP_OK
+        && statusCode < HttpURLConnection.HTTP_MULT_CHOICE;
   }
 }

@@ -13,8 +13,8 @@ import org.jetbrains.annotations.Nullable;
  * <p>This class is immutable. HTTP client implementations are responsible for combining the base
  * URL, resource path, and query parameters using their library's URL building utilities.
  *
- * <p>Requests can be created using either the constructor (for backward compatibility with GET
- * requests) or the {@link Builder} for more control including POST requests with body.
+ * <p>Requests can be created using the {@link Builder} for more control including POST requests
+ * with body.
  */
 public final class EppoConfigurationRequest {
 
@@ -34,9 +34,6 @@ public final class EppoConfigurationRequest {
 
   /**
    * Creates a new GET configuration request.
-   *
-   * <p>This constructor is maintained for backward compatibility. For POST requests or more control
-   * over request parameters, use the {@link Builder}.
    *
    * @param baseUrl the base URL (e.g., "https://fscdn.eppo.cloud")
    * @param resourcePath the resource path (e.g., "/api/flag-config/v1/config")
@@ -134,7 +131,7 @@ public final class EppoConfigurationRequest {
   }
 
   /**
-   * Factory method for creating GET requests (backward compatibility).
+   * Factory method for creating GET requests.
    *
    * @param baseUrl the base URL
    * @param resourcePath the resource path
