@@ -189,7 +189,7 @@ public class BaseEppoClient<JsonFlagType> {
    * user-facing AssignmentDetails result class. If any error in the evaluation, the result value
    * will be set to the default value.
    */
-  private <T> AssignmentDetails<T> getTypedAssignmentWithDetails(
+  protected <T> AssignmentDetails<T> getTypedAssignmentWithDetails(
       String flagKey,
       String subjectKey,
       Attributes subjectAttributes,
