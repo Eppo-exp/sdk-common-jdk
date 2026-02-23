@@ -50,7 +50,7 @@ public class OkHttpEppoClientTest {
             .setBody(responseBody));
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertTrue(response.isSuccessful());
@@ -68,7 +68,7 @@ public class OkHttpEppoClientTest {
             .setHeader("ETag", "v1"));
 
     EppoConfigurationRequest request = createRequest("v1");
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertTrue(response.isNotModified());
@@ -87,7 +87,7 @@ public class OkHttpEppoClientTest {
             .setHeader("ETag", "v1"));
 
     EppoConfigurationRequest request = createRequest("v1");
-    client.get(request).get();
+    client.execute(request).get();
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertEquals("v1", recordedRequest.getHeader("If-None-Match"));
@@ -100,7 +100,7 @@ public class OkHttpEppoClientTest {
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    client.get(request).get();
+    client.execute(request).get();
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertNull(recordedRequest.getHeader("If-None-Match"));
@@ -113,7 +113,7 @@ public class OkHttpEppoClientTest {
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    client.get(request).get();
+    client.execute(request).get();
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     String path = recordedRequest.getPath();
@@ -131,7 +131,7 @@ public class OkHttpEppoClientTest {
             .setBody(errorBody));
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertFalse(response.isSuccessful());
@@ -146,7 +146,7 @@ public class OkHttpEppoClientTest {
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_FORBIDDEN).setBody("Forbidden"));
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertFalse(response.isSuccessful());
@@ -158,7 +158,7 @@ public class OkHttpEppoClientTest {
     mockWebServer.shutdown();
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
@@ -170,7 +170,7 @@ public class OkHttpEppoClientTest {
     mockWebServer.shutdown();
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     String errorMessage = exception.getCause().getMessage();
@@ -188,7 +188,7 @@ public class OkHttpEppoClientTest {
             .setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    EppoConfigurationResponse response = client.get(request).get();
+    EppoConfigurationResponse response = client.execute(request).get();
 
     assertEquals("\"abc123\"", response.getVersionId());
   }
@@ -199,7 +199,7 @@ public class OkHttpEppoClientTest {
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    EppoConfigurationResponse response = client.get(request).get();
+    EppoConfigurationResponse response = client.execute(request).get();
 
     assertNull(response.getVersionId());
   }
@@ -348,21 +348,6 @@ public class OkHttpEppoClientTest {
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertEquals("v2", recordedRequest.getHeader("If-None-Match"));
-  }
-
-  @Test
-  public void testBackwardCompatibilityWithGetMethod()
-      throws ExecutionException, InterruptedException {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
-
-    EppoConfigurationRequest request = createRequest(null);
-    // Using deprecated get() method should still work
-    @SuppressWarnings("deprecation")
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
-    EppoConfigurationResponse response = future.get();
-
-    assertTrue(response.isSuccessful());
   }
 
   @Test
