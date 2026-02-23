@@ -9,10 +9,13 @@ import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.cache.AssignmentCacheEntry;
+import cloud.eppo.http.EppoConfigurationClient;
+import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
+import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +52,37 @@ public class BaseEppoClient {
   /** @noinspection FieldMayBeFinal */
   private static EppoHttpClient httpClientOverride = null;
 
+  protected BaseEppoClient(
+      @NotNull String apiKey,
+      @NotNull String sdkName,
+      @NotNull String sdkVersion,
+      @Nullable String apiBaseUrl,
+      @Nullable AssignmentLogger assignmentLogger,
+      @Nullable BanditLogger banditLogger,
+      @Nullable IConfigurationStore configurationStore,
+      boolean isGracefulMode,
+      boolean expectObfuscatedConfig,
+      boolean supportBandits,
+      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable IAssignmentCache assignmentCache,
+      @Nullable IAssignmentCache banditAssignmentCache) {
+    this(
+        apiKey,
+        sdkName,
+        sdkVersion,
+        apiBaseUrl,
+        assignmentLogger,
+        banditLogger,
+        configurationStore,
+        isGracefulMode,
+        expectObfuscatedConfig,
+        supportBandits,
+        initialConfiguration,
+        assignmentCache,
+        banditAssignmentCache,
+        null,
+        null);
+  }
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
   // The recommended is 10 minutes (per @Sven)
@@ -65,7 +99,9 @@ public class BaseEppoClient {
       boolean supportBandits,
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
-      @Nullable IAssignmentCache banditAssignmentCache) {
+      @Nullable IAssignmentCache banditAssignmentCache,
+      @Nullable ConfigurationParser configurationParser,
+      @Nullable EppoConfigurationClient eppoConfigurationClient) {
 
     if (apiBaseUrl == null) {
       apiBaseUrl = Constants.DEFAULT_BASE_URL;
@@ -74,15 +110,28 @@ public class BaseEppoClient {
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
 
-    EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
+    SDKKey sdkKey = new SDKKey(apiKey);
+    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
+    String effectiveBaseUrl = endpointHelper.getBaseUrl();
+
+    EppoHttpClient httpClient = buildHttpClient(apiBaseUrl, sdkKey, sdkName, sdkVersion);
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
+
+    EppoConfigurationRequestFactory requestFactory =
+        new EppoConfigurationRequestFactory(
+            effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
 
     // For now, the configuration is only obfuscated for Android clients
     requestor =
         new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+            this.configurationStore,
+            httpClient,
+            expectObfuscatedConfig,
+            supportBandits,
+            configurationParser,
+            eppoConfigurationClient,
+            requestFactory);
     initialConfigFuture =
         initialConfiguration != null
             ? requestor.setInitialConfiguration(initialConfiguration)
@@ -747,7 +796,7 @@ public class BaseEppoClient {
     return metaData;
   }
 
-  private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
+  protected <T> T throwIfNotGraceful(Exception e, T defaultValue) {
     if (this.isGracefulMode) {
       log.info("error getting assignment value: {}", e.getMessage());
       return defaultValue;

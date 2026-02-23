@@ -37,6 +37,9 @@ dependencies {
   }
   testImplementation 'net.bytebuddy:byte-buddy:1.18.1' // Use the latest available version
   testImplementation 'org.mockito:mockito-inline:4.11.0'
+
+  // Use common http/parser implementations in tests.
+  testImplementation project(':eppo-sdk-common')
 }
 
 test {
