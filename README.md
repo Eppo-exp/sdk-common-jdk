@@ -42,7 +42,6 @@ Once you have the prerequisites, follow the steps below to release a new version
 
 If you would like to live on the bleeding edge, you can try running against a snapshot build. Keep in mind that snapshots
 represent the most recent changes on master and may contain bugs.
-Snapshots are published automatically after each push to `main` branch.
 
 ### build.gradle:
 
@@ -54,6 +53,37 @@ repositories {
 }
 
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:3.13.2'
+  implementation 'cloud.eppo:sdk-common-jvm:X.Y.Z-SNAPSHOT'
 }
+```
+
+### Publishing Snapshots
+
+Snapshots are published automatically after each push to the `main` branch.
+
+#### Publishing from an Unmerged Branch
+
+To publish a snapshot from a branch that hasn't been merged to `main` yet (e.g., for testing in downstream SDKs):
+
+1. Push your branch to the `snapshot/*` namespace:
+   ```bash
+   # From your feature branch
+   git push origin HEAD:snapshot/my-feature
+
+   # Or push an existing branch
+   git push origin my-branch:snapshot/my-feature
+   ```
+
+2. This triggers the snapshot publish workflow, which will:
+   - Run tests
+   - Build and sign artifacts
+   - Deploy to Maven Central Snapshots
+
+3. Monitor the workflow at: [Actions > Publish SDK Snapshot](../../actions/workflows/publish-snapshot.yml)
+
+4. Once published, use the snapshot in downstream projects by updating the version in `build.gradle`.
+
+**Note:** The `snapshot/*` branch is only used to trigger the publish workflow. You can delete it after the snapshot is published:
+```bash
+git push origin --delete snapshot/my-feature
 ```
