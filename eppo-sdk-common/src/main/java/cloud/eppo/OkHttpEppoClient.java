@@ -4,15 +4,16 @@ import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationResponse;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.jetbrains.annotations.NotNull;
@@ -20,15 +21,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default implementation of {@link EppoConfigurationClient} using OkHttp 5.
+ * Default implementation of {@link EppoConfigurationClient} using OkHttp.
  *
  * <p>This client handles HTTP communication with Eppo's configuration servers, supporting
- * conditional requests via If-None-Match headers for efficient caching.
+ * conditional requests via If-None-Match headers for efficient caching, and both GET and POST
+ * methods.
  */
 public class OkHttpEppoClient implements EppoConfigurationClient {
   private static final Logger log = LoggerFactory.getLogger(OkHttpEppoClient.class);
   private static final String ETAG_HEADER = "ETag";
   private static final String IF_NONE_MATCH_HEADER = "If-None-Match";
+  private static final String DEFAULT_CONTENT_TYPE = "application/json; charset=utf-8";
 
   private final OkHttpClient client;
 
@@ -57,7 +60,7 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
   }
 
   @Override
-  public CompletableFuture<EppoConfigurationResponse> get(EppoConfigurationRequest request) {
+  public CompletableFuture<EppoConfigurationResponse> execute(EppoConfigurationRequest request) {
     CompletableFuture<EppoConfigurationResponse> future = new CompletableFuture<>();
     Request httpRequest = buildRequest(request);
 
@@ -105,6 +108,23 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
       requestBuilder.header(IF_NONE_MATCH_HEADER, lastVersionId);
     }
 
+    // Handle HTTP method and body
+    switch (request.getMethod()) {
+      case POST:
+        byte[] body = request.getBody();
+        String contentType = request.getContentType();
+        if (contentType == null) {
+          contentType = DEFAULT_CONTENT_TYPE;
+        }
+        MediaType mediaType = MediaType.parse(contentType);
+        requestBuilder.post(RequestBody.create(body != null ? body : new byte[0], mediaType));
+        break;
+      case GET:
+      default:
+        requestBuilder.get();
+        break;
+    }
+
     return requestBuilder.build();
   }
 
@@ -112,7 +132,7 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
     int statusCode = response.code();
     String versionId = response.header(ETAG_HEADER);
 
-    if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
+    if (statusCode == 304) {
       log.debug("Configuration not modified (304)");
       return EppoConfigurationResponse.notModified(versionId);
     }
