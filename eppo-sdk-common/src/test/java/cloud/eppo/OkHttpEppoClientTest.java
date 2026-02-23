@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationResponse;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -51,7 +52,7 @@ public class OkHttpEppoClientTest {
 
     assertTrue(response.isSuccessful());
     assertFalse(response.isNotModified());
-    assertEquals(200, response.getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, response.getStatusCode());
     assertEquals("v1", response.getVersionId());
     assertThat(new String(response.getBody())).isEqualTo(responseBody);
   }
@@ -66,7 +67,7 @@ public class OkHttpEppoClientTest {
 
     assertTrue(response.isNotModified());
     assertFalse(response.isSuccessful());
-    assertEquals(304, response.getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_NOT_MODIFIED, response.getStatusCode());
     assertEquals("v1", response.getVersionId());
     assertNull(response.getBody());
   }
@@ -121,7 +122,7 @@ public class OkHttpEppoClientTest {
 
     assertFalse(response.isSuccessful());
     assertFalse(response.isNotModified());
-    assertEquals(500, response.getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_INTERNAL_ERROR, response.getStatusCode());
     assertThat(new String(response.getBody())).isEqualTo(errorBody);
   }
 
@@ -134,7 +135,7 @@ public class OkHttpEppoClientTest {
     EppoConfigurationResponse response = future.get();
 
     assertFalse(response.isSuccessful());
-    assertEquals(403, response.getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_FORBIDDEN, response.getStatusCode());
   }
 
   @Test
