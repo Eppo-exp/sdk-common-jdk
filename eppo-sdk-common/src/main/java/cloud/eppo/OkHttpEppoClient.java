@@ -4,6 +4,7 @@ import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationResponse;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -111,7 +112,7 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
     int statusCode = response.code();
     String versionId = response.header(ETAG_HEADER);
 
-    if (statusCode == 304) {
+    if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
       log.debug("Configuration not modified (304)");
       return EppoConfigurationResponse.notModified(versionId);
     }

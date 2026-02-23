@@ -3,17 +3,13 @@ package cloud.eppo.api;
 import static cloud.eppo.Utils.getMD5Hex;
 import static org.junit.jupiter.api.Assertions.*;
 
-import cloud.eppo.JacksonConfigurationParser;
 import cloud.eppo.api.dto.BanditModelData;
 import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.parser.ConfigurationParser;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -22,53 +18,223 @@ import java.util.Map;
 import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests for {@link Configuration} and {@link Configuration.Builder}: building from {@link
+ * FlagConfigResponse}, bandit parameters, metadata, and Configuration behavior (lookups, empty
+ * config). Uses DTOs directly so the focus is on Builder/Configuration logic, not the parser.
+ */
 public class ConfigurationBuilderTest {
 
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(EppoModule.eppoModule());
-
-  private static final ConfigurationParser<JsonNode> parser = new JacksonConfigurationParser();
-
-  private Configuration buildConfig(byte[] jsonBytes) {
-    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
-    return new Configuration.Builder(flagConfigResponse).build();
+  private static FlagConfigResponse emptyResponse(FlagConfigResponse.Format format) {
+    return new FlagConfigResponse.Default(
+        Collections.emptyMap(), Collections.emptyMap(), format, null, null);
   }
 
-  private Configuration buildConfig(String json) {
-    return buildConfig(json.getBytes());
+  private static FlagConfigResponse responseWithMetadata(
+      String environmentName, Date createdAt, FlagConfigResponse.Format format) {
+    return new FlagConfigResponse.Default(
+        Collections.emptyMap(), Collections.emptyMap(), format, environmentName, createdAt);
   }
 
   @Test
-  public void testHydrateConfigFromBytesForServer_true() {
-    byte[] jsonBytes = "{ \"format\": \"SERVER\", \"flags\":{} }".getBytes();
-    Configuration config = buildConfig(jsonBytes);
+  public void builderWithServerFormat_setsConfigNotObfuscated() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
     assertFalse(config.isConfigObfuscated());
   }
 
   @Test
-  public void testHydrateConfigFromBytesForServer_false() {
-    byte[] jsonBytes = "{ \"format\": \"CLIENT\", \"flags\":{} }".getBytes();
-    Configuration config = buildConfig(jsonBytes);
+  public void builderWithClientFormat_setsConfigObfuscated() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.CLIENT);
+    Configuration config = new Configuration.Builder(response).build();
     assertTrue(config.isConfigObfuscated());
   }
 
   @Test
-  public void testBuildConfigAutoDetectsServerFormat() {
-    byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"SERVER\" }".getBytes();
-    Configuration config = buildConfig(jsonBytes);
+  public void builderWithExplicitObfuscation_overridesResponseFormat() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response, true).build();
+    assertTrue(config.isConfigObfuscated());
+  }
+
+  @Test
+  public void builderWithNullResponse_createsEmptyConfigWithNullMetadata() {
+    Configuration config = new Configuration.Builder(null, false).build();
+    assertTrue(config.getFlagKeys().isEmpty());
+    assertNull(config.getEnvironmentName());
+    assertNull(config.getConfigPublishedAt());
     assertFalse(config.isConfigObfuscated());
+    assertNotNull(config.getConfigFetchedAt());
   }
 
   @Test
-  public void testBuildConfigAutoDetectsClientFormat() {
-    byte[] jsonBytes = "{ \"flags\":{}, \"format\": \"CLIENT\" }".getBytes();
-    Configuration config = buildConfig(jsonBytes);
-    assertTrue(config.isConfigObfuscated());
+  public void builderCopiesEnvironmentNameFromResponse() {
+    FlagConfigResponse response =
+        responseWithMetadata("Production", null, FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
+    assertEquals("Production", config.getEnvironmentName());
   }
 
   @Test
-  public void getFlagType_shouldReturnCorrectType() {
-    // Create a flag config with a STRING variation type
+  public void builderCopiesConfigPublishedAtFromResponse() throws Exception {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+    Date createdAt = sdf.parse("2024-04-17T19:40:53.716Z");
+    FlagConfigResponse response =
+        responseWithMetadata(null, createdAt, FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
+    assertEquals(createdAt, config.getConfigPublishedAt());
+  }
+
+  @Test
+  public void builderWithResponseWithoutMetadata_hasNullEnvironmentAndPublishedAt() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
+    assertNull(config.getEnvironmentName());
+    assertNull(config.getConfigPublishedAt());
+  }
+
+  @Test
+  public void build_setsConfigFetchedAtToCurrentTime() throws InterruptedException {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Date beforeBuild = new Date();
+    Thread.sleep(10);
+    Configuration config = new Configuration.Builder(response).build();
+    Thread.sleep(10);
+    Date afterBuild = new Date();
+    Date fetchedAt = config.getConfigFetchedAt();
+    assertNotNull(fetchedAt);
+    assertFalse(fetchedAt.before(beforeBuild));
+    assertFalse(fetchedAt.after(afterBuild));
+  }
+
+  @Test
+  public void banditParameters_nullResponse_leavesBanditsEmpty() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config =
+        new Configuration.Builder(response)
+            .banditParameters((BanditParametersResponse) null)
+            .build();
+    assertNull(config.getBanditParameters("any-bandit"));
+  }
+
+  @Test
+  public void banditParameters_responseWithNullBandits_leavesBanditsEmpty() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config =
+        new Configuration.Builder(response)
+            .banditParameters(new BanditParametersResponse.Default(null))
+            .build();
+    assertNull(config.getBanditParameters("any-bandit"));
+  }
+
+  @Test
+  public void banditParameters_responseWithBandits_populatesConfig() {
+    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+    BanditParameters bandit1 =
+        new BanditParameters.Default("bandit-1", new Date(), "falcon", "v1", modelData);
+    BanditParameters bandit2 =
+        new BanditParameters.Default("bandit-2", new Date(), "contextual-bandit", "v2", modelData);
+    Map<String, BanditParameters> banditsMap = new HashMap<>();
+    banditsMap.put("bandit-1", bandit1);
+    banditsMap.put("bandit-2", bandit2);
+    BanditParametersResponse banditResponse = new BanditParametersResponse.Default(banditsMap);
+
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config =
+        new Configuration.Builder(response).banditParameters(banditResponse).build();
+
+    assertEquals("falcon", config.getBanditParameters("bandit-1").getModelName());
+    assertEquals("contextual-bandit", config.getBanditParameters("bandit-2").getModelName());
+  }
+
+  @Test
+  public void banditParametersFromConfig_null_clearsBandits() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration.Builder builder = new Configuration.Builder(response);
+    builder.banditParametersFromConfig(null);
+    Configuration config = builder.build();
+    assertNull(config.getBanditParameters("any"));
+  }
+
+  @Test
+  public void banditParametersFromConfig_withConfig_copiesBanditsIntoBuiltConfig() {
+    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+    BanditParameters bandit =
+        new BanditParameters.Default("b", new Date(), "model", "v1", modelData);
+    Map<String, BanditParameters> banditsMap = Collections.singletonMap("b", bandit);
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration existingConfig =
+        new Configuration.Builder(response)
+            .banditParameters(new BanditParametersResponse.Default(banditsMap))
+            .build();
+
+    Configuration config =
+        new Configuration.Builder(response).banditParametersFromConfig(existingConfig).build();
+    assertNotNull(config.getBanditParameters("b"));
+    assertEquals("model", config.getBanditParameters("b").getModelName());
+  }
+
+  @Test
+  public void flagsSnapshotId_setsSnapshotIdOnBuiltConfig() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).flagsSnapshotId("etag-123").build();
+    assertEquals("etag-123", config.getFlagsSnapshotId());
+  }
+
+  @Test
+  public void referencedBanditModelVersion_returnsVersionsFromResponse() {
+    BanditReference ref = new BanditReference.Default("v2", Collections.emptyList());
+    Map<String, BanditReference> refs = Collections.singletonMap("bandit-1", ref);
+    FlagConfigResponse response =
+        new FlagConfigResponse.Default(
+            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER, null, null);
+    Configuration.Builder builder = new Configuration.Builder(response);
+    assertTrue(builder.referencedBanditModelVersion().contains("v2"));
+  }
+
+  @Test
+  public void loadedBanditModelVersions_returnsVersionsFromSetBandits() {
+    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+    BanditParameters bandit = new BanditParameters.Default("b", new Date(), "m", "v3", modelData);
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration.Builder builder =
+        new Configuration.Builder(response)
+            .banditParameters(
+                new BanditParametersResponse.Default(Collections.singletonMap("b", bandit)));
+    assertTrue(builder.loadedBanditModelVersions().contains("v3"));
+  }
+
+  @Test
+  public void requiresUpdatedBanditModels_whenReferencedVersionNotLoaded_returnsTrue() {
+    BanditReference ref = new BanditReference.Default("v-needed", Collections.emptyList());
+    Map<String, BanditReference> refs = Collections.singletonMap("bandit-1", ref);
+    FlagConfigResponse response =
+        new FlagConfigResponse.Default(
+            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER, null, null);
+    Configuration.Builder builder = new Configuration.Builder(response);
+    assertTrue(builder.requiresUpdatedBanditModels());
+  }
+
+  @Test
+  public void requiresUpdatedBanditModels_whenReferencedVersionLoaded_returnsFalse() {
+    BanditReference ref = new BanditReference.Default("v1", Collections.emptyList());
+    Map<String, BanditReference> refs = Collections.singletonMap("bandit-1", ref);
+    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+    BanditParameters bandit =
+        new BanditParameters.Default("bandit-1", new Date(), "m", "v1", modelData);
+    FlagConfigResponse response =
+        new FlagConfigResponse.Default(
+            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER, null, null);
+    Configuration.Builder builder =
+        new Configuration.Builder(response)
+            .banditParameters(
+                new BanditParametersResponse.Default(Collections.singletonMap("bandit-1", bandit)));
+    assertFalse(builder.requiresUpdatedBanditModels());
+  }
+
+  @Test
+  public void getFlagType_returnsTypeWhenFlagPresent() {
     FlagConfig flagConfig =
         new FlagConfig.Default(
             "test-flag",
@@ -77,30 +243,16 @@ public class ConfigurationBuilderTest {
             VariationType.STRING,
             Collections.emptyMap(),
             Collections.emptyList());
-
-    // Create configuration with this flag
     Map<String, FlagConfig> flags = Collections.singletonMap("test-flag", flagConfig);
     Configuration config =
         new Configuration(
-            flags,
-            Collections.emptyMap(),
-            Collections.emptyMap(),
-            false,
-            null, // environmentName
-            null, // configFetchedAt
-            null, // configPublishedAt
-            null); // flagsSnapshotId
-
-    // Test successful case
+            flags, Collections.emptyMap(), Collections.emptyMap(), false, null, null, null, null);
     assertEquals(VariationType.STRING, config.getFlagType("test-flag"));
-
-    // Test non-existent flag
     assertNull(config.getFlagType("non-existent-flag"));
   }
 
   @Test
-  public void getFlagType_withObfuscatedConfig_shouldReturnCorrectType() {
-    // Create a flag config with a NUMERIC variation type
+  public void getFlagType_withObfuscatedConfig_usesHashedLookup() {
     FlagConfig flagConfig =
         new FlagConfig.Default(
             "test-flag",
@@ -109,192 +261,36 @@ public class ConfigurationBuilderTest {
             VariationType.NUMERIC,
             Collections.emptyMap(),
             Collections.emptyList());
-
-    // Create configuration with this flag using MD5 hash of the flag key
     String hashedKey = getMD5Hex("test-flag");
     Map<String, FlagConfig> flags = Collections.singletonMap(hashedKey, flagConfig);
     Configuration config =
         new Configuration(
-            flags,
-            Collections.emptyMap(),
-            Collections.emptyMap(),
-            true, // obfuscated
-            null, // environmentName
-            null, // configFetchedAt
-            null, // configPublishedAt
-            null); // flagsSnapshotId
-
-    // Test successful case with obfuscated config
+            flags, Collections.emptyMap(), Collections.emptyMap(), true, null, null, null, null);
     assertEquals(VariationType.NUMERIC, config.getFlagType("test-flag"));
-
-    // Test non-existent flag
     assertNull(config.getFlagType("non-existent-flag"));
     assertNull(config.getFlagType(hashedKey));
   }
 
   @Test
-  public void getFlagType_withEmptyConfig_shouldReturnNull() {
+  public void getFlagType_emptyConfig_returnsNull() {
     Configuration config = Configuration.emptyConfig();
     assertNull(config.getFlagType("any-flag"));
   }
 
   @Test
-  public void testEnvironmentNameParsedFromJson() {
-    // Environment name is nested inside an "environment" object
-    String json =
-        "{ \"flags\": {}, \"environment\": { \"name\": \"Production\" }, \"createdAt\": \"2024-01-01T00:00:00.000Z\" }";
-    Configuration config = buildConfig(json);
-
-    assertEquals("Production", config.getEnvironmentName());
-  }
-
-  @Test
-  public void testEnvironmentNameNullWhenNotInJson() {
-    // When flags are present but no environment object
-    String json = "{ \"flags\": {} }";
-    Configuration config = buildConfig(json);
-
-    assertNull(config.getEnvironmentName());
-  }
-
-  @Test
-  public void testConfigPublishedAtParsedFromCreatedAt() throws Exception {
-    String json = "{ \"flags\": {}, \"createdAt\": \"2024-04-17T19:40:53.716Z\" }";
-    Configuration config = buildConfig(json);
-
-    // configPublishedAt should be set from the createdAt field in the JSON
-    Date publishedAt = config.getConfigPublishedAt();
-    assertNotNull(publishedAt, "configPublishedAt should be set from createdAt");
-
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-    Date expectedDate = sdf.parse("2024-04-17T19:40:53.716Z");
-    assertEquals(expectedDate, publishedAt);
-  }
-
-  @Test
-  public void testConfigPublishedAtNullWhenCreatedAtNotInJson() {
-    String json = "{ \"flags\": {} }";
-    Configuration config = buildConfig(json);
-
-    assertNull(config.getConfigPublishedAt());
-  }
-
-  @Test
-  public void testConfigFetchedAtSetOnBuild() throws InterruptedException {
-    String json = "{ \"flags\": {} }";
-
-    Date beforeBuild = new Date();
-    // Small sleep to ensure time difference is measurable
-    Thread.sleep(10);
-
-    Configuration config = buildConfig(json);
-
-    Thread.sleep(10);
-    Date afterBuild = new Date();
-
-    Date fetchedAt = config.getConfigFetchedAt();
-    assertNotNull(fetchedAt, "configFetchedAt should be set when build() is called");
-
-    // fetchedAt should be between beforeBuild and afterBuild
-    assertFalse(
-        fetchedAt.before(beforeBuild),
-        "configFetchedAt should not be before the build was started");
-    assertFalse(
-        fetchedAt.after(afterBuild), "configFetchedAt should not be after the build completed");
-  }
-
-  @Test
-  public void testAllMetadataFieldsTogether() throws Exception {
-    String json =
-        "{ \"flags\": {}, \"environment\": { \"name\": \"Staging\" }, \"createdAt\": \"2024-06-15T12:30:00.000Z\", \"format\": \"SERVER\" }";
-
-    Date beforeBuild = new Date();
-    Configuration config = buildConfig(json);
-    Date afterBuild = new Date();
-
-    // Verify environmentName
-    assertEquals("Staging", config.getEnvironmentName());
-
-    // Verify configPublishedAt (from createdAt)
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-    Date expectedPublishedAt = sdf.parse("2024-06-15T12:30:00.000Z");
-    assertEquals(expectedPublishedAt, config.getConfigPublishedAt());
-
-    // Verify configFetchedAt is set at build time
-    assertNotNull(config.getConfigFetchedAt());
-    assertFalse(config.getConfigFetchedAt().before(beforeBuild));
-    assertFalse(config.getConfigFetchedAt().after(afterBuild));
-
-    // Verify obfuscation setting
-    assertFalse(config.isConfigObfuscated());
-  }
-
-  @Test
-  public void testEmptyConfigHasNullMetadata() {
+  public void emptyConfig_hasNullMetadata() {
     Configuration config = Configuration.emptyConfig();
-
     assertNull(config.getEnvironmentName());
     assertNull(config.getConfigFetchedAt());
     assertNull(config.getConfigPublishedAt());
   }
 
   @Test
-  public void testBanditParametersFromNullResponse() {
-    String json = "{ \"flags\": {} }";
-    byte[] jsonBytes = json.getBytes();
-    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
-    Configuration config =
-        new Configuration.Builder(flagConfigResponse)
-            .banditParameters((BanditParametersResponse) null)
-            .build();
-
-    // Should not throw and bandit should not be found
-    assertNull(config.getBanditParameters("any-bandit"));
-  }
-
-  @Test
-  public void testBanditParametersFromResponseWithNullBandits() {
-    // Create response with null bandits map (simulating edge case)
-    BanditParametersResponse response = new BanditParametersResponse.Default(null);
-
-    String json = "{ \"flags\": {} }";
-    byte[] jsonBytes = json.getBytes();
-    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
-    Configuration config =
-        new Configuration.Builder(flagConfigResponse).banditParameters(response).build();
-
-    // Should not throw and bandit should not be found
-    assertNull(config.getBanditParameters("any-bandit"));
-  }
-
-  @Test
-  public void testBanditParametersFromResponseWithMultipleBandits() {
-    BanditModelData mockModelData =
-        new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
-
-    BanditParameters bandit1 =
-        new BanditParameters.Default("bandit-1", new Date(), "falcon", "v1", mockModelData);
-    BanditParameters bandit2 =
-        new BanditParameters.Default(
-            "bandit-2", new Date(), "contextual-bandit", "v2", mockModelData);
-
-    Map<String, BanditParameters> banditsMap = new HashMap<>();
-    banditsMap.put("bandit-1", bandit1);
-    banditsMap.put("bandit-2", bandit2);
-    BanditParametersResponse response = new BanditParametersResponse.Default(banditsMap);
-
-    String json = "{ \"flags\": {} }";
-    byte[] jsonBytes = json.getBytes();
-    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(jsonBytes);
-    Configuration config =
-        new Configuration.Builder(flagConfigResponse).banditParameters(response).build();
-
-    // Verify both bandits are accessible
-    assertNotNull(config.getBanditParameters("bandit-1"));
-    assertNotNull(config.getBanditParameters("bandit-2"));
-    assertEquals("falcon", config.getBanditParameters("bandit-1").getModelName());
-    assertEquals("contextual-bandit", config.getBanditParameters("bandit-2").getModelName());
+  public void builderStaticFactory_equivalentToConstructor() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration fromConstructor = new Configuration.Builder(response).build();
+    Configuration fromFactory = Configuration.builder(response).build();
+    assertEquals(fromConstructor.isConfigObfuscated(), fromFactory.isConfigObfuscated());
+    assertEquals(fromConstructor.getFlagKeys(), fromFactory.getFlagKeys());
   }
 }
