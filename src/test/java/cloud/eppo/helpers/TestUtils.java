@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationResponse;
+import java.net.HttpURLConnection;
 import java.util.concurrent.CompletableFuture;
 
 public class TestUtils {
@@ -29,9 +30,9 @@ public class TestUtils {
   public static EppoConfigurationClient mockConfigurationClient(byte[] responseBody) {
     EppoConfigurationClient mockClient = mock(EppoConfigurationClient.class);
     EppoConfigurationResponse successResponse =
-        EppoConfigurationResponse.success(200, "test-version", responseBody);
+        EppoConfigurationResponse.success(HttpURLConnection.HTTP_OK, "test-version", responseBody);
 
-    when(mockClient.get(any(EppoConfigurationRequest.class)))
+    when(mockClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(successResponse));
 
     return mockClient;
@@ -48,7 +49,7 @@ public class TestUtils {
     CompletableFuture<EppoConfigurationResponse> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(new RuntimeException("Intentional Error"));
 
-    when(mockClient.get(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
+    when(mockClient.execute(any(EppoConfigurationRequest.class))).thenReturn(failedFuture);
 
     return mockClient;
   }
@@ -61,9 +62,10 @@ public class TestUtils {
   public static EppoConfigurationClient mockConfigurationClientErrorResponse() {
     EppoConfigurationClient mockClient = mock(EppoConfigurationClient.class);
     EppoConfigurationResponse errorResponse =
-        EppoConfigurationResponse.error(500, "Internal Server Error".getBytes());
+        EppoConfigurationResponse.error(
+            HttpURLConnection.HTTP_INTERNAL_ERROR, "Internal Server Error".getBytes());
 
-    when(mockClient.get(any(EppoConfigurationRequest.class)))
+    when(mockClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(errorResponse));
 
     return mockClient;

@@ -15,7 +15,10 @@ import org.jetbrains.annotations.NotNull;
 public interface EppoConfigurationClient {
 
   /**
-   * Performs an asynchronous GET request.
+   * Executes a configuration request asynchronously.
+   *
+   * <p>The request may be either GET or POST based on {@link EppoConfigurationRequest#getMethod()}.
+   * For POST requests, implementations should include the body and content type from the request.
    *
    * <p>For synchronous behavior, callers can use {@code .get()} or {@code .join()} on the returned
    * CompletableFuture.
@@ -23,5 +26,5 @@ public interface EppoConfigurationClient {
    * @param request the request to execute
    * @return a CompletableFuture that will complete with the response
    */
-  @NotNull CompletableFuture<EppoConfigurationResponse> get(@NotNull EppoConfigurationRequest request);
+  @NotNull CompletableFuture<EppoConfigurationResponse> execute(@NotNull EppoConfigurationRequest request);
 }
