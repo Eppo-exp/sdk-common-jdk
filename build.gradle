@@ -1,9 +1,26 @@
+// Apply Spotless conditionally - 8.x requires Java 17+, use 6.x for older Java
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      classpath "com.diffplug.spotless:spotless-plugin-gradle:8.1.0"
+    } else {
+      classpath "com.diffplug.spotless:spotless-plugin-gradle:6.13.0"
+    }
+  }
+}
+
 plugins {
   id 'java-library'
   id 'maven-publish'
   id 'org.jreleaser' version '1.18.0' // Stay at 1.18. Version 1.20.0 fails to publish.
-  id "com.diffplug.spotless" version "6.13.0"
 }
+
+apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
 version = '0.1.0-SNAPSHOT'
@@ -17,23 +34,23 @@ java {
 }
 
 dependencies {
-  api 'org.jetbrains:annotations:26.0.1'
+  api 'org.jetbrains:annotations:26.1.0'
   implementation 'com.github.zafarkhaja:java-semver:0.10.2'
   // For LRU and expiring maps
   implementation 'org.apache.commons:commons-collections4:4.5.0'
   implementation 'org.slf4j:slf4j-api:2.0.17'
   testImplementation 'org.slf4j:slf4j-simple:2.0.17'
-  testImplementation platform('org.junit:junit-bom:5.14.1')
+  testImplementation platform('org.junit:junit-bom:5.14.2')
   testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
-  testImplementation 'commons-io:commons-io:2.20.0'
+  testImplementation 'commons-io:commons-io:2.21.0'
   testImplementation 'com.google.truth:truth:1.4.5'
   testImplementation ('org.mockito:mockito-core:4.11.0') {
     exclude group: 'net.bytebuddy', module: 'byte-buddy' // mockito 4's version doesn't work with Java 21
   }
-  testImplementation 'net.bytebuddy:byte-buddy:1.18.1' // Use the latest available version
+  testImplementation 'net.bytebuddy:byte-buddy:1.18.4' // Use the latest available version
   testImplementation 'org.mockito:mockito-inline:4.11.0'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
   testImplementation "com.squareup.okhttp3:okhttp:4.12.0"
@@ -60,11 +77,21 @@ spotless {
     target '*.gradle', '.gitattributes', '.gitignore'
 
     trimTrailingWhitespace()
-    indentWithSpaces(2)
+    // Use the appropriate method based on Spotless version
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      leadingTabsToSpaces(2)  // Spotless 8.x
+    } else {
+      indentWithSpaces(2)     // Spotless 6.x
+    }
     endWithNewline()
   }
   java {
-    googleJavaFormat('1.7')
+    // Use google-java-format versions compatible with the Java runtime
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      googleJavaFormat('1.17.0')  // For Java 17+ with Spotless 8.x
+    } else {
+      googleJavaFormat('1.7')     // For Java 8-16 with Spotless 6.x
+    }
     formatAnnotations()
   }
 }
