@@ -51,20 +51,17 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
     }
 
     @Override
-    @NotNull
-    public String getAttributeKey() {
+    @NotNull public String getAttributeKey() {
       return attributeKey;
     }
 
     @Override
-    @NotNull
-    public Double getCoefficient() {
+    @NotNull public Double getCoefficient() {
       return coefficient;
     }
 
     @Override
-    @NotNull
-    public Double getMissingValueCoefficient() {
+    @NotNull public Double getMissingValueCoefficient() {
       return missingValueCoefficient;
     }
   }

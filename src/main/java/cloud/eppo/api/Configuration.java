@@ -9,12 +9,6 @@ import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.ufc.dto.adapters.EppoModule;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.*;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
@@ -29,42 +23,47 @@ import org.slf4j.LoggerFactory;
  * Encapsulates the Flag Configuration and Bandit parameters in an immutable object with a complete
  * and coherent state.
  *
- * <p>A Builder is used to prepare and then create am immutable data structure containing both flag
+ * <p>A Builder is used to prepare and then create an immutable data structure containing both flag
  * and bandit configurations. An intermediate step is required in building the configuration to
  * accommodate the as-needed loading of bandit parameters as a network call may not be needed if
  * there are no bandits referenced by the flag configuration.
  *
- * <p>Usage: Building with just flag configuration (unobfuscated is default) <code>
- *     Configuration config = new Configuration.Builder(flagConfigJsonString).build();
- * </code>
+ * <p>Usage: Building with just flag configuration (obfuscation auto-detected from format):
  *
- * <p>Building with bandits (known configuration) <code>
- *     Configuration config = new Configuration.Builder(flagConfigJsonString).banditParameters(banditConfigJson).build();
- *     </code>
+ * <pre>{@code
+ * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ * Configuration config = new Configuration.Builder(flagConfig).build();
+ * }</pre>
  *
- * <p>Conditionally loading bandit models (with or without an existing bandit config JSON string).
- * <code>
- *  Configuration.Builder configBuilder = new Configuration.Builder(flagConfigJsonString).banditParameters(banditConfigJson);
- *  if (configBuilder.requiresBanditModels()) {
- *    // Load the bandit parameters encoded in a JSON string
- *    configBuilder.banditParameters(banditParameterJsonString);
- *  }
- *  Configuration config = configBuilder.build();
- * </code>
+ * <p>Building with bandits (known configuration):
  *
- * <p>
+ * <pre>{@code
+ * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ * BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
+ * Configuration config = new Configuration.Builder(flagConfig)
+ *     .banditParameters(banditParams)
+ *     .build();
+ * }</pre>
  *
- * <p>Hint: when loading new Flag configuration values, set the current bandit models in the builder
- * then check `requiresBanditModels()`.
+ * <p>Conditionally loading bandit models (with or without an existing bandit configuration):
+ *
+ * <pre>{@code
+ * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
+ * Configuration.Builder configBuilder = new Configuration.Builder(flagConfig)
+ *     .banditParametersFromConfig(existingConfig);
+ * if (configBuilder.requiresUpdatedBanditModels()) {
+ *   BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
+ *   configBuilder.banditParameters(banditParams);
+ * }
+ * Configuration config = configBuilder.build();
+ * }</pre>
+ *
+ * <p>Hint: when loading new flag configuration values, set the current bandit models in the builder
+ * using {@link Builder#banditParametersFromConfig(Configuration)}, then check {@link
+ * Builder#requiresUpdatedBanditModels()}.
  */
-public class Configuration implements Serializable {
+public class Configuration implements java.io.Serializable {
   private static final long serialVersionUID = 1L;
-  private static final ObjectMapper mapper =
-      new ObjectMapper().registerModule(EppoModule.eppoModule());
-
-  private static final byte[] emptyFlagsBytes =
-      "{ \"flags\": {}, \"format\": \"SERVER\" }".getBytes();
-
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   private final Map<String, BanditReference> banditReferences;
   private final Map<String, FlagConfig> flags;
@@ -75,10 +74,6 @@ public class Configuration implements Serializable {
   private final Date configPublishedAt;
   @Nullable private final String flagsSnapshotId;
 
-  private final byte[] flagConfigJson;
-
-  private final byte[] banditParamsJson;
-
   /** Default visibility for tests. */
   Configuration(
       Map<String, FlagConfig> flags,
@@ -88,9 +83,7 @@ public class Configuration implements Serializable {
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt,
-      @Nullable String flagsSnapshotId,
-      byte[] flagConfigJson,
-      byte[] banditParamsJson) {
+      @Nullable String flagsSnapshotId) {
     this.flags = flags;
     this.banditReferences = banditReferences;
     this.bandits = bandits;
@@ -99,23 +92,6 @@ public class Configuration implements Serializable {
     this.configFetchedAt = configFetchedAt;
     this.configPublishedAt = configPublishedAt;
     this.flagsSnapshotId = flagsSnapshotId;
-
-    // Graft the `format` field into the flagConfigJson'
-    if (flagConfigJson != null && flagConfigJson.length != 0) {
-      try {
-        JsonNode jNode = mapper.readTree(flagConfigJson);
-        FlagConfigResponse.Format format =
-            isConfigObfuscated
-                ? FlagConfigResponse.Format.CLIENT
-                : FlagConfigResponse.Format.SERVER;
-        ((ObjectNode) jNode).put("format", format.toString());
-        flagConfigJson = mapper.writeValueAsBytes(jNode);
-      } catch (IOException e) {
-        log.error("Error adding `format` field to FlagConfigResponse JSON");
-      }
-    }
-    this.flagConfigJson = flagConfigJson;
-    this.banditParamsJson = banditParamsJson;
   }
 
   public static Configuration emptyConfig() {
@@ -127,8 +103,6 @@ public class Configuration implements Serializable {
         null,
         null,
         null,
-        null,
-        emptyFlagsBytes,
         null);
   }
 
@@ -152,10 +126,6 @@ public class Configuration implements Serializable {
         + configPublishedAt
         + ", flagsSnapshotId="
         + flagsSnapshotId
-        + ", flagConfigJson="
-        + Arrays.toString(flagConfigJson)
-        + ", banditParamsJson="
-        + Arrays.toString(banditParamsJson)
         + '}';
   }
 
@@ -170,9 +140,7 @@ public class Configuration implements Serializable {
         && Objects.equals(environmentName, that.environmentName)
         && Objects.equals(configFetchedAt, that.configFetchedAt)
         && Objects.equals(configPublishedAt, that.configPublishedAt)
-        && Objects.equals(flagsSnapshotId, that.flagsSnapshotId)
-        && Objects.deepEquals(flagConfigJson, that.flagConfigJson)
-        && Objects.deepEquals(banditParamsJson, that.banditParamsJson);
+        && Objects.equals(flagsSnapshotId, that.flagsSnapshotId);
   }
 
   @Override
@@ -185,9 +153,7 @@ public class Configuration implements Serializable {
         environmentName,
         configFetchedAt,
         configPublishedAt,
-        flagsSnapshotId,
-        Arrays.hashCode(flagConfigJson),
-        Arrays.hashCode(banditParamsJson));
+        flagsSnapshotId);
   }
 
   public FlagConfig getFlag(String flagKey) {
@@ -241,14 +207,6 @@ public class Configuration implements Serializable {
     return isConfigObfuscated;
   }
 
-  public byte[] serializeFlagConfigToBytes() {
-    return flagConfigJson;
-  }
-
-  public byte[] serializeBanditParamsToBytes() {
-    return banditParamsJson;
-  }
-
   public boolean isEmpty() {
     return flags == null || flags.isEmpty();
   }
@@ -282,8 +240,8 @@ public class Configuration implements Serializable {
     return flagsSnapshotId;
   }
 
-  public static Builder builder(byte[] flagJson) {
-    return new Builder(flagJson);
+  public static Builder builder(FlagConfigResponse flagConfigResponse) {
+    return new Builder(flagConfigResponse);
   }
 
   /**
@@ -297,41 +255,16 @@ public class Configuration implements Serializable {
     private final Map<String, FlagConfig> flags;
     private final Map<String, BanditReference> banditReferences;
     private Map<String, BanditParameters> bandits = Collections.emptyMap();
-    private final byte[] flagJson;
-    private byte[] banditParamsJson;
     private final String environmentName;
     private final Date configPublishedAt;
     @Nullable private String flagsSnapshotId;
 
-    private static FlagConfigResponse parseFlagResponse(byte[] flagJson) {
-      if (flagJson == null || flagJson.length == 0) {
-        log.warn("Null or empty configuration string. Call `Configuration.Empty()` instead");
-        return null;
-      }
-      try {
-        return mapper.readValue(flagJson, FlagConfigResponse.class);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+    public Builder(FlagConfigResponse flagConfigResponse) {
+      this(flagConfigResponse, flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
     }
 
-    public Builder(byte[] flagJson) {
-      this(flagJson, parseFlagResponse(flagJson));
-    }
-
-    public Builder(byte[] flagJson, FlagConfigResponse flagConfigResponse) {
-      this(
-          flagJson,
-          flagConfigResponse,
-          flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
-    }
-
-    public Builder(
-        byte[] flagJson,
-        @Nullable FlagConfigResponse flagConfigResponse,
-        boolean isConfigObfuscated) {
+    public Builder(@Nullable FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated) {
       this.isConfigObfuscated = isConfigObfuscated;
-      this.flagJson = flagJson;
       if (flagConfigResponse == null || flagConfigResponse.getFlags() == null) {
         log.warn("'flags' map missing in flag definition JSON");
         flags = Collections.emptyMap();
@@ -372,7 +305,6 @@ public class Configuration implements Serializable {
         bandits = Collections.emptyMap();
       } else {
         bandits = currentConfig.bandits;
-        banditParamsJson = currentConfig.banditParamsJson;
       }
       return this;
     }
@@ -383,34 +315,6 @@ public class Configuration implements Serializable {
         return this;
       }
       bandits = Collections.unmodifiableMap(banditParametersResponse.getBandits());
-      return this;
-    }
-
-    public Builder banditParameters(String banditParameterJson) {
-      return banditParameters(banditParameterJson.getBytes());
-    }
-
-    public Builder banditParameters(byte[] banditParameterJson) {
-      if (banditParameterJson == null || banditParameterJson.length == 0) {
-        log.debug("Bandit parameters are null or empty");
-        return this;
-      }
-      BanditParametersResponse config;
-      try {
-        config = mapper.readValue(banditParameterJson, BanditParametersResponse.class);
-      } catch (IOException e) {
-        log.error("Unable to parse bandit parameters JSON");
-        throw new RuntimeException(e);
-      }
-
-      if (config == null || config.getBandits() == null) {
-        log.warn("`bandits` map missing in bandit parameters JSON");
-        bandits = Collections.emptyMap();
-      } else {
-        bandits = Collections.unmodifiableMap(config.getBandits());
-        log.debug("Loaded {} bandit models from bandit parameters JSON", bandits.size());
-      }
-
       return this;
     }
 
@@ -430,9 +334,7 @@ public class Configuration implements Serializable {
           environmentName,
           configFetchedAt,
           configPublishedAt,
-          flagsSnapshotId,
-          flagJson,
-          banditParamsJson);
+          flagsSnapshotId);
     }
   }
 }

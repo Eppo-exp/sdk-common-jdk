@@ -74,32 +74,27 @@ public interface BanditFlagVariation extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getBanditKey() {
+    @NotNull public String getBanditKey() {
       return banditKey;
     }
 
     @Override
-    @NotNull
-    public String getFlagKey() {
+    @NotNull public String getFlagKey() {
       return flagKey;
     }
 
     @Override
-    @NotNull
-    public String getAllocationKey() {
+    @NotNull public String getAllocationKey() {
       return allocationKey;
     }
 
     @Override
-    @NotNull
-    public String getVariationKey() {
+    @NotNull public String getVariationKey() {
       return variationKey;
     }
 
     @Override
-    @NotNull
-    public String getVariationValue() {
+    @NotNull public String getVariationValue() {
       return variationValue;
     }
   }

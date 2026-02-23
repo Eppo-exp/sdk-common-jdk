@@ -2,6 +2,10 @@ package cloud.eppo.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.JacksonConfigurationParser;
+import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.api.dto.FlagConfigResponse;
+import cloud.eppo.parser.ConfigurationParser;
 import java.io.*;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
@@ -15,11 +19,14 @@ public class ConfigurationSerializationTest {
   private static final File banditModelsFile =
       new File("src/test/resources/shared/ufc/bandit-models-v1.json");
 
+  private static final ConfigurationParser<?> parser = new JacksonConfigurationParser();
+
   @Test
   public void testConfigurationSerializesAndDeserializes() throws Exception {
     // Load configuration from test resources
     byte[] flagsJson = FileUtils.readFileToByteArray(flagsFile);
-    Configuration original = Configuration.builder(flagsJson).build();
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(flagsJson);
+    Configuration original = Configuration.builder(flagConfigResponse).build();
 
     // Serialize to bytes
     byte[] serialized = serializeToBytes(original);
@@ -44,8 +51,13 @@ public class ConfigurationSerializationTest {
     byte[] banditFlagsJson = FileUtils.readFileToByteArray(banditFlagsFile);
     byte[] banditModelsJson = FileUtils.readFileToByteArray(banditModelsFile);
 
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(banditFlagsJson);
+    BanditParametersResponse banditParametersResponse = parser.parseBanditParams(banditModelsJson);
+
     Configuration original =
-        Configuration.builder(banditFlagsJson).banditParameters(banditModelsJson).build();
+        Configuration.builder(flagConfigResponse)
+            .banditParameters(banditParametersResponse)
+            .build();
 
     // Serialize to bytes
     byte[] serialized = serializeToBytes(original);
@@ -86,7 +98,8 @@ public class ConfigurationSerializationTest {
     // Load obfuscated configuration
     File obfuscatedFile = new File("src/test/resources/shared/ufc/flags-v1-obfuscated.json");
     byte[] flagsJson = FileUtils.readFileToByteArray(obfuscatedFile);
-    Configuration original = Configuration.builder(flagsJson).build();
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(flagsJson);
+    Configuration original = Configuration.builder(flagConfigResponse).build();
 
     // Serialize to bytes
     byte[] serialized = serializeToBytes(original);

@@ -19,9 +19,7 @@ public interface TargetingCondition extends Serializable {
     private final @NotNull EppoValue value;
 
     public Default(
-        @NotNull OperatorType operator,
-        @NotNull String attribute,
-        @NotNull EppoValue value) {
+        @NotNull OperatorType operator, @NotNull String attribute, @NotNull EppoValue value) {
       this.operator = operator;
       this.attribute = attribute;
       this.value = value;
@@ -55,20 +53,17 @@ public interface TargetingCondition extends Serializable {
     }
 
     @Override
-    @NotNull
-    public OperatorType getOperator() {
+    @NotNull public OperatorType getOperator() {
       return operator;
     }
 
     @Override
-    @NotNull
-    public String getAttribute() {
+    @NotNull public String getAttribute() {
       return attribute;
     }
 
     @Override
-    @NotNull
-    public EppoValue getValue() {
+    @NotNull public EppoValue getValue() {
       return value;
     }
   }

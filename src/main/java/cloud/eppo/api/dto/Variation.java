@@ -38,14 +38,12 @@ public interface Variation extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getKey() {
+    @NotNull public String getKey() {
       return this.key;
     }
 
     @Override
-    @NotNull
-    public EppoValue getValue() {
+    @NotNull public EppoValue getValue() {
       return value;
     }
   }

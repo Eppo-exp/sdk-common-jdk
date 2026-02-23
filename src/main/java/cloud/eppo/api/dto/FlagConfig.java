@@ -43,12 +43,14 @@ public interface FlagConfig extends Serializable {
       this.enabled = enabled;
       this.totalShards = totalShards;
       this.variationType = variationType == null ? VariationType.STRING : variationType;
-      this.variations = variations == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(variations));
-      this.allocations = allocations == null
-          ? Collections.emptyList()
-          : Collections.unmodifiableList(new ArrayList<>(allocations));
+      this.variations =
+          variations == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(variations));
+      this.allocations =
+          allocations == null
+              ? Collections.emptyList()
+              : Collections.unmodifiableList(new ArrayList<>(allocations));
     }
 
     @Override
@@ -88,8 +90,7 @@ public interface FlagConfig extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getKey() {
+    @NotNull public String getKey() {
       return key;
     }
 
@@ -104,20 +105,17 @@ public interface FlagConfig extends Serializable {
     }
 
     @Override
-    @NotNull
-    public VariationType getVariationType() {
+    @NotNull public VariationType getVariationType() {
       return variationType;
     }
 
     @Override
-    @NotNull
-    public Map<String, Variation> getVariations() {
+    @NotNull public Map<String, Variation> getVariations() {
       return variations;
     }
 
     @Override
-    @NotNull
-    public List<Allocation> getAllocations() {
+    @NotNull public List<Allocation> getAllocations() {
       return allocations;
     }
   }

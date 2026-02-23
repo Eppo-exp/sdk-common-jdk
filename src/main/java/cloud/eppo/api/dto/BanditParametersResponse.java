@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,9 +18,10 @@ public interface BanditParametersResponse {
     }
 
     public Default(@Nullable Map<String, @NotNull BanditParameters> bandits) {
-      this.bandits = bandits == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(bandits));
+      this.bandits =
+          bandits == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(bandits));
     }
 
     @Override
@@ -42,8 +42,7 @@ public interface BanditParametersResponse {
     }
 
     @Override
-    @NotNull
-    public Map<String, @NotNull BanditParameters> getBandits() {
+    @NotNull public Map<String, @NotNull BanditParameters> getBandits() {
       return bandits;
     }
   }

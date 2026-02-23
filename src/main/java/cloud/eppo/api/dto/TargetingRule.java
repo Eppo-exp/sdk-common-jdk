@@ -16,14 +16,14 @@ public interface TargetingRule extends Serializable {
     private final @NotNull Set<TargetingCondition> conditions;
 
     public Default(@Nullable Set<TargetingCondition> conditions) {
-      this.conditions = conditions == null
-          ? Collections.emptySet()
-          : Collections.unmodifiableSet(new HashSet<>(conditions));
+      this.conditions =
+          conditions == null
+              ? Collections.emptySet()
+              : Collections.unmodifiableSet(new HashSet<>(conditions));
     }
 
     @Override
-    @NotNull
-    public Set<TargetingCondition> getConditions() {
+    @NotNull public Set<TargetingCondition> getConditions() {
       return conditions;
     }
 

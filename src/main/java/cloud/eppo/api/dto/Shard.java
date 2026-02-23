@@ -21,9 +21,10 @@ public interface Shard extends Serializable {
 
     public Default(@NotNull String salt, @Nullable Set<ShardRange> ranges) {
       this.salt = salt;
-      this.ranges = ranges == null
-          ? Collections.emptySet()
-          : Collections.unmodifiableSet(new HashSet<>(ranges));
+      this.ranges =
+          ranges == null
+              ? Collections.emptySet()
+              : Collections.unmodifiableSet(new HashSet<>(ranges));
     }
 
     @Override
@@ -44,14 +45,12 @@ public interface Shard extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getSalt() {
+    @NotNull public String getSalt() {
       return salt;
     }
 
     @Override
-    @NotNull
-    public Set<ShardRange> getRanges() {
+    @NotNull public Set<ShardRange> getRanges() {
       return ranges;
     }
   }

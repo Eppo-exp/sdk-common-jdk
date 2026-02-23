@@ -37,12 +37,14 @@ public interface FlagConfigResponse {
         @Nullable Format dataFormat,
         @Nullable String environmentName,
         @Nullable Date createdAt) {
-      this.flags = flags == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(flags));
-      this.banditReferences = banditReferences == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(banditReferences));
+      this.flags =
+          flags == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(flags));
+      this.banditReferences =
+          banditReferences == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(banditReferences));
       this.format = dataFormat == null ? Format.SERVER : dataFormat;
       this.environmentName = environmentName;
       this.createdAt = createdAt == null ? null : new Date(createdAt.getTime());
@@ -99,32 +101,27 @@ public interface FlagConfigResponse {
     }
 
     @Override
-    @NotNull
-    public Map<String, FlagConfig> getFlags() {
+    @NotNull public Map<String, FlagConfig> getFlags() {
       return flags;
     }
 
     @Override
-    @NotNull
-    public Map<String, BanditReference> getBanditReferences() {
+    @NotNull public Map<String, BanditReference> getBanditReferences() {
       return banditReferences;
     }
 
     @Override
-    @NotNull
-    public Format getFormat() {
+    @NotNull public Format getFormat() {
       return format;
     }
 
     @Override
-    @Nullable
-    public String getEnvironmentName() {
+    @Nullable public String getEnvironmentName() {
       return environmentName;
     }
 
     @Override
-    @Nullable
-    public Date getCreatedAt() {
+    @Nullable public Date getCreatedAt() {
       return createdAt == null ? null : new Date(createdAt.getTime());
     }
   }

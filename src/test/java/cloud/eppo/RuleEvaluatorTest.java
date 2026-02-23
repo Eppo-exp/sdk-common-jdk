@@ -87,7 +87,8 @@ public class RuleEvaluatorTest {
     Set<TargetingCondition> conditions = new HashSet<>();
     List<String> values = Arrays.asList("value1", "value2");
     conditions.add(
-        new TargetingCondition.Default(OperatorType.NOT_ONE_OF, "oneOf", EppoValue.valueOf(values)));
+        new TargetingCondition.Default(
+            OperatorType.NOT_ONE_OF, "oneOf", EppoValue.valueOf(values)));
     return conditions;
   }
 

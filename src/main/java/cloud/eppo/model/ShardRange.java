@@ -1,7 +1,5 @@
 package cloud.eppo.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -11,8 +9,7 @@ public class ShardRange implements Serializable {
   private final int start;
   private int end;
 
-  @JsonCreator
-  public ShardRange(@JsonProperty("start") int start, @JsonProperty("end") int end) {
+  public ShardRange(int start, int end) {
     this.start = start;
     this.end = end;
   }

@@ -24,9 +24,10 @@ public interface BanditCategoricalAttributeCoefficients extends BanditAttributeC
         @Nullable Map<String, Double> valueCoefficients) {
       this.attributeKey = attributeKey;
       this.missingValueCoefficient = missingValueCoefficient;
-      this.valueCoefficients = valueCoefficients == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(valueCoefficients));
+      this.valueCoefficients =
+          valueCoefficients == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(valueCoefficients));
     }
 
     @Override
@@ -57,20 +58,17 @@ public interface BanditCategoricalAttributeCoefficients extends BanditAttributeC
     }
 
     @Override
-    @NotNull
-    public String getAttributeKey() {
+    @NotNull public String getAttributeKey() {
       return attributeKey;
     }
 
     @Override
-    @NotNull
-    public Double getMissingValueCoefficient() {
+    @NotNull public Double getMissingValueCoefficient() {
       return missingValueCoefficient;
     }
 
     @Override
-    @NotNull
-    public Map<String, Double> getValueCoefficients() {
+    @NotNull public Map<String, Double> getValueCoefficients() {
       return valueCoefficients;
     }
   }

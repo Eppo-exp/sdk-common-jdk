@@ -19,12 +19,12 @@ public interface BanditReference extends Serializable {
     private final @NotNull List<BanditFlagVariation> flagVariations;
 
     public Default(
-        @NotNull String modelVersion,
-        @Nullable List<BanditFlagVariation> flagVariations) {
+        @NotNull String modelVersion, @Nullable List<BanditFlagVariation> flagVariations) {
       this.modelVersion = modelVersion;
-      this.flagVariations = flagVariations == null
-          ? Collections.emptyList()
-          : Collections.unmodifiableList(new ArrayList<>(flagVariations));
+      this.flagVariations =
+          flagVariations == null
+              ? Collections.emptyList()
+              : Collections.unmodifiableList(new ArrayList<>(flagVariations));
     }
 
     @Override
@@ -52,14 +52,12 @@ public interface BanditReference extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getModelVersion() {
+    @NotNull public String getModelVersion() {
       return modelVersion;
     }
 
     @Override
-    @NotNull
-    public List<BanditFlagVariation> getFlagVariations() {
+    @NotNull public List<BanditFlagVariation> getFlagVariations() {
       return flagVariations;
     }
   }

@@ -74,32 +74,27 @@ public interface BanditParameters extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getBanditKey() {
+    @NotNull public String getBanditKey() {
       return banditKey;
     }
 
     @Override
-    @Nullable
-    public Date getUpdatedAt() {
+    @Nullable public Date getUpdatedAt() {
       return updatedAt == null ? null : new Date(updatedAt.getTime());
     }
 
     @Override
-    @NotNull
-    public String getModelName() {
+    @NotNull public String getModelName() {
       return modelName;
     }
 
     @Override
-    @NotNull
-    public String getModelVersion() {
+    @NotNull public String getModelVersion() {
       return modelVersion;
     }
 
     @Override
-    @NotNull
-    public BanditModelData getModelData() {
+    @NotNull public BanditModelData getModelData() {
       return modelData;
     }
   }

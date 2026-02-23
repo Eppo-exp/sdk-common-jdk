@@ -41,14 +41,13 @@ public interface Allocation extends Serializable {
         @Nullable List<Split> splits,
         boolean doLog) {
       this.key = key;
-      this.rules = rules == null
-          ? null
-          : Collections.unmodifiableSet(new HashSet<>(rules));
+      this.rules = rules == null ? null : Collections.unmodifiableSet(new HashSet<>(rules));
       this.startAt = startAt == null ? null : new Date(startAt.getTime());
       this.endAt = endAt == null ? null : new Date(endAt.getTime());
-      this.splits = splits == null
-          ? Collections.emptyList()
-          : Collections.unmodifiableList(new ArrayList<>(splits));
+      this.splits =
+          splits == null
+              ? Collections.emptyList()
+              : Collections.unmodifiableList(new ArrayList<>(splits));
       this.doLog = doLog;
     }
 
@@ -89,32 +88,27 @@ public interface Allocation extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getKey() {
+    @NotNull public String getKey() {
       return key;
     }
 
     @Override
-    @Nullable
-    public Set<TargetingRule> getRules() {
+    @Nullable public Set<TargetingRule> getRules() {
       return rules;
     }
 
     @Override
-    @Nullable
-    public Date getStartAt() {
+    @Nullable public Date getStartAt() {
       return startAt == null ? null : new Date(startAt.getTime());
     }
 
     @Override
-    @Nullable
-    public Date getEndAt() {
+    @Nullable public Date getEndAt() {
       return endAt == null ? null : new Date(endAt.getTime());
     }
 
     @Override
-    @NotNull
-    public List<Split> getSplits() {
+    @NotNull public List<Split> getSplits() {
       return splits;
     }
 

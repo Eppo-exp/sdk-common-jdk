@@ -12,6 +12,7 @@ import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
+import cloud.eppo.parser.ConfigurationParser;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -40,6 +41,7 @@ public class BaseEppoClientBanditTest {
 
   private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
   private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
+  private static final ConfigurationParser parser = new JacksonConfigurationParser();
   private static final Date testStart = new Date();
 
   private static BaseEppoClient eppoClient;
@@ -78,7 +80,9 @@ public class BaseEppoClientBanditTest {
             null,
             new AbstractAssignmentCache(assignmentCache) {},
             new ExpiringInMemoryAssignmentCache(
-                banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {});
+                banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {},
+            parser,
+            new OkHttpEppoClient());
 
     eppoClient.loadConfiguration();
 
@@ -90,8 +94,8 @@ public class BaseEppoClientBanditTest {
 
     CompletableFuture<Configuration> initialConfig =
         CompletableFuture.completedFuture(
-            Configuration.builder(initialFlagConfiguration.getBytes())
-                .banditParameters(initialBanditParameters)
+            Configuration.builder(parser.parseFlagConfig(initialFlagConfiguration.getBytes()))
+                .banditParameters(parser.parseBanditParams(initialBanditParameters.getBytes()))
                 .build());
 
     return new BaseEppoClient(
@@ -107,7 +111,9 @@ public class BaseEppoClientBanditTest {
         true,
         initialConfig,
         null,
-        null);
+        null,
+        parser,
+        new OkHttpEppoClient());
   }
 
   @BeforeEach

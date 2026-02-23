@@ -28,12 +28,14 @@ public interface Split extends Serializable {
         @Nullable Set<Shard> shards,
         @Nullable Map<String, String> extraLogging) {
       this.variationKey = variationKey;
-      this.shards = shards == null
-          ? Collections.emptySet()
-          : Collections.unmodifiableSet(new HashSet<>(shards));
-      this.extraLogging = extraLogging == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(extraLogging));
+      this.shards =
+          shards == null
+              ? Collections.emptySet()
+              : Collections.unmodifiableSet(new HashSet<>(shards));
+      this.extraLogging =
+          extraLogging == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(extraLogging));
     }
 
     @Override
@@ -64,20 +66,17 @@ public interface Split extends Serializable {
     }
 
     @Override
-    @NotNull
-    public String getVariationKey() {
+    @NotNull public String getVariationKey() {
       return variationKey;
     }
 
     @Override
-    @NotNull
-    public Set<Shard> getShards() {
+    @NotNull public Set<Shard> getShards() {
       return shards;
     }
 
     @Override
-    @NotNull
-    public Map<String, String> getExtraLogging() {
+    @NotNull public Map<String, String> getExtraLogging() {
       return extraLogging;
     }
   }

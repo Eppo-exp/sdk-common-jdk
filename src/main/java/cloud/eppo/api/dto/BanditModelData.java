@@ -32,9 +32,10 @@ public interface BanditModelData extends Serializable {
       this.gamma = gamma;
       this.defaultActionScore = defaultActionScore;
       this.actionProbabilityFloor = actionProbabilityFloor;
-      this.coefficients = coefficients == null
-          ? Collections.emptyMap()
-          : Collections.unmodifiableMap(new HashMap<>(coefficients));
+      this.coefficients =
+          coefficients == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(coefficients));
     }
 
     @Override
@@ -67,26 +68,22 @@ public interface BanditModelData extends Serializable {
     }
 
     @Override
-    @NotNull
-    public Double getGamma() {
+    @NotNull public Double getGamma() {
       return gamma;
     }
 
     @Override
-    @NotNull
-    public Double getDefaultActionScore() {
+    @NotNull public Double getDefaultActionScore() {
       return defaultActionScore;
     }
 
     @Override
-    @NotNull
-    public Double getActionProbabilityFloor() {
+    @NotNull public Double getActionProbabilityFloor() {
       return actionProbabilityFloor;
     }
 
     @Override
-    @NotNull
-    public Map<String, BanditCoefficients> getCoefficients() {
+    @NotNull public Map<String, BanditCoefficients> getCoefficients() {
       return coefficients;
     }
   }
