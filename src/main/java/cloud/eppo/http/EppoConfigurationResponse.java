@@ -1,5 +1,6 @@
 package cloud.eppo.http;
 
+import java.net.HttpURLConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,7 +42,7 @@ public final class EppoConfigurationResponse {
    * @return a new not modified response
    */
   @NotNull public static EppoConfigurationResponse notModified(@Nullable String versionId) {
-    return new EppoConfigurationResponse(304, versionId, null);
+    return new EppoConfigurationResponse(HttpURLConnection.HTTP_NOT_MODIFIED, versionId, null);
   }
 
   /**
@@ -90,7 +91,7 @@ public final class EppoConfigurationResponse {
    * @return true if the status code is 304
    */
   public boolean isNotModified() {
-    return statusCode == 304;
+    return statusCode == HttpURLConnection.HTTP_NOT_MODIFIED;
   }
 
   /**
@@ -99,6 +100,6 @@ public final class EppoConfigurationResponse {
    * @return true if the status code is between 200 and 299
    */
   public boolean isSuccessful() {
-    return statusCode >= 200 && statusCode < 300;
+    return statusCode >= HttpURLConnection.HTTP_OK && statusCode < HttpURLConnection.HTTP_MULT_CHOICE;
   }
 }
