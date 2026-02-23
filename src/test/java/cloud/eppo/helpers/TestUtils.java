@@ -30,8 +30,7 @@ public class TestUtils {
   public static EppoConfigurationClient mockConfigurationClient(byte[] responseBody) {
     EppoConfigurationClient mockClient = mock(EppoConfigurationClient.class);
     EppoConfigurationResponse successResponse =
-        EppoConfigurationResponse.success(
-            HttpURLConnection.HTTP_OK, "test-version", responseBody);
+        EppoConfigurationResponse.success(HttpURLConnection.HTTP_OK, "test-version", responseBody);
 
     when(mockClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(successResponse));
