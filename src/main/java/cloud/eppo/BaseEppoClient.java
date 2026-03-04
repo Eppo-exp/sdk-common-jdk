@@ -47,9 +47,6 @@ public class BaseEppoClient<JsonFlagType> {
 
   private final CompletableFuture<Boolean> initialConfigFuture;
 
-  // It is important that the bandit assignment cache expire with a short-enough TTL to last about
-  // one user session.
-  // The recommended is 10 minutes (per @Sven)
   protected BaseEppoClient(
       @NotNull String apiKey,
       @NotNull String sdkName,
@@ -66,25 +63,63 @@ public class BaseEppoClient<JsonFlagType> {
       @Nullable IAssignmentCache banditAssignmentCache,
       @NotNull ConfigurationParser<JsonFlagType> configurationParser,
       @NotNull EppoConfigurationClient configurationClient) {
+    this(
+        sdkName,
+        sdkVersion,
+        assignmentLogger,
+        banditLogger,
+        configurationStore,
+        isGracefulMode,
+        expectObfuscatedConfig,
+        supportBandits,
+        initialConfiguration,
+        assignmentCache,
+        banditAssignmentCache,
+        configurationParser,
+        configurationClient,
+        createRequestFactory(apiKey, apiBaseUrl, sdkName, sdkVersion));
+  }
 
+  private static EppoConfigurationRequestFactory createRequestFactory(
+      @NotNull String apiKey,
+      @Nullable String apiBaseUrl,
+      @NotNull String sdkName,
+      @NotNull String sdkVersion) {
     if (apiBaseUrl == null) {
       apiBaseUrl = Constants.DEFAULT_BASE_URL;
     }
+    SDKKey sdkKey = new SDKKey(apiKey);
+    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
+    String effectiveBaseUrl = endpointHelper.getBaseUrl();
+    return new EppoConfigurationRequestFactory(
+        effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
+  }
+
+  // It is important that the bandit assignment cache expire with a short-enough TTL to last about
+  // one user session.
+  // The recommended is 10 minutes (per @Sven)
+  protected BaseEppoClient(
+      @NotNull String sdkName,
+      @NotNull String sdkVersion,
+      @Nullable AssignmentLogger assignmentLogger,
+      @Nullable BanditLogger banditLogger,
+      @Nullable IConfigurationStore configurationStore,
+      boolean isGracefulMode,
+      boolean expectObfuscatedConfig,
+      boolean supportBandits,
+      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable IAssignmentCache assignmentCache,
+      @Nullable IAssignmentCache banditAssignmentCache,
+      @NotNull ConfigurationParser<JsonFlagType> configurationParser,
+      @NotNull EppoConfigurationClient configurationClient,
+      @NotNull EppoConfigurationRequestFactory requestFactory) {
 
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
     this.configurationParser = configurationParser;
 
-    SDKKey sdkKey = new SDKKey(apiKey);
-    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
-    String effectiveBaseUrl = endpointHelper.getBaseUrl();
-
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
-
-    EppoConfigurationRequestFactory requestFactory =
-        new EppoConfigurationRequestFactory(
-            effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
 
     requestor =
         new ConfigurationRequestor(
