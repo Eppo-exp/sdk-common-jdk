@@ -60,4 +60,17 @@ public class EppoConfigurationRequestFactory {
   @NotNull public EppoConfigurationRequest createBanditParamsRequest() {
     return new EppoConfigurationRequest(baseUrl, Constants.BANDIT_ENDPOINT, sdkQueryParams, null);
   }
+
+  @NotNull protected EppoConfigurationRequest createRequest(
+      @NotNull String resourcePath,
+      @Nullable String lastVersionId,
+      @Nullable byte[] body,
+      @Nullable String contentType) {
+    return new EppoConfigurationRequest.Builder(baseUrl, resourcePath)
+        .queryParams(sdkQueryParams)
+        .lastVersionId(lastVersionId)
+        .body(body)
+        .contentType(contentType)
+        .build();
+  }
 }
