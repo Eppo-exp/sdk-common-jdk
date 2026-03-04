@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
  * using {@link Builder#banditParametersFromConfig(Configuration)}, then check {@link
  * Builder#requiresUpdatedBanditModels()}.
  */
-public class Configuration implements java.io.Serializable {
+public class Configuration implements SerializableEppoConfiguration {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   private final Map<String, BanditReference> banditReferences;
