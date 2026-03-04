@@ -44,10 +44,13 @@ public class OkHttpEppoClientTest {
   public void testSuccessfulGet() throws ExecutionException, InterruptedException {
     String responseBody = "{\"flags\": {}}";
     mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setHeader("ETag", "v1").setBody(responseBody));
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_OK)
+            .setHeader("ETag", "v1")
+            .setBody(responseBody));
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertTrue(response.isSuccessful());
@@ -59,10 +62,13 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testNotModifiedResponse() throws ExecutionException, InterruptedException {
-    mockWebServer.enqueue(new MockResponse().setResponseCode(304).setHeader("ETag", "v1"));
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED)
+            .setHeader("ETag", "v1"));
 
     EppoConfigurationRequest request = createRequest("v1");
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertTrue(response.isNotModified());
@@ -75,10 +81,13 @@ public class OkHttpEppoClientTest {
   @Test
   public void testConditionalRequestSendsIfNoneMatchHeader()
       throws ExecutionException, InterruptedException, InterruptedException {
-    mockWebServer.enqueue(new MockResponse().setResponseCode(304).setHeader("ETag", "v1"));
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED)
+            .setHeader("ETag", "v1"));
 
     EppoConfigurationRequest request = createRequest("v1");
-    client.get(request).get();
+    client.execute(request).get();
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertEquals("v1", recordedRequest.getHeader("If-None-Match"));
@@ -87,10 +96,11 @@ public class OkHttpEppoClientTest {
   @Test
   public void testNoIfNoneMatchHeaderWhenNoVersionId()
       throws ExecutionException, InterruptedException, InterruptedException {
-    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    client.get(request).get();
+    client.execute(request).get();
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     assertNull(recordedRequest.getHeader("If-None-Match"));
@@ -99,10 +109,11 @@ public class OkHttpEppoClientTest {
   @Test
   public void testQueryParametersAreIncluded()
       throws ExecutionException, InterruptedException, InterruptedException {
-    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    client.get(request).get();
+    client.execute(request).get();
 
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     String path = recordedRequest.getPath();
@@ -114,10 +125,13 @@ public class OkHttpEppoClientTest {
   @Test
   public void testErrorResponse() throws ExecutionException, InterruptedException {
     String errorBody = "Internal Server Error";
-    mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody(errorBody));
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_INTERNAL_ERROR)
+            .setBody(errorBody));
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertFalse(response.isSuccessful());
@@ -128,10 +142,11 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testForbiddenResponse() throws ExecutionException, InterruptedException {
-    mockWebServer.enqueue(new MockResponse().setResponseCode(403).setBody("Forbidden"));
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_FORBIDDEN).setBody("Forbidden"));
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
     EppoConfigurationResponse response = future.get();
 
     assertFalse(response.isSuccessful());
@@ -143,7 +158,7 @@ public class OkHttpEppoClientTest {
     mockWebServer.shutdown();
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
@@ -155,7 +170,7 @@ public class OkHttpEppoClientTest {
     mockWebServer.shutdown();
 
     EppoConfigurationRequest request = createRequest(null);
-    CompletableFuture<EppoConfigurationResponse> future = client.get(request);
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     String errorMessage = exception.getCause().getMessage();
@@ -167,22 +182,191 @@ public class OkHttpEppoClientTest {
   @Test
   public void testETagExtractedFromResponse() throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
-        new MockResponse().setResponseCode(200).setHeader("ETag", "\"abc123\"").setBody("{}"));
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_OK)
+            .setHeader("ETag", "\"abc123\"")
+            .setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    EppoConfigurationResponse response = client.get(request).get();
+    EppoConfigurationResponse response = client.execute(request).get();
 
     assertEquals("\"abc123\"", response.getVersionId());
   }
 
   @Test
   public void testNoETagInResponse() throws ExecutionException, InterruptedException {
-    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
     EppoConfigurationRequest request = createRequest(null);
-    EppoConfigurationResponse response = client.get(request).get();
+    EppoConfigurationResponse response = client.execute(request).get();
 
     assertNull(response.getVersionId());
+  }
+
+  @Test
+  public void testSuccessfulPostWithJsonBody()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    String responseBody = "{\"result\": \"success\"}";
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_OK)
+            .setHeader("ETag", "v2")
+            .setBody(responseBody));
+
+    String requestBody = "{\"subjectKey\": \"user-123\", \"subjectAttributes\": {}}";
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/assignments")
+            .queryParam("apiKey", "test-key")
+            .queryParam("sdkName", "test-sdk")
+            .queryParam("sdkVersion", "1.0.0")
+            .post()
+            .jsonBody(requestBody)
+            .build();
+
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+    assertEquals(HttpURLConnection.HTTP_OK, response.getStatusCode());
+    assertEquals("v2", response.getVersionId());
+    assertThat(new String(response.getBody())).isEqualTo(responseBody);
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertEquals("application/json; charset=utf-8", recordedRequest.getHeader("Content-Type"));
+    assertEquals(requestBody, recordedRequest.getBody().readUtf8());
+  }
+
+  @Test
+  public void testPostWithEmptyBody() throws ExecutionException, InterruptedException {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
+
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
+            .queryParam("apiKey", "test-key")
+            .post()
+            .build();
+
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertEquals(0, recordedRequest.getBodySize());
+  }
+
+  @Test
+  public void testPostWithCustomContentType()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
+
+    String requestBody = "key=value&foo=bar";
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
+            .queryParam("apiKey", "test-key")
+            .post()
+            .body(requestBody)
+            .contentType("application/x-www-form-urlencoded")
+            .build();
+
+    client.execute(request).get();
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertEquals("application/x-www-form-urlencoded", recordedRequest.getHeader("Content-Type"));
+    assertEquals(requestBody, recordedRequest.getBody().readUtf8());
+  }
+
+  @Test
+  public void testPostWithBytesBody()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
+
+    byte[] requestBody = new byte[] {0x01, 0x02, 0x03, 0x04};
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
+            .queryParam("apiKey", "test-key")
+            .post()
+            .body(requestBody)
+            .contentType("application/octet-stream")
+            .build();
+
+    client.execute(request).get();
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("POST", recordedRequest.getMethod());
+    assertArrayEquals(requestBody, recordedRequest.getBody().readByteArray());
+  }
+
+  @Test
+  public void testExecuteWithGetRequest() throws ExecutionException, InterruptedException {
+    String responseBody = "{\"flags\": {}}";
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_OK)
+            .setHeader("ETag", "v1")
+            .setBody(responseBody));
+
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/flag-config/v1/config")
+            .queryParam("apiKey", "test-key")
+            .queryParam("sdkName", "test-sdk")
+            .build();
+
+    CompletableFuture<EppoConfigurationResponse> future = client.execute(request);
+    EppoConfigurationResponse response = future.get();
+
+    assertTrue(response.isSuccessful());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("GET", recordedRequest.getMethod());
+  }
+
+  @Test
+  public void testBuilderLastVersionId()
+      throws ExecutionException, InterruptedException, InterruptedException {
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED)
+            .setHeader("ETag", "v2"));
+
+    EppoConfigurationRequest request =
+        new EppoConfigurationRequest.Builder(baseUrl, "/api/config")
+            .queryParam("apiKey", "test-key")
+            .lastVersionId("v2")
+            .build();
+
+    EppoConfigurationResponse response = client.execute(request).get();
+
+    assertTrue(response.isNotModified());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("v2", recordedRequest.getHeader("If-None-Match"));
+  }
+
+  @Test
+  public void testStaticGetFactoryMethod() throws ExecutionException, InterruptedException {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
+
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put("apiKey", "test-key");
+
+    EppoConfigurationRequest request =
+        EppoConfigurationRequest.get(baseUrl, "/api/config", queryParams, null);
+
+    EppoConfigurationResponse response = client.execute(request).get();
+
+    assertTrue(response.isSuccessful());
+
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    assertEquals("GET", recordedRequest.getMethod());
   }
 
   private EppoConfigurationRequest createRequest(String lastVersionId) {
