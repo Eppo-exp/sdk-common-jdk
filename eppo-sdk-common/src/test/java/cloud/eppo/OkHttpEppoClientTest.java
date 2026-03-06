@@ -107,8 +107,7 @@ public class OkHttpEppoClientTest {
   }
 
   @Test
-  public void testQueryParametersAreIncluded()
-      throws ExecutionException, InterruptedException {
+  public void testQueryParametersAreIncluded() throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
@@ -205,8 +204,7 @@ public class OkHttpEppoClientTest {
   }
 
   @Test
-  public void testSuccessfulPostWithJsonBody()
-      throws ExecutionException, InterruptedException {
+  public void testSuccessfulPostWithJsonBody() throws ExecutionException, InterruptedException {
     String responseBody = "{\"result\": \"success\"}";
     mockWebServer.enqueue(
         new MockResponse()
@@ -260,8 +258,7 @@ public class OkHttpEppoClientTest {
   }
 
   @Test
-  public void testPostWithCustomContentType()
-      throws ExecutionException, InterruptedException {
+  public void testPostWithCustomContentType() throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
@@ -283,8 +280,7 @@ public class OkHttpEppoClientTest {
   }
 
   @Test
-  public void testPostWithBytesBody()
-      throws ExecutionException, InterruptedException {
+  public void testPostWithBytesBody() throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
@@ -329,8 +325,7 @@ public class OkHttpEppoClientTest {
   }
 
   @Test
-  public void testBuilderLastVersionId()
-      throws ExecutionException, InterruptedException {
+  public void testBuilderLastVersionId() throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse()
             .setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED)

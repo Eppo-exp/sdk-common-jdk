@@ -115,8 +115,8 @@ public final class EppoConfigurationRequest {
   /**
    * Returns the request body for POST requests.
    *
-   * <p>This method returns a defensive copy of the internal body array to preserve the
-   * immutability contract of this class.
+   * <p>This method returns a defensive copy of the internal body array to preserve the immutability
+   * contract of this class.
    *
    * @return the body bytes, or null if not set
    */
