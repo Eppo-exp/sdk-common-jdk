@@ -80,7 +80,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testConditionalRequestSendsIfNoneMatchHeader()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse()
             .setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED)
@@ -95,7 +95,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testNoIfNoneMatchHeaderWhenNoVersionId()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
@@ -108,7 +108,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testQueryParametersAreIncluded()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
