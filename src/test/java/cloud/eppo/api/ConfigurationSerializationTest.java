@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.eppo.JacksonConfigurationParser;
 import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.parser.ConfigurationParser;
 import java.io.*;
@@ -40,9 +41,11 @@ public class ConfigurationSerializationTest {
     assertEquals(original.getEnvironmentName(), deserialized.getEnvironmentName());
     assertEquals(original.getFlagKeys(), deserialized.getFlagKeys());
 
-    // Verify specific flags can be retrieved
-    assertNotNull(deserialized.getFlag("numeric_flag"));
-    assertNotNull(deserialized.getFlag("empty_flag"));
+    // Verify specific flags can be retrieved and their properties match
+    assertFlagPropertiesMatch(original, deserialized, "numeric_flag");
+    assertFlagPropertiesMatch(original, deserialized, "empty_flag");
+    assertFlagPropertiesMatch(original, deserialized, "no_allocations_flag"); // JSON-valued flag
+    assertFlagPropertiesMatch(original, deserialized, "disabled_flag");
   }
 
   @Test
@@ -114,19 +117,119 @@ public class ConfigurationSerializationTest {
   }
 
   private byte[] serializeToBytes(Configuration config) throws IOException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    ObjectOutputStream oos = new ObjectOutputStream(baos);
-    oos.writeObject(config);
-    oos.close();
-    return baos.toByteArray();
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+      oos.writeObject(config);
+      return baos.toByteArray();
+    }
   }
 
   private Configuration deserializeFromBytes(byte[] bytes)
       throws IOException, ClassNotFoundException {
-    ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-    ObjectInputStream ois = new ObjectInputStream(bais);
-    Configuration config = (Configuration) ois.readObject();
-    ois.close();
-    return config;
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
+      return (Configuration) ois.readObject();
+    }
+  }
+
+  /**
+   * Helper method to assert that flag properties match between original and deserialized
+   * configurations.
+   */
+  private void assertFlagPropertiesMatch(
+      Configuration original, Configuration deserialized, String flagKey) {
+    FlagConfig originalFlag = original.getFlag(flagKey);
+    FlagConfig deserializedFlag = deserialized.getFlag(flagKey);
+
+    assertNotNull(originalFlag, "Original flag " + flagKey + " should exist");
+    assertNotNull(deserializedFlag, "Deserialized flag " + flagKey + " should exist");
+
+    assertEquals(
+        originalFlag.getKey(), deserializedFlag.getKey(), "Flag key should match for " + flagKey);
+    assertEquals(
+        originalFlag.isEnabled(),
+        deserializedFlag.isEnabled(),
+        "Flag enabled status should match for " + flagKey);
+    assertEquals(
+        originalFlag.getVariationType(),
+        deserializedFlag.getVariationType(),
+        "Flag variation type should match for " + flagKey);
+    assertEquals(
+        originalFlag.getTotalShards(),
+        deserializedFlag.getTotalShards(),
+        "Flag total shards should match for " + flagKey);
+    assertEquals(
+        originalFlag.getVariations().size(),
+        deserializedFlag.getVariations().size(),
+        "Flag variations count should match for " + flagKey);
+    assertEquals(
+        originalFlag.getAllocations().size(),
+        deserializedFlag.getAllocations().size(),
+        "Flag allocations count should match for " + flagKey);
+  }
+
+  /**
+   * Comprehensive test that verifies all flags from test data are properly serialized and
+   * deserialized with their full properties intact. This ensures that serialization preserves all
+   * the necessary details for proper flag evaluation.
+   */
+  @Test
+  public void testSerializedConfigurationComprehensiveFlags() throws Exception {
+    // Load configuration from test resources
+    byte[] flagsJson = FileUtils.readFileToByteArray(flagsFile);
+    FlagConfigResponse flagConfigResponse = parser.parseFlagConfig(flagsJson);
+    Configuration original = Configuration.builder(flagConfigResponse).build();
+
+    // Serialize and deserialize
+    byte[] serialized = serializeToBytes(original);
+    Configuration deserialized = deserializeFromBytes(serialized);
+
+    // Verify all flags are present and fully preserved
+    assertEquals(
+        original.getFlagKeys().size(),
+        deserialized.getFlagKeys().size(),
+        "Number of flags should match");
+
+    // Verify each flag's properties are fully preserved
+    for (String flagKey : original.getFlagKeys()) {
+      FlagConfig originalFlag = original.getFlag(flagKey);
+      FlagConfig deserializedFlag = deserialized.getFlag(flagKey);
+
+      assertNotNull(deserializedFlag, "Flag " + flagKey + " should be present after deserialization");
+
+      // Deep equality check
+      assertEquals(
+          originalFlag.getKey(),
+          deserializedFlag.getKey(),
+          "Flag key should match for " + flagKey);
+      assertEquals(
+          originalFlag.isEnabled(),
+          deserializedFlag.isEnabled(),
+          "Flag enabled status should match for " + flagKey);
+      assertEquals(
+          originalFlag.getVariationType(),
+          deserializedFlag.getVariationType(),
+          "Flag variation type should match for " + flagKey);
+      assertEquals(
+          originalFlag.getTotalShards(),
+          deserializedFlag.getTotalShards(),
+          "Flag total shards should match for " + flagKey);
+
+      // Verify variations are preserved
+      assertEquals(
+          originalFlag.getVariations().keySet(),
+          deserializedFlag.getVariations().keySet(),
+          "Variation keys should match for " + flagKey);
+
+      // Verify allocations are preserved
+      assertEquals(
+          originalFlag.getAllocations().size(),
+          deserializedFlag.getAllocations().size(),
+          "Allocations count should match for " + flagKey);
+
+      // Verify using equals method which does deep comparison
+      assertEquals(
+          originalFlag, deserializedFlag, "Flags should be deeply equal for " + flagKey);
+    }
   }
 }

@@ -42,6 +42,8 @@ public interface FlagConfig extends Serializable {
       this.key = key;
       this.enabled = enabled;
       this.totalShards = totalShards;
+      // Default to STRING for defensive programming - ensures a valid variation type is always set
+      // even if parsing or deserialization provides a null value
       this.variationType = variationType == null ? VariationType.STRING : variationType;
       this.variations =
           variations == null
