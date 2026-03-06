@@ -1,7 +1,6 @@
 package cloud.eppo.http;
 
 import cloud.eppo.Constants;
-import cloud.eppo.http.EppoConfigurationRequest.HttpMethod;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,7 +48,8 @@ public class EppoConfigurationRequestFactory {
    * @return the configured request
    */
   @NotNull public EppoConfigurationRequest createFlagConfigRequest(@Nullable String lastVersionId) {
-    return createRequest(Constants.FLAG_CONFIG_ENDPOINT, HttpMethod.GET, null, lastVersionId, null);
+    return new EppoConfigurationRequest(
+        baseUrl, Constants.FLAG_CONFIG_ENDPOINT, sdkQueryParams, lastVersionId);
   }
 
   /**
@@ -58,28 +58,6 @@ public class EppoConfigurationRequestFactory {
    * @return the configured request
    */
   @NotNull public EppoConfigurationRequest createBanditParamsRequest() {
-    return createRequest(Constants.BANDIT_ENDPOINT, HttpMethod.GET, null, null, null);
-  }
-
-  @NotNull protected EppoConfigurationRequest createRequest(
-      @NotNull String resourcePath,
-      @NotNull HttpMethod method,
-      @Nullable byte[] body,
-      @Nullable String lastVersionId,
-      @Nullable String contentType) {
-    EppoConfigurationRequest.Builder builder =
-        new EppoConfigurationRequest.Builder(baseUrl, resourcePath)
-            .queryParams(sdkQueryParams)
-            .method(method);
-    if (lastVersionId != null) {
-      builder.lastVersionId(lastVersionId);
-    }
-    if (body != null) {
-      builder.body(body);
-    }
-    if (contentType != null) {
-      builder.contentType(contentType);
-    }
-    return builder.build();
+    return new EppoConfigurationRequest(baseUrl, Constants.BANDIT_ENDPOINT, sdkQueryParams, null);
   }
 }
