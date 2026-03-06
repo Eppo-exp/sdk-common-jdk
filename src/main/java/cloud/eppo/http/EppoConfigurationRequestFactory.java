@@ -75,7 +75,7 @@ public class EppoConfigurationRequestFactory {
       builder.lastVersionId(lastVersionId);
     }
     if (body != null) {
-      builder.body(body);
+      builder.bodyBytes(body);
     }
     if (contentType != null) {
       builder.contentType(contentType);

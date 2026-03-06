@@ -115,10 +115,13 @@ public final class EppoConfigurationRequest {
   /**
    * Returns the request body for POST requests.
    *
+   * <p>This method returns a defensive copy of the internal body array to preserve the
+   * immutability contract of this class.
+   *
    * @return the body bytes, or null if not set
    */
   @Nullable public byte[] getBody() {
-    return body;
+    return body == null ? null : body.clone();
   }
 
   /**
@@ -226,10 +229,10 @@ public final class EppoConfigurationRequest {
     /**
      * Sets the request body as raw bytes.
      *
-     * @param body the body bytes, or null
+     * @param body the body bytes
      * @return this builder
      */
-    public Builder body(@Nullable byte[] body) {
+    public Builder bodyBytes(@NotNull byte[] body) {
       this.body = body;
       return this;
     }
@@ -237,11 +240,11 @@ public final class EppoConfigurationRequest {
     /**
      * Sets the request body as a string (encoded as UTF-8).
      *
-     * @param body the body string, or null
+     * @param body the body string
      * @return this builder
      */
-    public Builder body(@Nullable String body) {
-      this.body = body != null ? body.getBytes(StandardCharsets.UTF_8) : null;
+    public Builder bodyUtf8(@NotNull String body) {
+      this.body = body.getBytes(StandardCharsets.UTF_8);
       return this;
     }
 

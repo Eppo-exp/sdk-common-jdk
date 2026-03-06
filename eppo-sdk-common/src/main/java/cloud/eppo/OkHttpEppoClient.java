@@ -114,10 +114,13 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
       case POST:
         byte[] body = request.getBody();
         String contentType = request.getContentType();
-        if (contentType == null) {
+        if (contentType == null || contentType.trim().isEmpty()) {
           contentType = DEFAULT_CONTENT_TYPE;
         }
         MediaType mediaType = MediaType.parse(contentType);
+        if (mediaType == null) {
+          throw new IllegalArgumentException("Invalid content type: " + contentType);
+        }
         requestBuilder.post(RequestBody.create(body != null ? body : new byte[0], mediaType));
         break;
       case GET:

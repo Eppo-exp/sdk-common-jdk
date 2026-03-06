@@ -105,7 +105,11 @@ public class ConfigurationRequestor {
     EppoConfigurationResponse flagResponse;
     try {
       flagResponse = configurationClient.execute(flagRequest).get();
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (InterruptedException e) {
+      log.error("Config fetch interrupted", e);
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    } catch (ExecutionException e) {
       log.error("Config fetch interrupted", e);
       throw new RuntimeException(e);
     }
@@ -158,7 +162,11 @@ public class ConfigurationRequestor {
     EppoConfigurationResponse banditResponse;
     try {
       banditResponse = configurationClient.execute(banditRequest).get();
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (InterruptedException e) {
+      log.error("Bandit fetch interrupted", e);
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    } catch (ExecutionException e) {
       log.error("Bandit fetch interrupted", e);
       throw new RuntimeException(e);
     }
@@ -250,7 +258,11 @@ public class ConfigurationRequestor {
         return banditResponse.getBody();
       }
       return null;
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (InterruptedException e) {
+      log.error("Error fetching bandit parameters: " + e.getMessage());
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    } catch (ExecutionException e) {
       log.error("Error fetching bandit parameters: " + e.getMessage());
       throw new RuntimeException(e);
     }

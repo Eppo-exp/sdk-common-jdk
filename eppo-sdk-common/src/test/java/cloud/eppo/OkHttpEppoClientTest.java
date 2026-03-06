@@ -206,7 +206,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testSuccessfulPostWithJsonBody()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     String responseBody = "{\"result\": \"success\"}";
     mockWebServer.enqueue(
         new MockResponse()
@@ -261,7 +261,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testPostWithCustomContentType()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
@@ -270,7 +270,7 @@ public class OkHttpEppoClientTest {
         new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
             .queryParam("apiKey", "test-key")
             .post()
-            .body(requestBody)
+            .bodyUtf8(requestBody)
             .contentType("application/x-www-form-urlencoded")
             .build();
 
@@ -284,7 +284,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testPostWithBytesBody()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody("{}"));
 
@@ -293,7 +293,7 @@ public class OkHttpEppoClientTest {
         new EppoConfigurationRequest.Builder(baseUrl, "/api/endpoint")
             .queryParam("apiKey", "test-key")
             .post()
-            .body(requestBody)
+            .bodyBytes(requestBody)
             .contentType("application/octet-stream")
             .build();
 
@@ -330,7 +330,7 @@ public class OkHttpEppoClientTest {
 
   @Test
   public void testBuilderLastVersionId()
-      throws ExecutionException, InterruptedException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     mockWebServer.enqueue(
         new MockResponse()
             .setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED)

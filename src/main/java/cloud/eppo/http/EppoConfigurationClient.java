@@ -27,4 +27,18 @@ public interface EppoConfigurationClient {
    * @return a CompletableFuture that will complete with the response
    */
   @NotNull CompletableFuture<EppoConfigurationResponse> execute(@NotNull EppoConfigurationRequest request);
+
+  /**
+   * Deprecated alias for {@link #execute(EppoConfigurationRequest)} to preserve backwards
+   * compatibility with previous versions of this interface.
+   *
+   * @param request the request to execute
+   * @return a CompletableFuture that will complete with the response
+   * @deprecated Use {@link #execute(EppoConfigurationRequest)} instead.
+   */
+  @Deprecated
+  default @NotNull CompletableFuture<EppoConfigurationResponse> get(
+      @NotNull EppoConfigurationRequest request) {
+    return execute(request);
+  }
 }
