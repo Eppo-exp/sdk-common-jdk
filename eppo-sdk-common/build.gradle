@@ -14,24 +14,11 @@ java {
   withJavadocJar()
 }
 
-// Include root (framework) sources in this module so we compile one codebase — no project dependency
-sourceSets {
-  main {
-    java.srcDirs project(':').file('src/main/java'), 'src/main/java'
-    resources.srcDirs project(':').file('src/main/resources'), 'src/main/resources'
-  }
-}
-
-tasks.named('sourcesJar', Jar).configure {
-  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
 dependencies {
-  // Framework dependencies (from root) — needed to compile the inlined framework sources
-  api 'org.jetbrains:annotations:26.0.1'
-  implementation 'com.github.zafarkhaja:java-semver:0.10.2'
-  implementation 'org.apache.commons:commons-collections4:4.5.0'
+  // Framework dependency - provides core interfaces and logic
+  api project(':')
 
+  // HTTP client and JSON parser implementations
   implementation 'com.squareup.okhttp3:okhttp:4.12.0'
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
 
@@ -67,7 +54,7 @@ spotless {
     endWithNewline()
   }
   java {
-    target 'src/main/java/**/*.java'  // only this module's sources; framework lives under root
+    target 'src/main/java/**/*.java'
     googleJavaFormat('1.7')
     formatAnnotations()
   }
@@ -90,6 +77,15 @@ publishing {
 
       from components.java
 
+      versionMapping {
+        usage('java-api') {
+          fromResolutionOf('runtimeClasspath')
+        }
+        usage('java-runtime') {
+          fromResolutionResult()
+        }
+      }
+
       pom {
         name = 'Eppo SDK Common JVM'
         description = 'Complete Eppo SDK for JVM with default HTTP client and configuration parser'
@@ -110,6 +106,18 @@ publishing {
           connection = 'scm:git:git://github.com/Eppo-exp/sdk-common-jvm.git'
           developerConnection = 'scm:git:ssh://github.com/Eppo-exp/sdk-common-jvm.git'
           url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+        }
+
+        // Explicitly add framework dependency to POM (Gradle module metadata includes it automatically)
+        withXml {
+          def dependenciesNode = asNode().dependencies[0]
+          if (dependenciesNode) {
+            def frameworkDep = dependenciesNode.appendNode('dependency')
+            frameworkDep.appendNode('groupId', 'cloud.eppo')
+            frameworkDep.appendNode('artifactId', 'eppo-sdk-framework')
+            frameworkDep.appendNode('version', project(':').version)
+            frameworkDep.appendNode('scope', 'compile')
+          }
         }
       }
     }
