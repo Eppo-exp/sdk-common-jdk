@@ -8,6 +8,18 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Response DTO for parsed flag configuration.
+ *
+ * <p>This is a transient data structure used during configuration parsing. It is not intended to be
+ * persisted or serialized directly. Instead, the {@link cloud.eppo.api.Configuration} class
+ * extracts and stores the individual {@link FlagConfig} and {@link BanditReference} objects, which
+ * ARE serializable for caching and persistence use cases.
+ *
+ * <p>Note: This response type intentionally does not implement {@link java.io.Serializable} as it
+ * is only used as an intermediate structure during parsing and building of the Configuration
+ * object.
+ */
 public interface FlagConfigResponse {
   @NotNull Map<String, FlagConfig> getFlags();
 
