@@ -195,13 +195,12 @@ public class ConfigurationSerializationTest {
       FlagConfig originalFlag = original.getFlag(flagKey);
       FlagConfig deserializedFlag = deserialized.getFlag(flagKey);
 
-      assertNotNull(deserializedFlag, "Flag " + flagKey + " should be present after deserialization");
+      assertNotNull(
+          deserializedFlag, "Flag " + flagKey + " should be present after deserialization");
 
       // Deep equality check
       assertEquals(
-          originalFlag.getKey(),
-          deserializedFlag.getKey(),
-          "Flag key should match for " + flagKey);
+          originalFlag.getKey(), deserializedFlag.getKey(), "Flag key should match for " + flagKey);
       assertEquals(
           originalFlag.isEnabled(),
           deserializedFlag.isEnabled(),
@@ -228,8 +227,7 @@ public class ConfigurationSerializationTest {
           "Allocations count should match for " + flagKey);
 
       // Verify using equals method which does deep comparison
-      assertEquals(
-          originalFlag, deserializedFlag, "Flags should be deeply equal for " + flagKey);
+      assertEquals(originalFlag, deserializedFlag, "Flags should be deeply equal for " + flagKey);
     }
   }
 }
