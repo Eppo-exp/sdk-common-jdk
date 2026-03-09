@@ -1,9 +1,10 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface BanditFlagVariation {
+public interface BanditFlagVariation extends Serializable {
   @NotNull String getBanditKey();
 
   @NotNull String getFlagKey();
@@ -15,18 +16,19 @@ public interface BanditFlagVariation {
   @NotNull String getVariationValue();
 
   class Default implements BanditFlagVariation {
-    private final String banditKey;
-    private final String flagKey;
-    private final String allocationKey;
-    private final String variationKey;
-    private final String variationValue;
+    private static final long serialVersionUID = 1L;
+    private final @NotNull String banditKey;
+    private final @NotNull String flagKey;
+    private final @NotNull String allocationKey;
+    private final @NotNull String variationKey;
+    private final @NotNull String variationValue;
 
     public Default(
-        String banditKey,
-        String flagKey,
-        String allocationKey,
-        String variationKey,
-        String variationValue) {
+        @NotNull String banditKey,
+        @NotNull String flagKey,
+        @NotNull String allocationKey,
+        @NotNull String variationKey,
+        @NotNull String variationValue) {
       this.banditKey = banditKey;
       this.flagKey = flagKey;
       this.allocationKey = allocationKey;
@@ -72,27 +74,27 @@ public interface BanditFlagVariation {
     }
 
     @Override
-    public String getBanditKey() {
+    @NotNull public String getBanditKey() {
       return banditKey;
     }
 
     @Override
-    public String getFlagKey() {
+    @NotNull public String getFlagKey() {
       return flagKey;
     }
 
     @Override
-    public String getAllocationKey() {
+    @NotNull public String getAllocationKey() {
       return allocationKey;
     }
 
     @Override
-    public String getVariationKey() {
+    @NotNull public String getVariationKey() {
       return variationKey;
     }
 
     @Override
-    public String getVariationValue() {
+    @NotNull public String getVariationValue() {
       return variationValue;
     }
   }

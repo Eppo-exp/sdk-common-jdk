@@ -21,8 +21,12 @@ import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -72,6 +76,8 @@ public class BaseEppoClientTest {
 
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
+
+  private final File flagConfigFile = new File("src/test/resources/shared/ufc/flags-v1.json");
 
   // TODO: async init client tests
 
@@ -216,6 +222,36 @@ public class BaseEppoClientTest {
     initClient(false, true);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCaseWithDetails(testCase, eppoClient);
+  }
+
+  @ParameterizedTest
+  @MethodSource("getAssignmentTestData")
+  public void testSerializedOfflineInitialization(File testFile) throws IOException {
+    initClientWithSerializedConfiguration();
+    AssignmentTestCase testCase = parseTestCaseFile(testFile);
+    runTestCase(testCase, eppoClient);
+  }
+
+  private void initClientWithSerializedConfiguration() throws IOException {
+    byte[] rawConfiguration = FileUtils.readFileToByteArray(flagConfigFile);
+    Configuration configuration =
+        Configuration.builder(parser.parseFlagConfig(rawConfiguration)).build();
+    byte[] serializedConfiguration;
+    try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+      oos.writeObject(configuration);
+      serializedConfiguration = bos.toByteArray();
+    }
+
+    Configuration deserializedConfiguration;
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(serializedConfiguration);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
+      deserializedConfiguration = (Configuration) ois.readObject();
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException("Failed to deserialize configuration", e);
+    }
+
+    initClientWithData(CompletableFuture.completedFuture(deserializedConfiguration), false, false);
   }
 
   private static Stream<Arguments> getAssignmentTestData() {

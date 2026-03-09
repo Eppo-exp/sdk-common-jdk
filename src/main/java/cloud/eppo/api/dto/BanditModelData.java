@@ -1,10 +1,14 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface BanditModelData {
+public interface BanditModelData extends Serializable {
   @NotNull Double getGamma();
 
   @NotNull Double getDefaultActionScore();
@@ -14,20 +18,24 @@ public interface BanditModelData {
   @NotNull Map<String, BanditCoefficients> getCoefficients();
 
   class Default implements BanditModelData {
-    private final Double gamma;
-    private final Double defaultActionScore;
-    private final Double actionProbabilityFloor;
-    private final Map<String, BanditCoefficients> coefficients;
+    private static final long serialVersionUID = 1L;
+    private final @NotNull Double gamma;
+    private final @NotNull Double defaultActionScore;
+    private final @NotNull Double actionProbabilityFloor;
+    private final @NotNull Map<String, BanditCoefficients> coefficients;
 
     public Default(
-        Double gamma,
-        Double defaultActionScore,
-        Double actionProbabilityFloor,
-        Map<String, BanditCoefficients> coefficients) {
+        @NotNull Double gamma,
+        @NotNull Double defaultActionScore,
+        @NotNull Double actionProbabilityFloor,
+        @Nullable Map<String, BanditCoefficients> coefficients) {
       this.gamma = gamma;
       this.defaultActionScore = defaultActionScore;
       this.actionProbabilityFloor = actionProbabilityFloor;
-      this.coefficients = coefficients;
+      this.coefficients =
+          coefficients == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(coefficients));
     }
 
     @Override
@@ -60,22 +68,22 @@ public interface BanditModelData {
     }
 
     @Override
-    public Double getGamma() {
+    @NotNull public Double getGamma() {
       return gamma;
     }
 
     @Override
-    public Double getDefaultActionScore() {
+    @NotNull public Double getDefaultActionScore() {
       return defaultActionScore;
     }
 
     @Override
-    public Double getActionProbabilityFloor() {
+    @NotNull public Double getActionProbabilityFloor() {
       return actionProbabilityFloor;
     }
 
     @Override
-    public Map<String, BanditCoefficients> getCoefficients() {
+    @NotNull public Map<String, BanditCoefficients> getCoefficients() {
       return coefficients;
     }
   }
