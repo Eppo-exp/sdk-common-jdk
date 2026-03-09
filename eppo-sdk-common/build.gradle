@@ -1,8 +1,8 @@
 plugins {
   id 'java-library'
   id 'maven-publish'
+  id 'com.diffplug.spotless' version '6.13.0'
 }
-apply plugin: 'com.diffplug.spotless'
 
 group = 'cloud.eppo'
 version = '4.0.0-SNAPSHOT'
@@ -54,7 +54,6 @@ spotless {
     endWithNewline()
   }
   java {
-    target 'src/main/java/**/*.java'
     googleJavaFormat('1.7')
     formatAnnotations()
   }
@@ -108,10 +107,12 @@ publishing {
           url = 'https://github.com/Eppo-exp/sdk-common-jvm'
         }
 
-        // Explicitly add framework dependency to POM (Gradle module metadata includes it automatically)
+        // Add framework dependency to POM for Maven consumers
+        // Gradle includes 'api project(':')' in .module metadata but not in .pom
+        // This is necessary because Gradle can't auto-map the root project to its published coordinates
         withXml {
           def dependenciesNode = asNode().dependencies[0]
-          if (dependenciesNode) {
+          if (!dependenciesNode.dependency.find { it.artifactId.text() == 'eppo-sdk-framework' }) {
             def frameworkDep = dependenciesNode.appendNode('dependency')
             frameworkDep.appendNode('groupId', 'cloud.eppo')
             frameworkDep.appendNode('artifactId', 'eppo-sdk-framework')
