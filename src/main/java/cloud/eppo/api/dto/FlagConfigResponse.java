@@ -1,12 +1,25 @@
 package cloud.eppo.api.dto;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Response DTO for parsed flag configuration.
+ *
+ * <p>This is a transient data structure used during configuration parsing. It is not intended to be
+ * persisted or serialized directly. Instead, the {@link cloud.eppo.api.Configuration} class
+ * extracts and stores the individual {@link FlagConfig} and {@link BanditReference} objects, which
+ * ARE serializable for caching and persistence use cases.
+ *
+ * <p>Note: This response type intentionally does not implement {@link java.io.Serializable} as it
+ * is only used as an intermediate structure during parsing and building of the Configuration
+ * object.
+ */
 public interface FlagConfigResponse {
   @NotNull Map<String, FlagConfig> getFlags();
 
@@ -24,38 +37,46 @@ public interface FlagConfigResponse {
   }
 
   class Default implements FlagConfigResponse {
-    private final Map<String, FlagConfig> flags;
-    private final Map<String, BanditReference> banditReferences;
-    private final Format format;
-    private final String environmentName;
-    private final Date createdAt;
+    private final @NotNull Map<String, FlagConfig> flags;
+    private final @NotNull Map<String, BanditReference> banditReferences;
+    private final @NotNull Format format;
+    private final @Nullable String environmentName;
+    private final @Nullable Date createdAt;
 
     public Default(
-        Map<String, FlagConfig> flags,
-        Map<String, BanditReference> banditReferences,
-        Format dataFormat,
-        String environmentName,
-        Date createdAt) {
-      this.flags = flags;
-      this.banditReferences = banditReferences;
-      this.format = dataFormat;
+        @Nullable Map<String, FlagConfig> flags,
+        @Nullable Map<String, BanditReference> banditReferences,
+        @Nullable Format dataFormat,
+        @Nullable String environmentName,
+        @Nullable Date createdAt) {
+      this.flags =
+          flags == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(flags));
+      this.banditReferences =
+          banditReferences == null
+              ? Collections.emptyMap()
+              : Collections.unmodifiableMap(new HashMap<>(banditReferences));
+      this.format = dataFormat == null ? Format.SERVER : dataFormat;
       this.environmentName = environmentName;
-      this.createdAt = createdAt;
+      this.createdAt = createdAt == null ? null : new Date(createdAt.getTime());
     }
 
     public Default(
-        Map<String, FlagConfig> flags,
-        Map<String, BanditReference> banditReferences,
-        Format dataFormat) {
+        @Nullable Map<String, FlagConfig> flags,
+        @Nullable Map<String, BanditReference> banditReferences,
+        @Nullable Format dataFormat) {
       this(flags, banditReferences, dataFormat, null, null);
     }
 
-    public Default(Map<String, FlagConfig> flags, Map<String, BanditReference> banditReferences) {
+    public Default(
+        @Nullable Map<String, FlagConfig> flags,
+        @Nullable Map<String, BanditReference> banditReferences) {
       this(flags, banditReferences, Format.SERVER, null, null);
     }
 
     public Default() {
-      this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), Format.SERVER, null, null);
+      this(Collections.emptyMap(), Collections.emptyMap(), Format.SERVER, null, null);
     }
 
     @Override
@@ -92,28 +113,28 @@ public interface FlagConfigResponse {
     }
 
     @Override
-    public Map<String, FlagConfig> getFlags() {
+    @NotNull public Map<String, FlagConfig> getFlags() {
       return flags;
     }
 
     @Override
-    public Map<String, BanditReference> getBanditReferences() {
+    @NotNull public Map<String, BanditReference> getBanditReferences() {
       return banditReferences;
     }
 
     @Override
-    public Format getFormat() {
+    @NotNull public Format getFormat() {
       return format;
     }
 
     @Override
-    public String getEnvironmentName() {
+    @Nullable public String getEnvironmentName() {
       return environmentName;
     }
 
     @Override
-    public Date getCreatedAt() {
-      return createdAt;
+    @Nullable public Date getCreatedAt() {
+      return createdAt == null ? null : new Date(createdAt.getTime());
     }
   }
 }

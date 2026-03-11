@@ -2,12 +2,14 @@ package cloud.eppo.api;
 
 import cloud.eppo.api.dto.EppoValueType;
 import cloud.eppo.api.dto.VariationType;
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class EppoValue {
+public class EppoValue implements Serializable {
+  private static final long serialVersionUID = 1L;
   protected final EppoValueType type;
   protected Boolean boolValue;
   protected Double doubleValue;

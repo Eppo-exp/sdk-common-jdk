@@ -1,19 +1,21 @@
 package cloud.eppo.api.dto;
 
 import cloud.eppo.api.EppoValue;
+import java.io.Serializable;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public interface Variation {
+public interface Variation extends Serializable {
   @NotNull String getKey();
 
   @NotNull EppoValue getValue();
 
   class Default implements Variation {
-    private final String key;
-    private final EppoValue value;
+    private static final long serialVersionUID = 1L;
+    private final @NotNull String key;
+    private final @NotNull EppoValue value;
 
-    public Default(String key, EppoValue value) {
+    public Default(@NotNull String key, @NotNull EppoValue value) {
       this.key = key;
       this.value = value;
     }
@@ -35,11 +37,13 @@ public interface Variation {
       return Objects.hash(key, value);
     }
 
-    public String getKey() {
+    @Override
+    @NotNull public String getKey() {
       return this.key;
     }
 
-    public EppoValue getValue() {
+    @Override
+    @NotNull public EppoValue getValue() {
       return value;
     }
   }

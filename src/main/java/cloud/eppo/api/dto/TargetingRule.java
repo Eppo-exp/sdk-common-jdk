@@ -1,21 +1,29 @@
 package cloud.eppo.api.dto;
 
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface TargetingRule {
+public interface TargetingRule extends Serializable {
   @NotNull Set<TargetingCondition> getConditions();
 
   class Default implements TargetingRule {
-    private final Set<TargetingCondition> conditions;
+    private static final long serialVersionUID = 1L;
+    private final @NotNull Set<TargetingCondition> conditions;
 
-    public Default(Set<TargetingCondition> conditions) {
-      this.conditions = conditions;
+    public Default(@Nullable Set<TargetingCondition> conditions) {
+      this.conditions =
+          conditions == null
+              ? Collections.emptySet()
+              : Collections.unmodifiableSet(new HashSet<>(conditions));
     }
 
     @Override
-    public Set<TargetingCondition> getConditions() {
+    @NotNull public Set<TargetingCondition> getConditions() {
       return conditions;
     }
 

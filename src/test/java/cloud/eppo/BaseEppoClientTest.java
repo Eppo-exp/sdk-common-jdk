@@ -21,8 +21,13 @@ import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -71,6 +76,8 @@ public class BaseEppoClientTest {
 
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config.json");
+
+  private final File flagConfigFile = new File("src/test/resources/shared/ufc/flags-v1.json");
 
   // TODO: async init client tests
 
@@ -215,6 +222,36 @@ public class BaseEppoClientTest {
     initClient(false, true);
     AssignmentTestCase testCase = parseTestCaseFile(testFile);
     runTestCaseWithDetails(testCase, eppoClient);
+  }
+
+  @ParameterizedTest
+  @MethodSource("getAssignmentTestData")
+  public void testSerializedOfflineInitialization(File testFile) throws IOException {
+    initClientWithSerializedConfiguration();
+    AssignmentTestCase testCase = parseTestCaseFile(testFile);
+    runTestCase(testCase, eppoClient);
+  }
+
+  private void initClientWithSerializedConfiguration() throws IOException {
+    byte[] rawConfiguration = FileUtils.readFileToByteArray(flagConfigFile);
+    Configuration configuration =
+        Configuration.builder(parser.parseFlagConfig(rawConfiguration)).build();
+    byte[] serializedConfiguration;
+    try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+      oos.writeObject(configuration);
+      serializedConfiguration = bos.toByteArray();
+    }
+
+    Configuration deserializedConfiguration;
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(serializedConfiguration);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
+      deserializedConfiguration = (Configuration) ois.readObject();
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException("Failed to deserialize configuration", e);
+    }
+
+    initClientWithData(CompletableFuture.completedFuture(deserializedConfiguration), false, false);
   }
 
   private static Stream<Arguments> getAssignmentTestData() {
@@ -758,14 +795,14 @@ public class BaseEppoClientTest {
     client.startPolling(20);
 
     // Method will be called immediately on init
-    verify(mockConfigClient, times(1)).get(any(EppoConfigurationRequest.class));
+    verify(mockConfigClient, times(1)).execute(any(EppoConfigurationRequest.class));
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
 
     // Sleep for 25 ms to allow another polling cycle to complete
     sleepUninterruptedly(25);
 
     // Now, the method should have been called twice
-    verify(mockConfigClient, times(2)).get(any(EppoConfigurationRequest.class));
+    verify(mockConfigClient, times(2)).execute(any(EppoConfigurationRequest.class));
 
     eppoClient.stopPolling();
     assertTrue(eppoClient.getBooleanAssignment("bool_flag", "subject1", false));
@@ -773,12 +810,13 @@ public class BaseEppoClientTest {
     sleepUninterruptedly(25);
 
     // No more calls since stopped
-    verify(mockConfigClient, times(2)).get(any(EppoConfigurationRequest.class));
+    verify(mockConfigClient, times(2)).execute(any(EppoConfigurationRequest.class));
 
     // Set up a different config to be served
     EppoConfigurationResponse disabledResponse =
-        EppoConfigurationResponse.success(200, "v2", DISABLED_BOOL_FLAG_CONFIG.getBytes());
-    when(mockConfigClient.get(any(EppoConfigurationRequest.class)))
+        EppoConfigurationResponse.success(
+            HttpURLConnection.HTTP_OK, "v2", DISABLED_BOOL_FLAG_CONFIG.getBytes());
+    when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
         .thenReturn(CompletableFuture.completedFuture(disabledResponse));
     client.startPolling(20);
 
