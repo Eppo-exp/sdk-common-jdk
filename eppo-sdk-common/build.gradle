@@ -107,9 +107,9 @@ publishing {
           url = 'https://github.com/Eppo-exp/sdk-common-jvm'
         }
 
-        // Add framework dependency to POM for Maven consumers
-        // Gradle limitation: 'api project(':')' is included in .module metadata but not in .pom
-        // Root project references cannot be auto-mapped to Maven coordinates in POM generation
+        // Manual POM manipulation required for Maven consumers
+        // Gradle module metadata correctly includes the dependency, but POMs don't
+        // Root project references (project(':')) aren't translated to Maven coordinates in POM generation
         // See: https://github.com/gradle/gradle/issues/16784
         withXml {
           def dependenciesNode = asNode().dependencies[0]
