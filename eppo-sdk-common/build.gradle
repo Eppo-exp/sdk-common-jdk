@@ -1,7 +1,7 @@
 plugins {
   id 'java-library'
   id 'maven-publish'
-  id "com.diffplug.spotless" version "6.13.0"
+  id 'com.diffplug.spotless' version '6.13.0'
 }
 
 group = 'cloud.eppo'
@@ -10,37 +10,15 @@ version = '4.0.0-SNAPSHOT'
 java {
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-// Create a combined JAR that includes both this module and the framework
-jar {
-  // Include classes from the root framework module
-  from(project(':').sourceSets.main.output)
-  // This module's classes take precedence over framework classes
-  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-// Create combined sources JAR
-tasks.register('sourcesJar', Jar) {
-  archiveClassifier.set('sources')
-  from sourceSets.main.allSource
-  from project(':').sourceSets.main.allSource
-  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-// Create combined javadoc JAR
-tasks.register('javadocJar', Jar) {
-  archiveClassifier.set('javadoc')
-  from javadoc
-  from project(':').tasks.javadoc
-
-  // Temporary fix until the clean-up is down and jackson parsing is removed from the framework.
-  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  withSourcesJar()
+  withJavadocJar()
 }
 
 dependencies {
+  // Framework dependency - provides core interfaces and logic
   api project(':')
 
+  // HTTP client and JSON parser implementations
   implementation 'com.squareup.okhttp3:okhttp:4.12.0'
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
 
@@ -97,8 +75,15 @@ publishing {
       artifactId = 'sdk-common-jvm'
 
       from components.java
-      artifact sourcesJar
-      artifact javadocJar
+
+      versionMapping {
+        usage('java-api') {
+          fromResolutionOf('runtimeClasspath')
+        }
+        usage('java-runtime') {
+          fromResolutionResult()
+        }
+      }
 
       pom {
         name = 'Eppo SDK Common JVM'
@@ -121,13 +106,21 @@ publishing {
           developerConnection = 'scm:git:ssh://github.com/Eppo-exp/sdk-common-jvm.git'
           url = 'https://github.com/Eppo-exp/sdk-common-jvm'
         }
-      }
 
-      // Remove the framework dependency from POM since it's bundled in the JAR
-      pom.withXml {
-        asNode().dependencies.dependency.findAll {
-          it.artifactId.text() == 'eppo-sdk-framework'
-        }.each { it.parent().remove(it) }
+        // Manual POM manipulation required for Maven consumers
+        // Gradle module metadata correctly includes the dependency, but POMs don't
+        // Root project references (project(':')) aren't translated to Maven coordinates in POM generation
+        // See: https://github.com/gradle/gradle/issues/16784
+        withXml {
+          def dependenciesNode = asNode().dependencies[0]
+          if (!dependenciesNode.dependency.find { it.artifactId.text() == 'eppo-sdk-framework' }) {
+            def frameworkDep = dependenciesNode.appendNode('dependency')
+            frameworkDep.appendNode('groupId', 'cloud.eppo')
+            frameworkDep.appendNode('artifactId', 'eppo-sdk-framework')
+            frameworkDep.appendNode('version', project(':').version)
+            frameworkDep.appendNode('scope', 'compile')
+          }
+        }
       }
     }
   }
