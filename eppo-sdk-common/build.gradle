@@ -1,8 +1,9 @@
 plugins {
   id 'java-library'
   id 'maven-publish'
-  id 'com.diffplug.spotless' version '6.13.0'
 }
+
+apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
 version = '4.0.0-SNAPSHOT'
@@ -50,11 +51,19 @@ spotless {
     target '*.gradle', '.gitattributes', '.gitignore'
 
     trimTrailingWhitespace()
-    indentWithSpaces(2)
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      leadingTabsToSpaces(2)
+    } else {
+      indentWithSpaces(2)
+    }
     endWithNewline()
   }
   java {
-    googleJavaFormat('1.7')
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      googleJavaFormat('1.17.0')
+    } else {
+      googleJavaFormat('1.7')
+    }
     formatAnnotations()
   }
 }
