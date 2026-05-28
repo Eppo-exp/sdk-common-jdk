@@ -82,7 +82,7 @@ public final class EppoConfigurationResponse {
    * @return the body bytes, or null for 304 responses
    */
   @Nullable public byte[] getBody() {
-    return body;
+    return body == null ? null : body.clone();
   }
 
   /**

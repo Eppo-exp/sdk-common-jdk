@@ -27,9 +27,9 @@ public class ConfigurationRequestor {
   @NotNull private final EppoConfigurationClient configurationClient;
   @NotNull private final EppoConfigurationRequestFactory requestFactory;
 
-  private CompletableFuture<Void> remoteFetchFuture = null;
-  private CompletableFuture<Boolean> configurationFuture = null;
-  private boolean initialConfigSet = false;
+  private volatile CompletableFuture<Void> remoteFetchFuture = null;
+  private volatile CompletableFuture<Boolean> configurationFuture = null;
+  private volatile boolean initialConfigSet = false;
 
   private final CallbackManager<Configuration> configChangeManager = new CallbackManager<>();
 
@@ -66,22 +66,25 @@ public class ConfigurationRequestor {
     }
     this.configurationFuture =
         configurationFuture
-            .thenApply(
+            .thenCompose(
                 (config) -> {
                   synchronized (configurationStore) {
                     if (config == null || config.isEmpty()) {
                       log.debug("Initial configuration future returned empty/null");
-                      return false;
+                      return CompletableFuture.completedFuture(false);
                     } else if (remoteFetchFuture != null
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
                       // Don't clobber a successful fetch.
                       log.debug("Fetch has completed; ignoring initial config load.");
-                      return false;
+                      return CompletableFuture.completedFuture(false);
                     } else {
-                      initialConfigSet =
-                          saveConfigurationAndNotify(config).thenApply((s) -> true).join();
-                      return true;
+                      return saveConfigurationAndNotify(config)
+                          .thenApply(
+                              (s) -> {
+                                initialConfigSet = true;
+                                return true;
+                              });
                     }
                   }
                 })

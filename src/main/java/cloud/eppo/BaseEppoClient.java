@@ -35,7 +35,7 @@ public class BaseEppoClient<JsonFlagType> {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private boolean isGracefulMode;
+  private volatile boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
   private final ConfigurationParser<JsonFlagType> configurationParser;
@@ -169,17 +169,33 @@ public class BaseEppoClient<JsonFlagType> {
   protected CompletableFuture<Void> loadConfigurationAsync() {
     CompletableFuture<Void> future = new CompletableFuture<>();
 
-    requestor
-        .fetchAndSaveFromRemoteAsync()
-        .exceptionally(
-            ex -> {
-              log.error("Encountered Exception while loading configuration", ex);
-              if (!isGracefulMode) {
-                future.completeExceptionally(ex);
-              }
-              return null;
-            })
-        .thenAccept(future::complete);
+    try {
+      requestor
+          .fetchAndSaveFromRemoteAsync()
+          .exceptionally(
+              ex -> {
+                log.error("Encountered Exception while loading configuration", ex);
+                if (!isGracefulMode) {
+                  future.completeExceptionally(ex);
+                } else {
+                  future.complete(null);
+                }
+                return null;
+              })
+          .thenAccept(
+              result -> {
+                if (!future.isDone()) {
+                  future.complete(result);
+                }
+              });
+    } catch (Exception ex) {
+      log.error("Encountered Exception while loading configuration", ex);
+      if (!isGracefulMode) {
+        future.completeExceptionally(ex);
+      } else {
+        future.complete(null);
+      }
+    }
 
     return future;
   }
