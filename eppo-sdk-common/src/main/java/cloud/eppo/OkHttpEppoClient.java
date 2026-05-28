@@ -63,7 +63,14 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
   @Override
   public CompletableFuture<EppoConfigurationResponse> execute(EppoConfigurationRequest request) {
     CompletableFuture<EppoConfigurationResponse> future = new CompletableFuture<>();
-    Request httpRequest = buildRequest(request);
+
+    Request httpRequest;
+    try {
+      httpRequest = buildRequest(request);
+    } catch (Exception e) {
+      future.completeExceptionally(e);
+      return future;
+    }
 
     client
         .newCall(httpRequest)
@@ -94,8 +101,12 @@ public class OkHttpEppoClient implements EppoConfigurationClient {
   }
 
   private Request buildRequest(EppoConfigurationRequest request) {
-    HttpUrl.Builder urlBuilder =
-        HttpUrl.parse(request.getBaseUrl() + request.getResourcePath()).newBuilder();
+    String rawUrl = request.getBaseUrl() + request.getResourcePath();
+    HttpUrl parsedUrl = HttpUrl.parse(rawUrl);
+    if (parsedUrl == null) {
+      throw new IllegalArgumentException("Invalid URL: " + rawUrl);
+    }
+    HttpUrl.Builder urlBuilder = parsedUrl.newBuilder();
 
     for (Map.Entry<String, String> param : request.getQueryParams().entrySet()) {
       urlBuilder.addQueryParameter(param.getKey(), param.getValue());

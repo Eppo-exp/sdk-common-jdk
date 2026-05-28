@@ -20,7 +20,7 @@ public interface BanditReference extends Serializable {
 
     public Default(
         @NotNull String modelVersion, @Nullable List<BanditFlagVariation> flagVariations) {
-      this.modelVersion = modelVersion;
+      this.modelVersion = Objects.requireNonNull(modelVersion, "modelVersion");
       this.flagVariations =
           flagVariations == null
               ? Collections.emptyList()

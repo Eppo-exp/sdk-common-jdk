@@ -16,8 +16,8 @@ public interface Variation extends Serializable {
     private final @NotNull EppoValue value;
 
     public Default(@NotNull String key, @NotNull EppoValue value) {
-      this.key = key;
-      this.value = value;
+      this.key = Objects.requireNonNull(key, "key");
+      this.value = Objects.requireNonNull(value, "value");
     }
 
     @Override

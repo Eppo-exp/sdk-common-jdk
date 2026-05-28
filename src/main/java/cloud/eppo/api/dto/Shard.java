@@ -20,7 +20,7 @@ public interface Shard extends Serializable {
     private final @NotNull Set<ShardRange> ranges;
 
     public Default(@NotNull String salt, @Nullable Set<ShardRange> ranges) {
-      this.salt = salt;
+      this.salt = Objects.requireNonNull(salt, "salt");
       this.ranges =
           ranges == null
               ? Collections.emptySet()

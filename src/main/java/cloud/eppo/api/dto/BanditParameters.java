@@ -31,11 +31,11 @@ public interface BanditParameters extends Serializable {
         @NotNull String modelName,
         @NotNull String modelVersion,
         @NotNull BanditModelData modelData) {
-      this.banditKey = banditKey;
+      this.banditKey = Objects.requireNonNull(banditKey, "banditKey");
       this.updatedAt = updatedAt == null ? null : new Date(updatedAt.getTime());
-      this.modelName = modelName;
-      this.modelVersion = modelVersion;
-      this.modelData = modelData;
+      this.modelName = Objects.requireNonNull(modelName, "modelName");
+      this.modelVersion = Objects.requireNonNull(modelVersion, "modelVersion");
+      this.modelData = Objects.requireNonNull(modelData, "modelData");
     }
 
     @Override

@@ -29,9 +29,9 @@ public interface BanditModelData extends Serializable {
         @NotNull Double defaultActionScore,
         @NotNull Double actionProbabilityFloor,
         @Nullable Map<String, BanditCoefficients> coefficients) {
-      this.gamma = gamma;
-      this.defaultActionScore = defaultActionScore;
-      this.actionProbabilityFloor = actionProbabilityFloor;
+      this.gamma = Objects.requireNonNull(gamma, "gamma");
+      this.defaultActionScore = Objects.requireNonNull(defaultActionScore, "defaultActionScore");
+      this.actionProbabilityFloor = Objects.requireNonNull(actionProbabilityFloor, "actionProbabilityFloor");
       this.coefficients =
           coefficients == null
               ? Collections.emptyMap()

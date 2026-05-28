@@ -18,9 +18,9 @@ public interface BanditNumericAttributeCoefficients extends BanditAttributeCoeff
         @NotNull String attributeKey,
         @NotNull Double coefficient,
         @NotNull Double missingValueCoefficient) {
-      this.attributeKey = attributeKey;
-      this.coefficient = coefficient;
-      this.missingValueCoefficient = missingValueCoefficient;
+      this.attributeKey = Objects.requireNonNull(attributeKey, "attributeKey");
+      this.coefficient = Objects.requireNonNull(coefficient, "coefficient");
+      this.missingValueCoefficient = Objects.requireNonNull(missingValueCoefficient, "missingValueCoefficient");
     }
 
     @Override

@@ -49,41 +49,60 @@ public class BanditParametersResponseDeserializer
     }
 
     Map<String, BanditParameters> bandits = new HashMap<>();
-    banditsNode
-        .iterator()
-        .forEachRemaining(
-            banditNode -> {
-              String banditKey = banditNode.get("banditKey").asText();
-              String updatedAtStr = banditNode.get("updatedAt").asText();
-              Instant instant = Instant.parse(updatedAtStr);
-              Date updatedAt = Date.from(instant);
-              String modelName = banditNode.get("modelName").asText();
-              String modelVersion = banditNode.get("modelVersion").asText();
-              JsonNode modelDataNode = banditNode.get("modelData");
-              double gamma = modelDataNode.get("gamma").asDouble();
-              double defaultActionScore = modelDataNode.get("defaultActionScore").asDouble();
-              double actionProbabilityFloor =
-                  modelDataNode.get("actionProbabilityFloor").asDouble();
-              JsonNode coefficientsNode = modelDataNode.get("coefficients");
-              Map<String, BanditCoefficients> coefficients = new HashMap<>();
-              Iterator<Map.Entry<String, JsonNode>> coefficientIterator = coefficientsNode.fields();
+    Iterator<Map.Entry<String, JsonNode>> banditFields = banditsNode.fields();
+    banditFields.forEachRemaining(
+        banditEntry -> {
+          try {
+            JsonNode banditNode = banditEntry.getValue();
+            String banditKey = getRequiredText(banditNode, "banditKey");
+            String updatedAtStr = getRequiredText(banditNode, "updatedAt");
+            Instant instant = Instant.parse(updatedAtStr);
+            Date updatedAt = Date.from(instant);
+            String modelName = getRequiredText(banditNode, "modelName");
+            String modelVersion = getRequiredText(banditNode, "modelVersion");
+            JsonNode modelDataNode = banditNode.get("modelData");
+            if (modelDataNode == null || !modelDataNode.isObject()) {
+              log.warn("Skipping bandit {}: missing modelData", banditEntry.getKey());
+              return;
+            }
+            double gamma = modelDataNode.get("gamma").asDouble();
+            double defaultActionScore = modelDataNode.get("defaultActionScore").asDouble();
+            double actionProbabilityFloor =
+                modelDataNode.get("actionProbabilityFloor").asDouble();
+            JsonNode coefficientsNode = modelDataNode.get("coefficients");
+            Map<String, BanditCoefficients> coefficients = new HashMap<>();
+            if (coefficientsNode != null && coefficientsNode.isObject()) {
+              Iterator<Map.Entry<String, JsonNode>> coefficientIterator =
+                  coefficientsNode.fields();
               coefficientIterator.forEachRemaining(
                   field -> {
                     BanditCoefficients actionCoefficients =
                         this.parseActionCoefficientsNode(field.getValue());
                     coefficients.put(field.getKey(), actionCoefficients);
                   });
+            }
 
-              BanditModelData modelData =
-                  new BanditModelData.Default(
-                      gamma, defaultActionScore, actionProbabilityFloor, coefficients);
-              BanditParameters parameters =
-                  new BanditParameters.Default(
-                      banditKey, updatedAt, modelName, modelVersion, modelData);
-              bandits.put(banditKey, parameters);
-            });
+            BanditModelData modelData =
+                new BanditModelData.Default(
+                    gamma, defaultActionScore, actionProbabilityFloor, coefficients);
+            BanditParameters parameters =
+                new BanditParameters.Default(
+                    banditKey, updatedAt, modelName, modelVersion, modelData);
+            bandits.put(banditKey, parameters);
+          } catch (Exception e) {
+            log.warn("Skipping malformed bandit entry {}: {}", banditEntry.getKey(), e.getMessage());
+          }
+        });
 
     return new BanditParametersResponse.Default(bandits);
+  }
+
+  private static String getRequiredText(JsonNode node, String fieldName) {
+    JsonNode field = node.get(fieldName);
+    if (field == null || field.isNull()) {
+      throw new IllegalArgumentException("Missing required field: " + fieldName);
+    }
+    return field.asText();
   }
 
   private BanditCoefficients parseActionCoefficientsNode(JsonNode actionCoefficientsNode) {

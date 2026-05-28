@@ -29,11 +29,11 @@ public interface BanditFlagVariation extends Serializable {
         @NotNull String allocationKey,
         @NotNull String variationKey,
         @NotNull String variationValue) {
-      this.banditKey = banditKey;
-      this.flagKey = flagKey;
-      this.allocationKey = allocationKey;
-      this.variationKey = variationKey;
-      this.variationValue = variationValue;
+      this.banditKey = Objects.requireNonNull(banditKey, "banditKey");
+      this.flagKey = Objects.requireNonNull(flagKey, "flagKey");
+      this.allocationKey = Objects.requireNonNull(allocationKey, "allocationKey");
+      this.variationKey = Objects.requireNonNull(variationKey, "variationKey");
+      this.variationValue = Objects.requireNonNull(variationValue, "variationValue");
     }
 
     @Override

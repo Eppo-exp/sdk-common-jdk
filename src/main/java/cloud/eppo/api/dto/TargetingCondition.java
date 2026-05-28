@@ -20,9 +20,9 @@ public interface TargetingCondition extends Serializable {
 
     public Default(
         @NotNull OperatorType operator, @NotNull String attribute, @NotNull EppoValue value) {
-      this.operator = operator;
-      this.attribute = attribute;
-      this.value = value;
+      this.operator = Objects.requireNonNull(operator, "operator");
+      this.attribute = Objects.requireNonNull(attribute, "attribute");
+      this.value = Objects.requireNonNull(value, "value");
     }
 
     @Override

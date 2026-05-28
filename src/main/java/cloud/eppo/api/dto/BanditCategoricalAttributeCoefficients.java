@@ -22,8 +22,8 @@ public interface BanditCategoricalAttributeCoefficients extends BanditAttributeC
         @NotNull String attributeKey,
         @NotNull Double missingValueCoefficient,
         @Nullable Map<String, Double> valueCoefficients) {
-      this.attributeKey = attributeKey;
-      this.missingValueCoefficient = missingValueCoefficient;
+      this.attributeKey = Objects.requireNonNull(attributeKey, "attributeKey");
+      this.missingValueCoefficient = Objects.requireNonNull(missingValueCoefficient, "missingValueCoefficient");
       this.valueCoefficients =
           valueCoefficients == null
               ? Collections.emptyMap()
