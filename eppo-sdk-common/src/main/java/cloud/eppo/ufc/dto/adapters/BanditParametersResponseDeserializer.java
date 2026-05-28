@@ -67,13 +67,11 @@ public class BanditParametersResponseDeserializer
             }
             double gamma = modelDataNode.get("gamma").asDouble();
             double defaultActionScore = modelDataNode.get("defaultActionScore").asDouble();
-            double actionProbabilityFloor =
-                modelDataNode.get("actionProbabilityFloor").asDouble();
+            double actionProbabilityFloor = modelDataNode.get("actionProbabilityFloor").asDouble();
             JsonNode coefficientsNode = modelDataNode.get("coefficients");
             Map<String, BanditCoefficients> coefficients = new HashMap<>();
             if (coefficientsNode != null && coefficientsNode.isObject()) {
-              Iterator<Map.Entry<String, JsonNode>> coefficientIterator =
-                  coefficientsNode.fields();
+              Iterator<Map.Entry<String, JsonNode>> coefficientIterator = coefficientsNode.fields();
               coefficientIterator.forEachRemaining(
                   field -> {
                     BanditCoefficients actionCoefficients =
@@ -90,7 +88,8 @@ public class BanditParametersResponseDeserializer
                     banditKey, updatedAt, modelName, modelVersion, modelData);
             bandits.put(banditKey, parameters);
           } catch (Exception e) {
-            log.warn("Skipping malformed bandit entry {}: {}", banditEntry.getKey(), e.getMessage());
+            log.warn(
+                "Skipping malformed bandit entry {}: {}", banditEntry.getKey(), e.getMessage());
           }
         });
 
