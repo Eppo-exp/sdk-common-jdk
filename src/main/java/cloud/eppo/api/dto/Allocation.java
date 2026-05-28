@@ -40,7 +40,7 @@ public interface Allocation extends Serializable {
         @Nullable Date endAt,
         @Nullable List<Split> splits,
         boolean doLog) {
-      this.key = Objects.requireNonNull(key, "key");
+      this.key = key;
       this.rules = rules == null ? null : Collections.unmodifiableSet(new HashSet<>(rules));
       this.startAt = startAt == null ? null : new Date(startAt.getTime());
       this.endAt = endAt == null ? null : new Date(endAt.getTime());

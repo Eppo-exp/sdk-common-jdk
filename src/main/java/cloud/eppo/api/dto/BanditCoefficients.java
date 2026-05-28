@@ -43,8 +43,8 @@ public interface BanditCoefficients extends Serializable {
         @Nullable Map<String, BanditNumericAttributeCoefficients> actionNumericAttributeCoefficients,
         @Nullable Map<String, BanditCategoricalAttributeCoefficients>
                 actionCategoricalAttributeCoefficients) {
-      this.actionKey = Objects.requireNonNull(actionKey, "actionKey");
-      this.intercept = Objects.requireNonNull(intercept, "intercept");
+      this.actionKey = actionKey;
+      this.intercept = intercept;
       this.subjectNumericCoefficients =
           subjectNumericAttributeCoefficients == null
               ? Collections.emptyMap()

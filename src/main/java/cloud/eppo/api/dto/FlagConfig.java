@@ -39,7 +39,7 @@ public interface FlagConfig extends Serializable {
         @Nullable VariationType variationType,
         @Nullable Map<String, Variation> variations,
         @Nullable List<Allocation> allocations) {
-      this.key = Objects.requireNonNull(key, "key");
+      this.key = key;
       this.enabled = enabled;
       this.totalShards = totalShards;
       // Default to STRING for defensive programming - ensures a valid variation type is always set

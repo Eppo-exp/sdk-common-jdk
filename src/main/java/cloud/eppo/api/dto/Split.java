@@ -27,7 +27,7 @@ public interface Split extends Serializable {
         @NotNull String variationKey,
         @Nullable Set<Shard> shards,
         @Nullable Map<String, String> extraLogging) {
-      this.variationKey = Objects.requireNonNull(variationKey, "variationKey");
+      this.variationKey = variationKey;
       this.shards =
           shards == null
               ? Collections.emptySet()
