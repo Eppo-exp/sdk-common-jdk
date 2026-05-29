@@ -23,8 +23,13 @@ plugins {
 apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
-version = '4.0.0-SNAPSHOT'
+version = '0.1.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+// Set base archives name to match published artifactId so Gradle can resolve project(':') references
+base {
+  archivesName.set('eppo-sdk-framework')
+}
 
 java {
   sourceCompatibility = JavaVersion.VERSION_1_8
@@ -34,9 +39,8 @@ java {
 }
 
 dependencies {
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.0'
+  api 'org.jetbrains:annotations:26.1.0'
   implementation 'com.github.zafarkhaja:java-semver:0.10.2'
-  implementation "com.squareup.okhttp3:okhttp:4.12.0"
   // For LRU and expiring maps
   implementation 'org.apache.commons:commons-collections4:4.5.0'
   implementation 'org.slf4j:slf4j-api:2.0.17'
@@ -53,6 +57,11 @@ dependencies {
   }
   testImplementation 'net.bytebuddy:byte-buddy:1.18.5' // Use the latest available version
   testImplementation 'org.mockito:mockito-inline:4.11.0'
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+  testImplementation "com.squareup.okhttp3:okhttp:4.12.0"
+
+  // Use common http/parser implementations in tests.
+  testImplementation project(':eppo-sdk-common')
 }
 
 test {
@@ -101,7 +110,7 @@ publishing {
   publications {
     maven(MavenPublication) {
       groupId = 'cloud.eppo'
-      artifactId = 'sdk-common-jvm'
+      artifactId = 'eppo-sdk-framework'
 
       from components.java
       artifact testJar // Include the test-jar in the published artifacts
@@ -114,8 +123,8 @@ publishing {
         }
       }
       pom {
-        name = 'Eppo JVM SDK shared library'
-        description = 'Eppo SDK for JVM shared library'
+        name = 'Eppo SDK Framework'
+        description = 'Core framework for Eppo JVM SDKs'
         url = 'https://github.com/Eppo-exp/sdk-common-jvm'
         licenses {
           license {

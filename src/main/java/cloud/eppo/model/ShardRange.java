@@ -1,17 +1,15 @@
 package cloud.eppo.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
+import java.io.Serializable;
 import java.util.Objects;
 
 /** Shard Range Class */
-public class ShardRange {
+public class ShardRange implements Serializable {
+  private static final long serialVersionUID = 1L;
   private final int start;
   private int end;
 
-  @JsonCreator
-  public ShardRange(@JsonProperty("start") int start, @JsonProperty("end") int end) {
+  public ShardRange(int start, int end) {
     this.start = start;
     this.end = end;
   }
@@ -20,8 +18,7 @@ public class ShardRange {
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     ShardRange that = (ShardRange) o;
-    return start == that.start &&
-            end == that.end;
+    return start == that.start && end == that.end;
   }
 
   @Override

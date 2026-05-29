@@ -3,9 +3,6 @@ package cloud.eppo;
 import static cloud.eppo.Utils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -13,9 +10,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
+
+  @AfterEach
+  void resetCodec() {
+    Utils.resetBase64Codec();
+  }
+
   @Test
   public void testGetMd5Hash() {
     // empty string
@@ -81,33 +85,19 @@ public class UtilsTest {
   }
 
   @Test
-  public void testParseUtcISODateNode() throws JsonProcessingException {
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode jsonNode = mapper.readTree("\"2024-05-01T16:13:26.651Z\"");
-    Date parsedDate = parseUtcISODateNode(jsonNode);
-    Date expectedDate = new Date(1714580006651L);
-    assertEquals(expectedDate, parsedDate);
-    jsonNode = mapper.readTree("null");
-    parsedDate = parseUtcISODateNode(jsonNode);
-    assertNull(parsedDate);
-    assertNull(parseUtcISODateNode(null));
-  }
-
-  @Test
-  public void testDateParsingThreadSafety() throws InterruptedException {
+  public void testDateFormattingThreadSafety() throws InterruptedException {
     final AtomicBoolean collisionDetected = new AtomicBoolean(false);
     final AtomicInteger unexpectedExceptions = new AtomicInteger(0);
-    final AtomicInteger incorrectParseResults = new AtomicInteger(0);
+    final AtomicInteger incorrectFormatResults = new AtomicInteger(0);
 
     int numThreads = 20; // Spawn 20 threads
-    int iterationsPerThread = 100; // Each thread will parse 100 dates
+    int iterationsPerThread = 100; // Each thread will format 100 dates
     ExecutorService pool = Executors.newFixedThreadPool(numThreads);
 
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch finishLatch = new CountDownLatch(numThreads);
 
     // Expected date: 2024-05-01T16:13:26.651Z -> 1714580006651L
-    final String testDateString = "\"2024-05-01T16:13:26.651Z\"";
     final long expectedTimestamp = 1714580006651L;
 
     try {
@@ -118,26 +108,14 @@ public class UtilsTest {
                 // Wait for all threads to start simultaneously
                 startLatch.await();
 
-                ObjectMapper mapper = new ObjectMapper();
-
                 for (int j = 0; j < iterationsPerThread; j++) {
                   try {
-                    JsonNode jsonNode = mapper.readTree(testDateString);
-                    Date parsedDate = parseUtcISODateNode(jsonNode);
-
-                    if (parsedDate == null || parsedDate.getTime() != expectedTimestamp) {
-                      incorrectParseResults.incrementAndGet();
-                      collisionDetected.set(true);
-                    }
-
-                    // Also test the reverse operation
                     Date originalDate = new Date(expectedTimestamp);
                     String formattedDate = getISODate(originalDate);
                     if (!formattedDate.equals("2024-05-01T16:13:26.651Z")) {
-                      incorrectParseResults.incrementAndGet();
+                      incorrectFormatResults.incrementAndGet();
                       collisionDetected.set(true);
                     }
-
                   } catch (Exception e) {
                     unexpectedExceptions.incrementAndGet();
                   }
@@ -166,16 +144,69 @@ public class UtilsTest {
 
     // Print diagnostic information
     System.out.println("Unexpected exceptions: " + unexpectedExceptions.get());
-    System.out.println("Incorrect parse results: " + incorrectParseResults.get());
-    System.out.println("Total operations: " + (numThreads * iterationsPerThread * 2));
+    System.out.println("Incorrect format results: " + incorrectFormatResults.get());
+    System.out.println("Total operations: " + (numThreads * iterationsPerThread));
 
     String failureMessage =
         "SimpleDateFormat thread-safety issue detected! "
             + "Exceptions: "
             + unexpectedExceptions.get()
             + ", Incorrect results: "
-            + incorrectParseResults.get();
+            + incorrectFormatResults.get();
     assertFalse(collisionDetected.get(), failureMessage);
     assertEquals(0, unexpectedExceptions.get(), failureMessage);
+  }
+
+  @Test
+  void testCustomBase64Codec() {
+    AtomicBoolean encodeCalled = new AtomicBoolean(false);
+    AtomicBoolean decodeCalled = new AtomicBoolean(false);
+
+    Utils.Base64Codec customCodec =
+        new Utils.Base64Codec() {
+          @Override
+          public String base64Encode(String input) {
+            encodeCalled.set(true);
+            return "encoded:" + input;
+          }
+
+          @Override
+          public String base64Decode(String input) {
+            decodeCalled.set(true);
+            return "decoded:" + input;
+          }
+        };
+
+    Utils.setBase64Codec(customCodec);
+
+    assertEquals("encoded:test", Utils.base64Encode("test"));
+    assertTrue(encodeCalled.get());
+
+    assertEquals("decoded:test", Utils.base64Decode("test"));
+    assertTrue(decodeCalled.get());
+  }
+
+  @Test
+  void testBase64EncodeDecodeDefault() {
+    // Test null handling
+    assertNull(Utils.base64Encode(null));
+    assertNull(Utils.base64Decode(null));
+
+    // Test encoding
+    String original = "Hello, World!";
+    String encoded = Utils.base64Encode(original);
+    assertEquals("SGVsbG8sIFdvcmxkIQ==", encoded);
+
+    // Test decoding
+    String decoded = Utils.base64Decode(encoded);
+    assertEquals(original, decoded);
+
+    // Test round-trip
+    assertEquals(original, Utils.base64Decode(Utils.base64Encode(original)));
+  }
+
+  @Test
+  void testSetBase64CodecWithNullThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> Utils.setBase64Codec(null));
   }
 }

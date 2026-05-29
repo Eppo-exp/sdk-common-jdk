@@ -1,0 +1,141 @@
+plugins {
+  id 'java-library'
+  id 'maven-publish'
+}
+
+apply plugin: "com.diffplug.spotless"
+
+group = 'cloud.eppo'
+version = '4.0.0-SNAPSHOT'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+  withSourcesJar()
+  withJavadocJar()
+}
+
+dependencies {
+  // Framework dependency - provides core interfaces and logic
+  api project(':')
+
+  // HTTP client and JSON parser implementations
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+
+  implementation 'org.slf4j:slf4j-api:2.0.17'
+
+  // Test dependencies
+  testImplementation platform('org.junit:junit-bom:5.14.1')
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+  testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+  testImplementation 'com.google.truth:truth:1.4.5'
+}
+
+test {
+  useJUnitPlatform()
+  testLogging {
+    events "started", "passed", "skipped", "failed"
+    exceptionFormat "full"
+    showExceptions true
+    showCauses true
+    showStackTraces true
+  }
+}
+
+spotless {
+  ratchetFrom 'origin/main'
+
+  format 'misc', {
+    target '*.gradle', '.gitattributes', '.gitignore'
+
+    trimTrailingWhitespace()
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      leadingTabsToSpaces(2)
+    } else {
+      indentWithSpaces(2)
+    }
+    endWithNewline()
+  }
+  java {
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+      googleJavaFormat('1.17.0')
+    } else {
+      googleJavaFormat('1.7')
+    }
+    formatAnnotations()
+  }
+}
+
+javadoc {
+  failOnError = false
+  options.addStringOption('Xdoclint:none', '-quiet')
+  options.addBooleanOption('failOnError', false)
+  if (JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = 'cloud.eppo'
+      artifactId = 'sdk-common-jvm'
+
+      from components.java
+
+      versionMapping {
+        usage('java-api') {
+          fromResolutionOf('runtimeClasspath')
+        }
+        usage('java-runtime') {
+          fromResolutionResult()
+        }
+      }
+
+      pom {
+        name = 'Eppo SDK Common JVM'
+        description = 'Complete Eppo SDK for JVM with default HTTP client and configuration parser'
+        url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+        licenses {
+          license {
+            name = 'MIT License'
+            url = 'http://www.opensource.org/licenses/mit-license.php'
+          }
+        }
+        developers {
+          developer {
+            name = 'Eppo'
+            email = 'https://geteppo.com'
+          }
+        }
+        scm {
+          connection = 'scm:git:git://github.com/Eppo-exp/sdk-common-jvm.git'
+          developerConnection = 'scm:git:ssh://github.com/Eppo-exp/sdk-common-jvm.git'
+          url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+        }
+
+        // Manual POM manipulation required for Maven consumers
+        // Gradle module metadata correctly includes the dependency, but POMs don't
+        // Root project references (project(':')) aren't translated to Maven coordinates in POM generation
+        // See: https://github.com/gradle/gradle/issues/16784
+        withXml {
+          def dependenciesNode = asNode().dependencies[0]
+          if (!dependenciesNode.dependency.find { it.artifactId.text() == 'eppo-sdk-framework' }) {
+            def frameworkDep = dependenciesNode.appendNode('dependency')
+            frameworkDep.appendNode('groupId', 'cloud.eppo')
+            frameworkDep.appendNode('artifactId', 'eppo-sdk-framework')
+            frameworkDep.appendNode('version', project(':').version)
+            frameworkDep.appendNode('scope', 'compile')
+          }
+        }
+      }
+    }
+  }
+  repositories {
+    maven {
+      url = rootProject.layout.buildDirectory.dir('staging-deploy')
+    }
+  }
+}

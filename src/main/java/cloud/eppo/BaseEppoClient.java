@@ -5,13 +5,17 @@ import static cloud.eppo.Constants.DEFAULT_POLLING_INTERVAL_MILLIS;
 import static cloud.eppo.Utils.throwIfEmptyOrNull;
 
 import cloud.eppo.api.*;
+import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.cache.AssignmentCacheEntry;
+import cloud.eppo.http.EppoConfigurationClient;
+import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
-import cloud.eppo.ufc.dto.*;
-import com.fasterxml.jackson.databind.JsonNode;
+import cloud.eppo.parser.ConfigurationParser;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -22,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BaseEppoClient {
+public class BaseEppoClient<JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
   protected final ConfigurationRequestor requestor;
@@ -31,9 +35,10 @@ public class BaseEppoClient {
   private final BanditLogger banditLogger;
   private final String sdkName;
   private final String sdkVersion;
-  private boolean isGracefulMode;
+  private volatile boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
+  private final ConfigurationParser<JsonFlagType> configurationParser;
   private Timer pollTimer;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
@@ -41,11 +46,6 @@ public class BaseEppoClient {
   }
 
   private final CompletableFuture<Boolean> initialConfigFuture;
-
-  // Fields useful for testing in situations where we want to mock the http client or configuration
-  // store (accessed via reflection)
-  /** @noinspection FieldMayBeFinal */
-  private static EppoHttpClient httpClientOverride = null;
 
   // It is important that the bandit assignment cache expire with a short-enough TTL to last about
   // one user session.
@@ -63,7 +63,9 @@ public class BaseEppoClient {
       boolean supportBandits,
       @Nullable CompletableFuture<Configuration> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
-      @Nullable IAssignmentCache banditAssignmentCache) {
+      @Nullable IAssignmentCache banditAssignmentCache,
+      @NotNull ConfigurationParser<JsonFlagType> configurationParser,
+      @NotNull EppoConfigurationClient configurationClient) {
 
     if (apiBaseUrl == null) {
       apiBaseUrl = Constants.DEFAULT_BASE_URL;
@@ -71,16 +73,26 @@ public class BaseEppoClient {
 
     this.assignmentCache = assignmentCache;
     this.banditAssignmentCache = banditAssignmentCache;
+    this.configurationParser = configurationParser;
 
-    EppoHttpClient httpClient =
-        buildHttpClient(apiBaseUrl, new SDKKey(apiKey), sdkName, sdkVersion);
+    SDKKey sdkKey = new SDKKey(apiKey);
+    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
+    String effectiveBaseUrl = endpointHelper.getBaseUrl();
+
     this.configurationStore =
         configurationStore != null ? configurationStore : new ConfigurationStore();
 
-    // For now, the configuration is only obfuscated for Android clients
+    EppoConfigurationRequestFactory requestFactory =
+        new EppoConfigurationRequestFactory(
+            effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
+
     requestor =
         new ConfigurationRequestor(
-            this.configurationStore, httpClient, expectObfuscatedConfig, supportBandits);
+            this.configurationStore,
+            supportBandits,
+            configurationParser,
+            configurationClient,
+            requestFactory);
     initialConfigFuture =
         initialConfiguration != null
             ? requestor.setInitialConfiguration(initialConfiguration)
@@ -92,15 +104,6 @@ public class BaseEppoClient {
     // Save SDK name and version to include in logger metadata
     this.sdkName = sdkName;
     this.sdkVersion = sdkVersion;
-  }
-
-  private EppoHttpClient buildHttpClient(
-      String apiBaseUrl, SDKKey sdkKey, String sdkName, String sdkVersion) {
-    ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
-
-    return httpClientOverride != null
-        ? httpClientOverride
-        : new EppoHttpClient(endpointHelper.getBaseUrl(), sdkKey.getToken(), sdkName, sdkVersion);
   }
 
   protected void loadConfiguration() {
@@ -166,17 +169,33 @@ public class BaseEppoClient {
   protected CompletableFuture<Void> loadConfigurationAsync() {
     CompletableFuture<Void> future = new CompletableFuture<>();
 
-    requestor
-        .fetchAndSaveFromRemoteAsync()
-        .exceptionally(
-            ex -> {
-              log.error("Encountered Exception while loading configuration", ex);
-              if (!isGracefulMode) {
-                future.completeExceptionally(ex);
-              }
-              return null;
-            })
-        .thenAccept(future::complete);
+    try {
+      requestor
+          .fetchAndSaveFromRemoteAsync()
+          .exceptionally(
+              ex -> {
+                log.error("Encountered Exception while loading configuration", ex);
+                if (!isGracefulMode) {
+                  future.completeExceptionally(ex);
+                } else {
+                  future.complete(null);
+                }
+                return null;
+              })
+          .thenAccept(
+              result -> {
+                if (!future.isDone()) {
+                  future.complete(result);
+                }
+              });
+    } catch (Exception ex) {
+      log.error("Encountered Exception while loading configuration", ex);
+      if (!isGracefulMode) {
+        future.completeExceptionally(ex);
+      } else {
+        future.complete(null);
+      }
+    }
 
     return future;
   }
@@ -198,7 +217,7 @@ public class BaseEppoClient {
 
     T resultValue =
         details.evaluationSuccessful()
-            ? details.getVariationValue().unwrap(expectedType)
+            ? details.getVariationValue().unwrap(expectedType, configurationParser::parseJsonValue)
             : defaultValue;
     return new AssignmentDetails<>(resultValue, null, details);
   }
@@ -371,7 +390,7 @@ public class BaseEppoClient {
             value.isString()
                 // Eppo leaves JSON as a JSON string; to verify it's valid we attempt to parse (via
                 // unwrapping)
-                && value.unwrap(VariationType.JSON) != null;
+                && value.unwrap(VariationType.JSON, configurationParser::parseJsonValue) != null;
         break;
       default:
         throw new IllegalArgumentException("Unexpected type for type checking: " + expectedType);
@@ -516,23 +535,24 @@ public class BaseEppoClient {
     }
   }
 
-  public JsonNode getJSONAssignment(String flagKey, String subjectKey, JsonNode defaultValue) {
+  public JsonFlagType getJSONAssignment(
+      String flagKey, String subjectKey, JsonFlagType defaultValue) {
     return getJSONAssignment(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  public JsonNode getJSONAssignment(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+  public JsonFlagType getJSONAssignment(
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonFlagType defaultValue) {
     return this.getJSONAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
         .getVariation();
   }
 
-  public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
-      String flagKey, String subjectKey, JsonNode defaultValue) {
+  public AssignmentDetails<JsonFlagType> getJSONAssignmentDetails(
+      String flagKey, String subjectKey, JsonFlagType defaultValue) {
     return this.getJSONAssignmentDetails(flagKey, subjectKey, new Attributes(), defaultValue);
   }
 
-  public AssignmentDetails<JsonNode> getJSONAssignmentDetails(
-      String flagKey, String subjectKey, Attributes subjectAttributes, JsonNode defaultValue) {
+  public AssignmentDetails<JsonFlagType> getJSONAssignmentDetails(
+      String flagKey, String subjectKey, Attributes subjectAttributes, JsonFlagType defaultValue) {
     try {
       return this.getTypedAssignmentWithDetails(
           flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
@@ -745,7 +765,7 @@ public class BaseEppoClient {
     return metaData;
   }
 
-  private <T> T throwIfNotGraceful(Exception e, T defaultValue) {
+  protected <T> T throwIfNotGraceful(Exception e, T defaultValue) {
     if (this.isGracefulMode) {
       log.info("error getting assignment value: {}", e.getMessage());
       return defaultValue;
