@@ -46,3 +46,11 @@ test-data:
 .PHONY: test
 test: test-data build
 	./gradlew check --no-daemon
+
+## snapshot-release - Push current branch to snapshot/<branch> to trigger snapshot publish workflow.
+.PHONY: snapshot-release
+snapshot-release:
+	$(eval LOCAL_BRANCH := $(shell git rev-parse --abbrev-ref HEAD))
+	@echo "$(INFO)Pushing $(LOCAL_BRANCH) to snapshot/$(LOCAL_BRANCH)$(END)"
+	git push origin HEAD:refs/heads/snapshot/$(LOCAL_BRANCH)
+	@echo "$(OK)Snapshot workflow triggered for snapshot/$(LOCAL_BRANCH)$(END)"
