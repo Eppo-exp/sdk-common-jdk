@@ -65,10 +65,27 @@ jobs:
       - name: Deploy to Maven Central
         run: ./gradlew jreleaserDeploy
 
-      - name: Tag release
-        # Tag after successful deploy so a failed publish does not leave an orphaned tag
+      - name: Tag and release
+        # Tag and create GitHub release after successful deploy — avoids orphaned tags on failed publishes
+        # Changelog covers commits touching eppo-sdk-common/ since the last sdk-common-jvm-v* tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "sdk-common-jvm-v${{ inputs.version }}" -m "Release sdk-common-jvm v${{ inputs.version }}"
-          git push origin "sdk-common-jvm-v${{ inputs.version }}"
+
+          TAG="sdk-common-jvm-v${{ inputs.version }}"
+          git tag -a "$TAG" -m "Release sdk-common-jvm v${{ inputs.version }}"
+          git push origin "$TAG"
+
+          LAST_TAG=$(git tag -l "sdk-common-jvm-v*" --sort=-version:refname | sed -n '2p')
+          if [ -n "$LAST_TAG" ]; then
+            RANGE="${LAST_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          NOTES=$(git log "$RANGE" --oneline -- eppo-sdk-common/ | sed 's/^/- /')
+
+          gh release create "$TAG" \
+            --title "sdk-common-jvm v${{ inputs.version }}" \
+            --notes "${NOTES:-No changes recorded}"
