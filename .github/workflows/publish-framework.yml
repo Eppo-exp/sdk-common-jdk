@@ -1,8 +1,11 @@
-name: Publish release SDK to the Maven Central Repository
+name: Publish Framework SDK to Maven Central
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.1.0)'
+        required: true
 
 env:
   CI: true
@@ -10,6 +13,8 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
       JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
@@ -31,6 +36,14 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
+      - name: Verify version
+        run: |
+          ACTUAL=$(./gradlew :properties -q | grep "^version:" | awk '{print $2}')
+          if [ "$ACTUAL" != "${{ inputs.version }}" ]; then
+            echo "Version mismatch: build.gradle has $ACTUAL, expected ${{ inputs.version }}"
+            exit 1
+          fi
+
       - name: Download test data
         run: make test-data
 
@@ -41,7 +54,16 @@ jobs:
         run: ./gradlew jreleaserConfig --stacktrace
 
       - name: Stage artifacts
-        run: ./gradlew clean publish -Prelease
+        # :clean clears root build/ including build/staging-deploy, ensuring no stale artifacts are deployed
+        run: ./gradlew :clean :publish -Prelease
 
       - name: Deploy to Maven Central
         run: ./gradlew jreleaserDeploy
+
+      - name: Tag release
+        # Tag after successful deploy so a failed publish does not leave an orphaned tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "eppo-sdk-framework-v${{ inputs.version }}" -m "Release eppo-sdk-framework v${{ inputs.version }}"
+          git push origin "eppo-sdk-framework-v${{ inputs.version }}"
