@@ -160,13 +160,16 @@ public class MyConfigurationParser implements ConfigurationParser<YourJsonType> 
 
             // 3. Extract bandit references map
             Map<String, BanditReference> banditReferences =
-                parseBanditReferences(root.get("bandits"));
+                parseBanditReferences(root.get("banditReferences"));
 
             // 4. Extract format
             FlagConfigResponse.Format format = parseFormat(root.get("format"));
 
             // 5. Extract metadata
-            String environmentName = root.getString("environment", null);
+            // "environment" is an object with a "name" field, not a plain string
+            String environmentName = root.hasObject("environment")
+                ? root.getObject("environment").getString("name", null)
+                : null;
             Date createdAt = parseDate(root.get("createdAt"));
 
             // 6. Return FlagConfigResponse implementation
@@ -219,8 +222,10 @@ public class MyConfigurationParser implements ConfigurationParser<YourJsonType> 
         // Parse each flag to FlagConfig.Default
     }
 
-    private Map<String, BanditReference> parseBanditReferences(YourJsonObject banditsObj) {
+    private Map<String, BanditReference> parseBanditReferences(YourJsonObject banditRefsObj) {
         // Parse each bandit reference to BanditReference.Default
+        // Each entry has: modelVersion (string), flagVariations (array of objects)
+        // Each flagVariation has: key, flagKey, allocationKey, variationKey, variationValue
     }
 }
 ```
@@ -430,7 +435,7 @@ import java.util.*;
 public class GsonConfigurationParser implements ConfigurationParser<JsonElement> {
 
     private final Gson gson = new GsonBuilder()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         .create();
 
     @Override
@@ -451,9 +456,9 @@ public class GsonConfigurationParser implements ConfigurationParser<JsonElement>
 
             // Parse bandit references
             Map<String, BanditReference> banditRefs = new HashMap<>();
-            if (root.has("bandits")) {
-                JsonObject banditsObj = root.getAsJsonObject("bandits");
-                for (Map.Entry<String, JsonElement> entry : banditsObj.entrySet()) {
+            if (root.has("banditReferences")) {
+                JsonObject banditRefsObj = root.getAsJsonObject("banditReferences");
+                for (Map.Entry<String, JsonElement> entry : banditRefsObj.entrySet()) {
                     banditRefs.put(entry.getKey(), parseBanditReference(entry.getValue().getAsJsonObject()));
                 }
             }
@@ -465,7 +470,12 @@ public class GsonConfigurationParser implements ConfigurationParser<JsonElement>
             }
 
             // Parse metadata
-            String environmentName = root.has("environment") ? root.get("environment").getAsString() : null;
+            // "environment" is an object with a "name" field, not a plain string
+            String environmentName = null;
+            if (root.has("environment") && root.get("environment").isJsonObject()) {
+                JsonObject envObj = root.getAsJsonObject("environment");
+                environmentName = envObj.has("name") ? envObj.get("name").getAsString() : null;
+            }
             Date createdAt = root.has("createdAt") ? parseDate(root.get("createdAt").getAsString()) : null;
 
             return new FlagConfigResponse.Default(flags, banditRefs, format, environmentName, createdAt);
@@ -524,7 +534,7 @@ public class GsonConfigurationParser implements ConfigurationParser<JsonElement>
     }
 
     private Date parseDate(String dateStr) throws ParseException {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         return sdf.parse(dateStr);
     }
@@ -811,7 +821,7 @@ if (env != null) {
 Dates must be parsed as ISO 8601 with UTC timezone:
 
 ```java
-SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 Date date = sdf.parse(dateString);
 ```
