@@ -51,6 +51,10 @@ test: test-data build
 .PHONY: snapshot-release
 snapshot-release:
 	$(eval LOCAL_BRANCH := $(shell git rev-parse --abbrev-ref HEAD))
+	@if [ "$(LOCAL_BRANCH)" = "HEAD" ]; then \
+	  echo "Error: detached HEAD state — checkout a named branch before running snapshot-release"; \
+	  exit 1; \
+	fi
 	@echo "$(INFO)Pushing $(LOCAL_BRANCH) to snapshot/$(LOCAL_BRANCH)$(END)"
 	git push origin HEAD:refs/heads/snapshot/$(LOCAL_BRANCH)
 	@echo "$(OK)Snapshot workflow triggered for snapshot/$(LOCAL_BRANCH)$(END)"

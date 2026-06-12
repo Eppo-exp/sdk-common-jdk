@@ -28,12 +28,14 @@ Releases are published to Maven Central via GitHub Actions. There are two artifa
 
 ### Steps
 
+> **Ordering requirement:** If releasing both artifacts, release `eppo-sdk-framework` first and confirm it is visible on Maven Central before triggering `publish-common.yml`. The `sdk-common-jvm` POM declares `eppo-sdk-framework` as a compile dependency; releasing common first leaves consumers with an unresolvable transitive dependency.
+
 1. Bump the version in the relevant `build.gradle` (root for framework, `eppo-sdk-common/build.gradle` for common) — drop the `-SNAPSHOT` suffix
 2. Merge the version bump to `main`
 3. Trigger the workflow via the GitHub UI or CLI:
 
 ```bash
-# Release the Framework SDK
+# Release the Framework SDK (do this first if releasing both)
 gh workflow run publish-framework.yml --ref main --field version=0.1.0
 
 # Release the Common SDK
@@ -46,7 +48,9 @@ The workflow will:
 - Sign and publish the artifact to Maven Central
 - Create and push a tag (`eppo-sdk-framework-vN.N.N` or `sdk-common-jvm-vN.N.N`) on successful deploy
 
-Monitor progress at [Actions](../../actions).
+4. After the release is confirmed on Maven Central, bump `main` back to the next `-SNAPSHOT` version (e.g. `4.0.1-SNAPSHOT` / `0.1.1-SNAPSHOT`) so that snapshot publishing continues to work.
+
+Monitor progress at [GitHub Actions](https://github.com/Eppo-exp/sdk-common-jdk/actions).
 
 ## Using Snapshots
 
@@ -89,7 +93,7 @@ To publish a snapshot from a branch that hasn't been merged to `main` yet (e.g.,
    - Build and sign artifacts
    - Deploy to Maven Central Snapshots
 
-3. Monitor the workflow at: [Actions > Publish SDK Snapshot](../../actions/workflows/publish-snapshot.yml)
+3. Monitor the workflow at: [Actions > Publish SDK Snapshot](https://github.com/Eppo-exp/sdk-common-jdk/actions/workflows/publish-snapshot.yml)
 
 4. Once published, use the snapshot in downstream projects by updating the version in `build.gradle`.
 

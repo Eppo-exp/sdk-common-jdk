@@ -63,6 +63,10 @@ jobs:
           ./gradlew :eppo-sdk-common:clean :eppo-sdk-common:publish -Prelease
 
       - name: Deploy to Maven Central
+        # jreleaserDeploy runs from the root project (version = framework version, e.g. 0.1.0).
+        # The root version controls RELEASE vs SNAPSHOT mode only (active = 'RELEASE' when non-SNAPSHOT).
+        # Artifact coordinates come from the staged files in build/staging-deploy, which carry the
+        # correct sdk-common-jvm version (e.g. 4.0.0) — JReleaser does not re-key them off project.version.
         run: ./gradlew jreleaserDeploy
 
       - name: Tag and release
