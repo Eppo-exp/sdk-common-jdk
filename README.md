@@ -48,7 +48,7 @@ The workflow will:
 - Sign and publish the artifact to Maven Central
 - Create and push a tag (`eppo-sdk-framework-vN.N.N` or `sdk-common-jvm-vN.N.N`) on successful deploy
 
-4. After the release is confirmed on Maven Central, bump `main` back to the next `-SNAPSHOT` version (e.g. `4.0.1-SNAPSHOT` / `0.1.1-SNAPSHOT`) so that snapshot publishing continues to work.
+4. After **both** artifacts are confirmed on Maven Central, bump `main` back to the next `-SNAPSHOT` version (e.g. `4.0.1-SNAPSHOT` / `0.1.1-SNAPSHOT`) so that snapshot publishing continues to work. Do not bump either version to SNAPSHOT until common has been released — the common POM embeds the framework version at publish time, and a SNAPSHOT framework version would produce a broken transitive dependency in the common release artifact.
 
 Monitor progress at [GitHub Actions](https://github.com/Eppo-exp/sdk-common-jdk/actions).
 
