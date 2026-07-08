@@ -1,25 +1,25 @@
 package cloud.eppo.api.dto;
 
-import cloud.eppo.model.ShardRangeImpl;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public interface Shard extends Serializable {
   @NotNull String getSalt();
 
-  @NotNull Set<ShardRangeImpl> getRanges();
+  @NotNull Set<ShardRange> getRanges();
 
   class Default implements Shard {
     private static final long serialVersionUID = 1L;
     private final @NotNull String salt;
-    private final @NotNull Set<ShardRangeImpl> ranges;
+    private final @NotNull Set<ShardRange> ranges;
 
-    public Default(@NotNull String salt, @Nullable Set<ShardRangeImpl> ranges) {
+    public Default(@NotNull String salt, @Nullable Set<ShardRange> ranges) {
       this.salt = salt;
       this.ranges =
           ranges == null
@@ -50,7 +50,7 @@ public interface Shard extends Serializable {
     }
 
     @Override
-    @NotNull public Set<ShardRangeImpl> getRanges() {
+    @NotNull public Set<ShardRange> getRanges() {
       return ranges;
     }
   }
