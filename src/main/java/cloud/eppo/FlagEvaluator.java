@@ -17,7 +17,7 @@ import cloud.eppo.api.dto.Shard;
 import cloud.eppo.api.dto.Split;
 import cloud.eppo.api.dto.TargetingRule;
 import cloud.eppo.api.dto.Variation;
-import cloud.eppo.model.ShardRange;
+import cloud.eppo.model.ShardRangeImpl;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -323,7 +323,7 @@ public class FlagEvaluator {
     }
     String hashKey = salt + "-" + subjectKey;
     int assignedShard = getShard(hashKey, totalShards);
-    for (ShardRange range : shard.getRanges()) {
+    for (ShardRangeImpl range : shard.getRanges()) {
       if (assignedShard >= range.getStart() && assignedShard < range.getEnd()) {
         return true;
       }
