@@ -19,7 +19,7 @@ import cloud.eppo.api.dto.TargetingCondition;
 import cloud.eppo.api.dto.TargetingRule;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.model.ShardRange;
+import cloud.eppo.model.ShardRangeImpl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -689,9 +689,9 @@ public class FlagEvaluatorTest {
   }
 
   private Set<Shard> createShards(String salt, Integer rangeStart, Integer rangeEnd) {
-    Set<ShardRange> ranges = new HashSet<>();
+    Set<ShardRangeImpl> ranges = new HashSet<>();
     if (rangeStart != null) {
-      ShardRange range = new ShardRange(rangeStart, rangeEnd);
+      ShardRangeImpl range = new ShardRangeImpl(rangeStart, rangeEnd);
       ranges = new HashSet<>(Collections.singletonList(range));
     }
     return new HashSet<>(Collections.singletonList(new Shard.Default(salt, ranges)));
