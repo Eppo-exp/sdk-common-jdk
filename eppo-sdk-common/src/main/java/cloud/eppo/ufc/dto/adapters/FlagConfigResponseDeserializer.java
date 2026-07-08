@@ -15,7 +15,7 @@ import cloud.eppo.api.dto.TargetingCondition;
 import cloud.eppo.api.dto.TargetingRule;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.model.ShardRange;
+import cloud.eppo.model.ShardRangeImpl;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -215,11 +215,11 @@ public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigRe
     }
     for (JsonNode shardNode : jsonNode) {
       String salt = shardNode.get("salt").asText();
-      Set<ShardRange> ranges = new HashSet<>();
+      Set<ShardRangeImpl> ranges = new HashSet<>();
       for (JsonNode rangeNode : shardNode.get("ranges")) {
         int start = rangeNode.get("start").asInt();
         int end = rangeNode.get("end").asInt();
-        ranges.add(new ShardRange(start, end));
+        ranges.add(new ShardRangeImpl(start, end));
       }
       shards.add(new Shard.Default(salt, ranges));
     }

@@ -4,12 +4,12 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /** Shard Range Class */
-public class ShardRange implements Serializable {
+public class ShardRangeImpl implements Serializable {
   private static final long serialVersionUID = 1L;
   private final int start;
   private int end;
 
-  public ShardRange(int start, int end) {
+  public ShardRangeImpl(int start, int end) {
     this.start = start;
     this.end = end;
   }
@@ -17,7 +17,7 @@ public class ShardRange implements Serializable {
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
-    ShardRange that = (ShardRange) o;
+    ShardRangeImpl that = (ShardRangeImpl) o;
     return start == that.start && end == that.end;
   }
 

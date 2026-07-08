@@ -11,7 +11,7 @@ import cloud.eppo.api.dto.Split;
 import cloud.eppo.api.dto.TargetingCondition;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.model.ShardRange;
+import cloud.eppo.model.ShardRangeImpl;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
@@ -90,7 +90,7 @@ public class FlagConfigResponseDeserializerTest {
     Shard northAmericaShard = northAmericaSplit.getShards().iterator().next();
     assertEquals("some-salt", northAmericaShard.getSalt());
 
-    ShardRange northAmericaRange = northAmericaShard.getRanges().iterator().next();
+    ShardRangeImpl northAmericaRange = northAmericaShard.getRanges().iterator().next();
     assertEquals(0, northAmericaRange.getStart());
     assertEquals(10000, northAmericaRange.getEnd());
 
@@ -111,7 +111,7 @@ public class FlagConfigResponseDeserializerTest {
     Shard fiftyPlusShard = fiftyPlusSplit.getShards().iterator().next();
     assertEquals("some-salt", fiftyPlusShard.getSalt());
 
-    ShardRange fiftyPlusRange = fiftyPlusShard.getRanges().iterator().next();
+    ShardRangeImpl fiftyPlusRange = fiftyPlusShard.getRanges().iterator().next();
     assertEquals(0, fiftyPlusRange.getStart());
     assertEquals(10000, fiftyPlusRange.getEnd());
 
