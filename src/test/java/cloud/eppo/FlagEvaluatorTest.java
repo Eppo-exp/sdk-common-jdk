@@ -695,7 +695,7 @@ public class FlagEvaluatorTest {
   private Set<Shard> createShards(String salt, Integer rangeStart, Integer rangeEnd) {
     Set<ShardRange> ranges = new HashSet<>();
     if (rangeStart != null) {
-      ShardRange.Default range = new ShardRange.Default(rangeStart, rangeEnd);
+      ShardRange range = new ShardRange.Default(rangeStart, rangeEnd);
       ranges = new HashSet<>(Collections.singletonList(range));
     }
     return new HashSet<>(Collections.singletonList(new Shard.Default(salt, ranges)));
