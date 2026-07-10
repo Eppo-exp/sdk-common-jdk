@@ -6,20 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.junit.jupiter.api.Test;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-
 import cloud.eppo.api.dto.Allocation;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
@@ -31,6 +17,17 @@ import cloud.eppo.api.dto.TargetingCondition;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.ufc.dto.adapters.EppoModule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import org.junit.jupiter.api.Test;
 
 public class FlagConfigResponseDeserializerTest {
   private final ObjectMapper mapper = new ObjectMapper().registerModule(EppoModule.eppoModule());
