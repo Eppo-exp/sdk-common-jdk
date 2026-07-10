@@ -26,6 +26,7 @@ public interface ShardRange extends Serializable {
 
     @Override
     public boolean equals(Object o) {
+      if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       Default that = (Default) o;
       return start == that.start && end == that.end;
