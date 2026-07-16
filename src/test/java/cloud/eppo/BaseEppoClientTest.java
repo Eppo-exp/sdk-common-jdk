@@ -68,7 +68,8 @@ public class BaseEppoClientTest {
       new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
 
   // Use JacksonConfigurationParser for all tests
-  private final ConfigurationParser<Configuration, Configuration.Builder, JsonNode> parser = new JacksonConfigurationParser();
+  private final ConfigurationParser<Configuration, Configuration.Builder, JsonNode> parser =
+      new JacksonConfigurationParser();
 
   private BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient;
   private AssignmentLogger mockAssignmentLogger;

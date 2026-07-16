@@ -48,8 +48,8 @@ public class ConfigurationRequestorTest {
     return FileUtils.readFileToString(INITIAL_FLAG_CONFIG_FILE, StandardCharsets.UTF_8);
   }
 
-  private static ConfigurationParser<Configuration, Configuration.Builder, JsonNode> configurationParser =
-      new JacksonConfigurationParser();
+  private static ConfigurationParser<Configuration, Configuration.Builder, JsonNode>
+      configurationParser = new JacksonConfigurationParser();
 
   private Configuration buildConfig(String json) {
     FlagConfigResponse flagConfigResponse = configurationParser.parseFlagConfig(json.getBytes());
@@ -408,7 +408,8 @@ public class ConfigurationRequestorTest {
       flagConfigBytes = loadInitialFlagConfig();
     }
 
-    private ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> createRequestor() {
+    private ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode>
+        createRequestor() {
       return new ConfigurationRequestor<>(
           configStore, false, parser, mockConfigClient, requestFactory);
     }
@@ -420,7 +421,8 @@ public class ConfigurationRequestorTest {
       when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor();
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor();
       requestor.fetchAndSaveFromRemote();
 
       verify(mockConfigClient)
@@ -448,7 +450,8 @@ public class ConfigurationRequestorTest {
           .thenReturn(CompletableFuture.completedFuture(firstResponse))
           .thenReturn(CompletableFuture.completedFuture(notModifiedResponse));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor();
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor();
 
       requestor.fetchAndSaveFromRemote();
       verify(mockConfigClient).execute(argThat(request -> request.getLastVersionId() == null));
@@ -467,7 +470,8 @@ public class ConfigurationRequestorTest {
       when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(notModifiedResponse));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor();
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor();
       requestor.fetchAndSaveFromRemote();
 
       verify(configStore, never()).saveConfiguration(any());
@@ -480,7 +484,8 @@ public class ConfigurationRequestorTest {
       when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor();
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor();
       requestor.fetchAndSaveFromRemoteAsync().join();
 
       verify(mockConfigClient).execute(any(EppoConfigurationRequest.class));
@@ -494,7 +499,8 @@ public class ConfigurationRequestorTest {
       when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(errorResponse));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor();
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor();
 
       assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
       verify(configStore, never()).saveConfiguration(any());
@@ -608,7 +614,8 @@ public class ConfigurationRequestorTest {
           mockServer.url("/").toString(), "test-api-key", "java-test", "1.0.0");
     }
 
-    private ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> createRequestor(IConfigurationStore<Configuration> configStore) {
+    private ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> createRequestor(
+        IConfigurationStore<Configuration> configStore) {
       return new ConfigurationRequestor<>(
           configStore, false, jacksonParser, okHttpClient, createMockServerRequestFactory());
     }
@@ -628,7 +635,8 @@ public class ConfigurationRequestorTest {
 
       enqueueSuccessResponse(flagConfig, "version-real-1");
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor(configStore);
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor(configStore);
       requestor.fetchAndSaveFromRemote();
 
       assertFalse(configStore.getConfiguration().isEmpty());
@@ -650,7 +658,8 @@ public class ConfigurationRequestorTest {
               .setHeader("ETag", "version-etag-test")
               .setResponseCode(304));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor(configStore);
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor(configStore);
 
       requestor.fetchAndSaveFromRemote();
       verify(configStore, times(1)).saveConfiguration(any());
@@ -670,7 +679,8 @@ public class ConfigurationRequestorTest {
 
       enqueueSuccessResponse(flagConfig, "version-async-real");
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor(configStore);
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor(configStore);
       requestor.fetchAndSaveFromRemoteAsync().join();
 
       assertFalse(configStore.getConfiguration().isEmpty());
@@ -686,7 +696,8 @@ public class ConfigurationRequestorTest {
               .setBody("this is not valid json")
               .setResponseCode(200));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor(configStore);
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor(configStore);
 
       assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
     }
@@ -700,7 +711,8 @@ public class ConfigurationRequestorTest {
               .setBody("Internal Server Error")
               .setResponseCode(500));
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor(configStore);
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor(configStore);
 
       assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
     }
@@ -712,7 +724,8 @@ public class ConfigurationRequestorTest {
 
       enqueueSuccessResponse(flagConfig, "version-callback");
 
-      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor = createRequestor(configStore);
+      ConfigurationRequestor<Configuration, Configuration.Builder, JsonNode> requestor =
+          createRequestor(configStore);
 
       List<Configuration> receivedConfigs = new ArrayList<>();
       requestor.onConfigurationChange(receivedConfigs::add);

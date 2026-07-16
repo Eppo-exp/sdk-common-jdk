@@ -90,17 +90,22 @@ public class AssignmentTestCase {
     return testCase;
   }
 
-  public static void runTestCase(AssignmentTestCase testCase, BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient) {
+  public static void runTestCase(
+      AssignmentTestCase testCase,
+      BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient) {
     runTestCaseBase(testCase, eppoClient, false);
   }
 
   public static void runTestCaseWithDetails(
-      AssignmentTestCase testCase, BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient) {
+      AssignmentTestCase testCase,
+      BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient) {
     runTestCaseBase(testCase, eppoClient, true);
   }
 
   private static void runTestCaseBase(
-      AssignmentTestCase testCase, BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient, boolean validateDetails) {
+      AssignmentTestCase testCase,
+      BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient,
+      boolean validateDetails) {
     String flagKey = testCase.getFlag();
     TestCaseValue defaultValue = testCase.getDefaultValue();
     assertFalse(testCase.getSubjects().isEmpty());

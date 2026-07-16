@@ -27,16 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BaseEppoClient<
-  ConfigurationType extends SerializableEppoConfiguration,
-  ConfigurationBuilderType extends SerializableEppoConfiguration.AbstractBuilder<
-    ConfigurationBuilderType,
-    ConfigurationType
-    >,
-  JsonFlagType
-> {
+    ConfigurationType extends SerializableEppoConfiguration,
+    ConfigurationBuilderType extends
+        SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>,
+    JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
-  protected final ConfigurationRequestor<ConfigurationType, ConfigurationBuilderType, JsonFlagType> requestor;
+  protected final ConfigurationRequestor<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
+      requestor;
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
@@ -45,7 +43,8 @@ public class BaseEppoClient<
   private volatile boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
-  private final ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType> configurationParser;
+  private final ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
+      configurationParser;
   private Timer pollTimer;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
@@ -71,7 +70,8 @@ public class BaseEppoClient<
       @Nullable CompletableFuture<ConfigurationType> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache,
-      @NotNull ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType> configurationParser,
+      @NotNull ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
+              configurationParser,
       @NotNull EppoConfigurationClient configurationClient) {
 
     if (apiBaseUrl == null) {

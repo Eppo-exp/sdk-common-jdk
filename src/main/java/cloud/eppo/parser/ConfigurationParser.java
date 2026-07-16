@@ -14,13 +14,10 @@ import org.jetbrains.annotations.NotNull;
  * needs.
  */
 public interface ConfigurationParser<
-  ConfigurationType extends SerializableEppoConfiguration,
-  ConfigurationBuilderType extends SerializableEppoConfiguration.AbstractBuilder<
-    ConfigurationBuilderType,
-    ConfigurationType
-  >,
-  JSONFlagType
-> {
+    ConfigurationType extends SerializableEppoConfiguration,
+    ConfigurationBuilderType extends
+        SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>,
+    JSONFlagType> {
 
   /**
    * Parses raw flag configuration JSON bytes.
@@ -59,5 +56,6 @@ public interface ConfigurationParser<
   /**
    * @see SerializableEppoConfiguration.AbstractBuilder
    */
-  @NotNull ConfigurationBuilderType configurationBuilder(@NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated);
+  @NotNull ConfigurationBuilderType configurationBuilder(
+      @NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated);
 }
