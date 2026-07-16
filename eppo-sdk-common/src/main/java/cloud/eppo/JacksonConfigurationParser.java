@@ -20,11 +20,8 @@ import org.slf4j.LoggerFactory;
  * format. The deserializers are hand-rolled to avoid reliance on annotations and method names,
  * which can be unreliable when ProGuard minification is in use.
  */
-public class JacksonConfigurationParser implements ConfigurationParser<
-  Configuration,
-  Configuration.Builder,
-  JsonNode
-> {
+public class JacksonConfigurationParser
+    implements ConfigurationParser<Configuration, Configuration.Builder, JsonNode> {
   private static final Logger log = LoggerFactory.getLogger(JacksonConfigurationParser.class);
 
   private final ObjectMapper objectMapper;
@@ -85,12 +82,14 @@ public class JacksonConfigurationParser implements ConfigurationParser<
   }
 
   @Override
-  public @NotNull Configuration.Builder configurationBuilder(@NotNull FlagConfigResponse flagConfigResponse) {
+  public @NotNull Configuration.Builder configurationBuilder(
+      @NotNull FlagConfigResponse flagConfigResponse) {
     return new Configuration.Builder(flagConfigResponse);
   }
 
   @Override
-  public @NotNull Configuration.Builder configurationBuilder(@NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated) {
+  public @NotNull Configuration.Builder configurationBuilder(
+      @NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated) {
     return new Configuration.Builder(flagConfigResponse, isConfigObfuscated);
   }
 }

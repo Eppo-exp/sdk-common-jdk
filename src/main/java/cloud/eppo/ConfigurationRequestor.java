@@ -18,19 +18,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigurationRequestor<
-   ConfigurationType extends SerializableEppoConfiguration,
-   ConfigurationBuilderType extends SerializableEppoConfiguration.AbstractBuilder<
-     ConfigurationBuilderType,
-     ConfigurationType
-   >,
-   JsonFlagType
-> {
+    ConfigurationType extends SerializableEppoConfiguration,
+    ConfigurationBuilderType extends
+        SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>,
+    JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final boolean supportBandits;
 
-  @NotNull private final ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType> configurationParser;
+  @NotNull private final ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
+      configurationParser;
+
   @NotNull private final EppoConfigurationClient configurationClient;
   @NotNull private final EppoConfigurationRequestFactory requestFactory;
 
@@ -43,7 +42,8 @@ public class ConfigurationRequestor<
   public ConfigurationRequestor(
       @NotNull IConfigurationStore<ConfigurationType> configurationStore,
       boolean supportBandits,
-      @NotNull ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType> configurationParser,
+      @NotNull ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
+              configurationParser,
       @NotNull EppoConfigurationClient configurationClient,
       @NotNull EppoConfigurationRequestFactory requestFactory) {
     this.configurationStore = configurationStore;
@@ -133,12 +133,15 @@ public class ConfigurationRequestor<
 
     byte[] flagConfigurationJsonBytes = flagResponse.getBody();
 
-    SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType> configBuilder;
+    SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>
+        configBuilder;
     try {
       FlagConfigResponse flagConfigResponse =
           configurationParser.parseFlagConfig(flagConfigurationJsonBytes);
       configBuilder =
-          configurationParser.configurationBuilder(flagConfigResponse).banditParametersFromConfig(lastConfig);
+          configurationParser
+              .configurationBuilder(flagConfigResponse)
+              .banditParametersFromConfig(lastConfig);
     } catch (ConfigurationParseException e) {
       log.error("Failed to parse flag configuration", e);
       throw new RuntimeException(e);
@@ -225,13 +228,16 @@ public class ConfigurationRequestor<
   // Common handling for building config and conditionally loading bandit parameters, async.
   private CompletableFuture<Void> buildAndSaveConfiguration(
       EppoConfigurationResponse flagResponse, ConfigurationType lastConfig) {
-    SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType> configBuilder;
+    SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>
+        configBuilder;
 
     try {
       FlagConfigResponse flagConfigResponse =
           configurationParser.parseFlagConfig(flagResponse.getBody());
       configBuilder =
-          configurationParser.configurationBuilder(flagConfigResponse).banditParametersFromConfig(lastConfig);
+          configurationParser
+              .configurationBuilder(flagConfigResponse)
+              .banditParametersFromConfig(lastConfig);
     } catch (ConfigurationParseException e) {
       log.error("Failed to parse flag configuration", e);
       throw new RuntimeException(e);

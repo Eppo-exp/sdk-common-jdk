@@ -5,8 +5,6 @@ import static cloud.eppo.helpers.BanditTestCase.runBanditTestCase;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.eppo.api.*;
 import cloud.eppo.cache.ExpiringInMemoryAssignmentCache;
 import cloud.eppo.helpers.*;
@@ -15,6 +13,7 @@ import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
 import cloud.eppo.parser.ConfigurationParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -43,7 +42,8 @@ public class BaseEppoClientBanditTest {
 
   private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
   private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
-  private static final ConfigurationParser<Configuration, Configuration.Builder, JsonNode> parser = new JacksonConfigurationParser();
+  private static final ConfigurationParser<Configuration, Configuration.Builder, JsonNode> parser =
+      new JacksonConfigurationParser();
   private static final Date testStart = new Date();
 
   private static BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient;
@@ -462,7 +462,8 @@ public class BaseEppoClientBanditTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
       String banditConfig = FileUtils.readFileToString(initialBanditParamFile, "UTF8");
 
-      BaseEppoClient<Configuration, Configuration.Builder, JsonNode> client = initClientWithData(flagConfig, banditConfig);
+      BaseEppoClient<Configuration, Configuration.Builder, JsonNode> client =
+          initClientWithData(flagConfig, banditConfig);
 
       BanditActions actions = new BanditActions();
       actions.put("nike", new Attributes());

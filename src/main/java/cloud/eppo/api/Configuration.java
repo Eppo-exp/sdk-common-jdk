@@ -4,7 +4,6 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.api.dto.BanditFlagVariation;
 import cloud.eppo.api.dto.BanditParameters;
-import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
@@ -14,7 +13,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,10 +258,8 @@ public class Configuration implements SerializableEppoConfiguration {
    *
    * @see Configuration for usage.
    */
-  public static class Builder extends SerializableEppoConfiguration.AbstractBuilder<
-          Builder,
-          Configuration
-  > {
+  public static class Builder
+      extends SerializableEppoConfiguration.AbstractBuilder<Builder, Configuration> {
     public Builder(FlagConfigResponse flagConfigResponse) {
       super(Builder.class, flagConfigResponse);
     }

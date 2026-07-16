@@ -1,8 +1,6 @@
 package cloud.eppo;
 
-import cloud.eppo.api.Configuration;
 import cloud.eppo.api.SerializableEppoConfiguration;
-
 import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
