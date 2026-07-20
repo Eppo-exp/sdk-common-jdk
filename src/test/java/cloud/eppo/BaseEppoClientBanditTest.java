@@ -12,7 +12,6 @@ import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
-import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
 import java.io.IOException;
@@ -42,11 +41,10 @@ public class BaseEppoClientBanditTest {
 
   private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
   private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
-  private static final ConfigurationParser<Configuration, Configuration.Builder, JsonNode> parser =
-      new JacksonConfigurationParser();
+  private static final JacksonConfigurationParser parser = new JacksonConfigurationParser();
   private static final Date testStart = new Date();
 
-  private static BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient;
+  private static BaseEppoClient<Configuration, JsonNode> eppoClient;
 
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config-with-bandit.json");
@@ -91,7 +89,7 @@ public class BaseEppoClientBanditTest {
     log.info("Test client initialized");
   }
 
-  private BaseEppoClient<Configuration, Configuration.Builder, JsonNode> initClientWithData(
+  private BaseEppoClient<Configuration, JsonNode> initClientWithData(
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
     CompletableFuture<Configuration> initialConfig =
@@ -462,8 +460,7 @@ public class BaseEppoClientBanditTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
       String banditConfig = FileUtils.readFileToString(initialBanditParamFile, "UTF8");
 
-      BaseEppoClient<Configuration, Configuration.Builder, JsonNode> client =
-          initClientWithData(flagConfig, banditConfig);
+      BaseEppoClient<Configuration, JsonNode> client = initClientWithData(flagConfig, banditConfig);
 
       BanditActions actions = new BanditActions();
       actions.put("nike", new Attributes());

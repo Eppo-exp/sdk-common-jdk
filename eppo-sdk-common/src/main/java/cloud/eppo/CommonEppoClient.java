@@ -20,8 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * implementations of {@link cloud.eppo.http.EppoConfigurationClient} and {@link
  * cloud.eppo.parser.ConfigurationParser}.
  */
-public class CommonEppoClient
-    extends BaseEppoClient<Configuration, Configuration.Builder, JsonNode> {
+public class CommonEppoClient extends BaseEppoClient<Configuration, JsonNode> {
 
   /**
    * Creates a new CommonEppoClient with the specified configuration.

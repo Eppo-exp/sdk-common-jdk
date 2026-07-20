@@ -2,6 +2,7 @@ package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
 import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
@@ -9,7 +10,10 @@ import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,8 +24,7 @@ import org.slf4j.LoggerFactory;
  * format. The deserializers are hand-rolled to avoid reliance on annotations and method names,
  * which can be unreliable when ProGuard minification is in use.
  */
-public class JacksonConfigurationParser
-    implements ConfigurationParser<Configuration, Configuration.Builder, JsonNode> {
+public class JacksonConfigurationParser implements ConfigurationParser<Configuration, JsonNode> {
   private static final Logger log = LoggerFactory.getLogger(JacksonConfigurationParser.class);
 
   private final ObjectMapper objectMapper;
@@ -49,7 +52,70 @@ public class JacksonConfigurationParser
     return mapper;
   }
 
+  /**
+   * Parses raw flag config bytes and builds a Configuration. Bandit parameters from previousConfig
+   * are carried over. flagsSnapshotId (the HTTP ETag) is stored on the built config.
+   */
   @Override
+  @NotNull public Configuration buildConfig(
+      @NotNull byte[] flagConfigBytes,
+      @Nullable String flagsSnapshotId,
+      @Nullable Configuration previousConfig) {
+    try {
+      log.debug("Parsing flag configuration, {} bytes", flagConfigBytes.length);
+      FlagConfigResponse flagConfigResponse =
+          objectMapper.readValue(flagConfigBytes, FlagConfigResponse.class);
+      Configuration.Builder builder =
+          new Configuration.Builder(flagConfigResponse).banditParametersFromConfig(previousConfig);
+      if (flagsSnapshotId != null) {
+        builder.flagsSnapshotId(flagsSnapshotId);
+      }
+      return builder.build();
+    } catch (IOException e) {
+      throw new RuntimeException(
+          new ConfigurationParseException("Failed to parse flag configuration", e));
+    }
+  }
+
+  /**
+   * Returns true if the config references bandit model versions that are not yet loaded.
+   *
+   * <p>This logic was previously in {@code AbstractBuilder.requiresUpdatedBanditModels()}.
+   */
+  @Override
+  public boolean requiresUpdatedBanditModels(@NotNull Configuration config) {
+    Set<String> referencedModelVersions =
+        config.getBanditReferences().values().stream()
+            .map(BanditReference::getModelVersion)
+            .collect(Collectors.toSet());
+    Set<String> loadedModelVersions =
+        config.getBandits().values().stream()
+            .map(cloud.eppo.api.dto.BanditParameters::getModelVersion)
+            .collect(Collectors.toSet());
+    return !loadedModelVersions.containsAll(referencedModelVersions);
+  }
+
+  /**
+   * Parses bandit parameter bytes and returns a new Configuration with the updated bandits applied.
+   * Uses {@link Configuration#toBuilder()} to copy all existing fields, then overwrites bandits.
+   */
+  @Override
+  @NotNull public Configuration applyBanditParameters(
+      @NotNull Configuration config, @NotNull byte[] banditParamsBytes) {
+    try {
+      log.debug("Parsing bandit parameters, {} bytes", banditParamsBytes.length);
+      BanditParametersResponse banditParametersResponse =
+          objectMapper.readValue(banditParamsBytes, BanditParametersResponse.class);
+      return config.toBuilder().banditParameters(banditParametersResponse).build();
+    } catch (IOException e) {
+      throw new RuntimeException(
+          new ConfigurationParseException("Failed to parse bandit parameters", e));
+    }
+  }
+
+  /**
+   * Parses raw flag config bytes (used externally where the full buildConfig flow isn't needed).
+   */
   public FlagConfigResponse parseFlagConfig(byte[] flagConfigJson)
       throws ConfigurationParseException {
     try {
@@ -60,7 +126,7 @@ public class JacksonConfigurationParser
     }
   }
 
-  @Override
+  /** Parses raw bandit parameter bytes (used externally where applyBanditParameters isn't used). */
   public BanditParametersResponse parseBanditParams(byte[] banditParamsJson)
       throws ConfigurationParseException {
     try {
@@ -72,24 +138,11 @@ public class JacksonConfigurationParser
   }
 
   @Override
-  public @NotNull JsonNode parseJsonValue(@NotNull String jsonValue)
-      throws ConfigurationParseException {
+  @NotNull public JsonNode parseJsonValue(@NotNull String jsonValue) throws ConfigurationParseException {
     try {
       return objectMapper.readTree(jsonValue);
     } catch (IOException e) {
       throw new ConfigurationParseException("Failed to parse JSON value", e);
     }
-  }
-
-  @Override
-  public @NotNull Configuration.Builder configurationBuilder(
-      @NotNull FlagConfigResponse flagConfigResponse) {
-    return new Configuration.Builder(flagConfigResponse);
-  }
-
-  @Override
-  public @NotNull Configuration.Builder configurationBuilder(
-      @NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated) {
-    return new Configuration.Builder(flagConfigResponse, isConfigObfuscated);
   }
 }

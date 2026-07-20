@@ -17,7 +17,6 @@ import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,10 +67,9 @@ public class BaseEppoClientTest {
       new ObjectMapper().registerModule(AssignmentTestCase.assignmentTestCaseModule());
 
   // Use JacksonConfigurationParser for all tests
-  private final ConfigurationParser<Configuration, Configuration.Builder, JsonNode> parser =
-      new JacksonConfigurationParser();
+  private final JacksonConfigurationParser parser = new JacksonConfigurationParser();
 
-  private BaseEppoClient<Configuration, Configuration.Builder, JsonNode> eppoClient;
+  private BaseEppoClient<Configuration, JsonNode> eppoClient;
   private AssignmentLogger mockAssignmentLogger;
   private EppoConfigurationClient mockConfigClient;
 
@@ -307,8 +305,8 @@ public class BaseEppoClientTest {
   public void testErrorGracefulModeOn() throws JsonProcessingException {
     initClient(true, false);
 
-    BaseEppoClient<Configuration, Configuration.Builder, JsonNode> realClient = eppoClient;
-    BaseEppoClient<Configuration, Configuration.Builder, JsonNode> spyClient = spy(realClient);
+    BaseEppoClient<Configuration, JsonNode> realClient = eppoClient;
+    BaseEppoClient<Configuration, JsonNode> spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
@@ -352,8 +350,8 @@ public class BaseEppoClientTest {
   public void testErrorGracefulModeOff() {
     initClient(false, false);
 
-    BaseEppoClient<Configuration, Configuration.Builder, JsonNode> realClient = eppoClient;
-    BaseEppoClient<Configuration, Configuration.Builder, JsonNode> spyClient = spy(realClient);
+    BaseEppoClient<Configuration, JsonNode> realClient = eppoClient;
+    BaseEppoClient<Configuration, JsonNode> spyClient = spy(realClient);
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
@@ -773,7 +771,7 @@ public class BaseEppoClientTest {
     mockConfigClient = mockConfigurationClient(BOOL_FLAG_CONFIG);
 
     mockAssignmentLogger = mock(AssignmentLogger.class);
-    BaseEppoClient<Configuration, Configuration.Builder, JsonNode> client =
+    BaseEppoClient<Configuration, JsonNode> client =
         eppoClient =
             new BaseEppoClient<>(
                 DUMMY_FLAG_API_KEY,
