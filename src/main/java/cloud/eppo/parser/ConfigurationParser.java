@@ -48,10 +48,16 @@ public interface ConfigurationParser<
    */
   @NotNull JSONFlagType parseJsonValue(@NotNull String jsonValue) throws ConfigurationParseException;
 
-  /** @see SerializableEppoConfiguration.AbstractBuilder */
+  /**
+   * Creates a new configuration builder from the parsed flag config response. Obfuscation is
+   * inferred from the response format.
+   */
   @NotNull ConfigurationBuilderType configurationBuilder(@NotNull FlagConfigResponse flagConfigResponse);
 
-  /** @see SerializableEppoConfiguration.AbstractBuilder */
+  /**
+   * Creates a new configuration builder from the parsed flag config response, with explicit control
+   * over whether the config is obfuscated.
+   */
   @NotNull ConfigurationBuilderType configurationBuilder(
       @NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated);
 }
