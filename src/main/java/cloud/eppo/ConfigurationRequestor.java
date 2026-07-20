@@ -1,14 +1,11 @@
 package cloud.eppo;
 
 import cloud.eppo.api.SerializableEppoConfiguration;
-import cloud.eppo.api.dto.BanditParametersResponse;
-import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.callback.CallbackManager;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.http.EppoConfigurationResponse;
-import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -18,17 +15,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigurationRequestor<
-    ConfigurationType extends SerializableEppoConfiguration,
-    ConfigurationBuilderType extends
-        SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>,
-    JsonFlagType> {
+    ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final boolean supportBandits;
 
-  @NotNull private final ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
-      configurationParser;
+  @NotNull private final ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser;
 
   @NotNull private final EppoConfigurationClient configurationClient;
   @NotNull private final EppoConfigurationRequestFactory requestFactory;
@@ -42,8 +35,7 @@ public class ConfigurationRequestor<
   public ConfigurationRequestor(
       @NotNull IConfigurationStore<ConfigurationType> configurationStore,
       boolean supportBandits,
-      @NotNull ConfigurationParser<ConfigurationType, ConfigurationBuilderType, JsonFlagType>
-              configurationParser,
+      @NotNull ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser,
       @NotNull EppoConfigurationClient configurationClient,
       @NotNull EppoConfigurationRequestFactory requestFactory) {
     this.configurationStore = configurationStore;
@@ -131,39 +123,20 @@ public class ConfigurationRequestor<
           "Failed to fetch flag configuration. Status: " + flagResponse.getStatusCode());
     }
 
-    byte[] flagConfigurationJsonBytes = flagResponse.getBody();
+    // Phase 1: build config from flags, carrying over previous bandits
+    ConfigurationType config =
+        configurationParser.buildConfig(
+            flagResponse.getBody(), flagResponse.getVersionId(), lastConfig);
 
-    SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>
-        configBuilder;
-    try {
-      FlagConfigResponse flagConfigResponse =
-          configurationParser.parseFlagConfig(flagConfigurationJsonBytes);
-      configBuilder =
-          configurationParser
-              .configurationBuilder(flagConfigResponse)
-              .banditParametersFromConfig(lastConfig);
-    } catch (ConfigurationParseException e) {
-      log.error("Failed to parse flag configuration", e);
-      throw new RuntimeException(e);
-    }
-
-    configBuilder.flagsSnapshotId(flagResponse.getVersionId());
-
-    if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-      byte[] banditParametersJsonBytes = fetchBanditParameters();
-      if (banditParametersJsonBytes != null) {
-        try {
-          BanditParametersResponse bandits =
-              configurationParser.parseBanditParams(banditParametersJsonBytes);
-          configBuilder.banditParameters(bandits);
-        } catch (ConfigurationParseException e) {
-          log.error("Failed to parse bandit parameters", e);
-          throw new RuntimeException(e);
-        }
+    // Phase 2: fetch and apply fresh bandits if needed
+    if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
+      byte[] banditBytes = fetchBanditParameters();
+      if (banditBytes != null) {
+        config = configurationParser.applyBanditParameters(config, banditBytes);
       }
     }
 
-    saveConfigurationAndNotify(configBuilder.build()).join();
+    saveConfigurationAndNotify(config).join();
   }
 
   /** Fetches bandit parameters from the configuration client. */
@@ -228,38 +201,21 @@ public class ConfigurationRequestor<
   // Common handling for building config and conditionally loading bandit parameters, async.
   private CompletableFuture<Void> buildAndSaveConfiguration(
       EppoConfigurationResponse flagResponse, ConfigurationType lastConfig) {
-    SerializableEppoConfiguration.AbstractBuilder<ConfigurationBuilderType, ConfigurationType>
-        configBuilder;
 
-    try {
-      FlagConfigResponse flagConfigResponse =
-          configurationParser.parseFlagConfig(flagResponse.getBody());
-      configBuilder =
-          configurationParser
-              .configurationBuilder(flagConfigResponse)
-              .banditParametersFromConfig(lastConfig);
-    } catch (ConfigurationParseException e) {
-      log.error("Failed to parse flag configuration", e);
-      throw new RuntimeException(e);
-    }
+    // Phase 1: build config from flags, carrying over previous bandits
+    ConfigurationType config =
+        configurationParser.buildConfig(
+            flagResponse.getBody(), flagResponse.getVersionId(), lastConfig);
 
-    configBuilder.flagsSnapshotId(flagResponse.getVersionId());
-
-    if (supportBandits && configBuilder.requiresUpdatedBanditModels()) {
-      byte[] banditParametersJsonBytes = fetchBanditParametersAsync();
-      if (banditParametersJsonBytes != null) {
-        try {
-          BanditParametersResponse bandits =
-              configurationParser.parseBanditParams(banditParametersJsonBytes);
-          configBuilder.banditParameters(bandits);
-        } catch (ConfigurationParseException e) {
-          log.error("Failed to parse bandit parameters", e);
-          throw new RuntimeException(e);
-        }
+    // Phase 2: fetch and apply fresh bandits if needed
+    if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
+      byte[] banditBytes = fetchBanditParametersAsync();
+      if (banditBytes != null) {
+        config = configurationParser.applyBanditParameters(config, banditBytes);
       }
     }
 
-    return saveConfigurationAndNotify(configBuilder.build());
+    return saveConfigurationAndNotify(config);
   }
 
   /** Fetches bandit parameters synchronously (used within async flow). */
