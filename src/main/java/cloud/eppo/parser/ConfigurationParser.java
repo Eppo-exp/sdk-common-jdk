@@ -48,14 +48,10 @@ public interface ConfigurationParser<
    */
   @NotNull JSONFlagType parseJsonValue(@NotNull String jsonValue) throws ConfigurationParseException;
 
-  /**
-   * @see SerializableEppoConfiguration.AbstractBuilder
-   */
+  /** @see SerializableEppoConfiguration.AbstractBuilder */
   @NotNull ConfigurationBuilderType configurationBuilder(@NotNull FlagConfigResponse flagConfigResponse);
 
-  /**
-   * @see SerializableEppoConfiguration.AbstractBuilder
-   */
+  /** @see SerializableEppoConfiguration.AbstractBuilder */
   @NotNull ConfigurationBuilderType configurationBuilder(
       @NotNull FlagConfigResponse flagConfigResponse, boolean isConfigObfuscated);
 }
