@@ -13,7 +13,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -271,6 +270,7 @@ public class Configuration implements SerializableEppoConfiguration {
     private final String environmentName;
     private final Date configPublishedAt;
     @Nullable private String flagsSnapshotId;
+    @Nullable private Date configFetchedAt;
 
     public Builder(FlagConfigResponse flagConfigResponse) {
       this(flagConfigResponse, flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
@@ -302,6 +302,7 @@ public class Configuration implements SerializableEppoConfiguration {
       this.environmentName = existing.environmentName;
       this.configPublishedAt = existing.configPublishedAt;
       this.flagsSnapshotId = existing.flagsSnapshotId;
+      this.configFetchedAt = existing.getConfigFetchedAt();
     }
 
     /** Carry over bandit parameters from an existing configuration (if non-null). */
@@ -329,34 +330,16 @@ public class Configuration implements SerializableEppoConfiguration {
       return this;
     }
 
-    /** Returns the set of model versions currently loaded in this builder. */
-    public Set<String> loadedBanditModelVersions() {
-      return bandits.values().stream()
-          .map(cloud.eppo.api.dto.BanditParameters::getModelVersion)
-          .collect(Collectors.toSet());
-    }
-
-    /** Returns the set of model versions referenced by the flag config bandit references. */
-    public Set<String> referencedBanditModelVersion() {
-      return banditReferences.values().stream()
-          .map(cloud.eppo.api.dto.BanditReference::getModelVersion)
-          .collect(Collectors.toSet());
-    }
-
-    /** Returns true if there are bandit references whose model versions are not yet loaded. */
-    public boolean requiresUpdatedBanditModels() {
-      return !loadedBanditModelVersions().containsAll(referencedBanditModelVersion());
-    }
-
     public Configuration build() {
-      Date configFetchedAt = new Date();
+      Date resolvedConfigFetchedAt =
+          this.configFetchedAt != null ? this.configFetchedAt : new Date();
       return new Configuration(
           flags,
           banditReferences,
           bandits,
           isConfigObfuscated,
           environmentName,
-          configFetchedAt,
+          resolvedConfigFetchedAt,
           configPublishedAt,
           flagsSnapshotId);
     }
