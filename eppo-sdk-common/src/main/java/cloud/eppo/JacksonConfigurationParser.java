@@ -67,9 +67,7 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
           objectMapper.readValue(flagConfigBytes, FlagConfigResponse.class);
       Configuration.Builder builder =
           new Configuration.Builder(flagConfigResponse).banditParametersFromConfig(previousConfig);
-      if (flagsSnapshotId != null) {
-        builder.flagsSnapshotId(flagsSnapshotId);
-      }
+      builder.flagsSnapshotId(flagsSnapshotId);
       return builder.build();
     } catch (IOException e) {
       throw new RuntimeException(

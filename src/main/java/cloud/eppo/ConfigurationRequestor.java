@@ -133,7 +133,7 @@ public class ConfigurationRequestor<
 
     // Phase 2: fetch and apply fresh bandits if needed
     if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
-      byte[] banditBytes = fetchBanditParameters();
+      byte[] banditBytes = fetchBanditParameterBytes();
       if (banditBytes != null) {
         config = configurationParser.applyBanditParameters(config, banditBytes);
       }
@@ -143,24 +143,22 @@ public class ConfigurationRequestor<
   }
 
   /** Fetches bandit parameters from the configuration client. */
-  private byte[] fetchBanditParameters() {
+  private byte[] fetchBanditParameterBytes() {
     EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
-    EppoConfigurationResponse banditResponse;
     try {
-      banditResponse = configurationClient.execute(banditRequest).get();
+      EppoConfigurationResponse banditResponse = configurationClient.execute(banditRequest).get();
+      if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
+        return banditResponse.getBody();
+      }
+      return null;
     } catch (InterruptedException e) {
-      log.error("Bandit fetch interrupted", e);
+      log.error("Error fetching bandit parameters", e);
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     } catch (ExecutionException e) {
-      log.error("Bandit fetch interrupted", e);
+      log.error("Error fetching bandit parameters", e);
       throw new RuntimeException(e);
     }
-
-    if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
-      return banditResponse.getBody();
-    }
-    return null;
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
@@ -212,32 +210,13 @@ public class ConfigurationRequestor<
 
     // Phase 2: fetch and apply fresh bandits if needed
     if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
-      byte[] banditBytes = fetchBanditParametersAsync();
+      byte[] banditBytes = fetchBanditParameterBytes();
       if (banditBytes != null) {
         config = configurationParser.applyBanditParameters(config, banditBytes);
       }
     }
 
     return saveConfigurationAndNotify(config);
-  }
-
-  /** Fetches bandit parameters synchronously (used within async flow). */
-  private byte[] fetchBanditParametersAsync() {
-    EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
-    try {
-      EppoConfigurationResponse banditResponse = configurationClient.execute(banditRequest).get();
-      if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
-        return banditResponse.getBody();
-      }
-      return null;
-    } catch (InterruptedException e) {
-      log.error("Error fetching bandit parameters: " + e.getMessage());
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    } catch (ExecutionException e) {
-      log.error("Error fetching bandit parameters: " + e.getMessage());
-      throw new RuntimeException(e);
-    }
   }
 
   private CompletableFuture<Void> saveConfigurationAndNotify(ConfigurationType configuration) {
