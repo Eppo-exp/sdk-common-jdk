@@ -1,6 +1,5 @@
 package cloud.eppo.api.dto;
 
-import cloud.eppo.model.ShardRange;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
