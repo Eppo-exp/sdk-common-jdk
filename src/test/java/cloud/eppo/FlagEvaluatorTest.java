@@ -2,7 +2,11 @@ package cloud.eppo;
 
 import static cloud.eppo.Utils.base64Encode;
 import static cloud.eppo.Utils.getMD5Hex;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import cloud.eppo.api.AllocationDetails;
 import cloud.eppo.api.AllocationEvaluationCode;
@@ -14,12 +18,12 @@ import cloud.eppo.api.dto.Allocation;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.OperatorType;
 import cloud.eppo.api.dto.Shard;
+import cloud.eppo.api.dto.ShardRange;
 import cloud.eppo.api.dto.Split;
 import cloud.eppo.api.dto.TargetingCondition;
 import cloud.eppo.api.dto.TargetingRule;
 import cloud.eppo.api.dto.Variation;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.model.ShardRange;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -691,7 +695,7 @@ public class FlagEvaluatorTest {
   private Set<Shard> createShards(String salt, Integer rangeStart, Integer rangeEnd) {
     Set<ShardRange> ranges = new HashSet<>();
     if (rangeStart != null) {
-      ShardRange range = new ShardRange(rangeStart, rangeEnd);
+      ShardRange range = new ShardRange.Default(rangeStart, rangeEnd);
       ranges = new HashSet<>(Collections.singletonList(range));
     }
     return new HashSet<>(Collections.singletonList(new Shard.Default(salt, ranges)));
