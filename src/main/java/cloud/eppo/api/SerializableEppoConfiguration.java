@@ -9,25 +9,25 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 public interface SerializableEppoConfiguration extends Serializable {
-  FlagConfig getFlag(String flagKey);
+  @Nullable FlagConfig getFlag(String flagKey);
 
   @Nullable VariationType getFlagType(String flagKey);
 
-  String getEnvironmentName();
+  @Nullable String getEnvironmentName();
 
-  Date getConfigFetchedAt();
+  @Nullable Date getConfigFetchedAt();
 
-  Date getConfigPublishedAt();
+  @Nullable Date getConfigPublishedAt();
 
   boolean isConfigObfuscated();
 
-  String banditKeyForVariation(String flagKey, String variationValue);
+  @Nullable String banditKeyForVariation(String flagKey, String variationValue);
 
-  BanditParameters getBanditParameters(String banditKey);
+  @Nullable BanditParameters getBanditParameters(String banditKey);
 
   boolean isEmpty();
 
-  String getFlagsSnapshotId();
+  @Nullable String getFlagsSnapshotId();
 
   Set<String> getFlagKeys();
 }

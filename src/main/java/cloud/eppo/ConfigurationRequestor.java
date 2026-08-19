@@ -203,17 +203,23 @@ public class ConfigurationRequestor<
   private CompletableFuture<Void> buildAndSaveConfiguration(
       EppoConfigurationResponse flagResponse, ConfigurationType lastConfig) {
 
-    // Phase 1: build config from flags, carrying over previous bandits
     ConfigurationType config =
         configurationParser.buildConfig(
             flagResponse.getBody(), flagResponse.getVersionId(), lastConfig);
 
-    // Phase 2: fetch and apply fresh bandits if needed
     if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
-      byte[] banditBytes = fetchBanditParameterBytes();
-      if (banditBytes != null) {
-        config = configurationParser.applyBanditParameters(config, banditBytes);
-      }
+      EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
+      return configurationClient
+          .execute(banditRequest)
+          .thenCompose(
+              banditResponse -> {
+                ConfigurationType updated = config;
+                if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
+                  updated =
+                      configurationParser.applyBanditParameters(config, banditResponse.getBody());
+                }
+                return saveConfigurationAndNotify(updated);
+              });
     }
 
     return saveConfigurationAndNotify(config);
