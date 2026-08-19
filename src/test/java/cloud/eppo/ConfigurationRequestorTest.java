@@ -194,20 +194,22 @@ public class ConfigurationRequestorTest {
 
   @Nested
   class ConfigurationChangeListenerTests {
-    private ConfigurationStore mockConfigStore;
+    // Subscriber management moved from ConfigurationRequestor into ConfigurationStore.
+    // These tests verify that fetches trigger store notifications via the store's subscribe API.
+
+    private ConfigurationStore configStore;
     private EppoConfigurationClient mockConfigClient;
     private ConfigurationParser<Configuration, JsonNode> parser;
     private ConfigurationRequestor<Configuration, JsonNode> requestor;
 
     @BeforeEach
     void setUp() {
-      mockConfigStore = mock(ConfigurationStore.class);
+      configStore = new ConfigurationStore();
       mockConfigClient = mock(EppoConfigurationClient.class);
-      when(mockConfigStore.getConfiguration()).thenReturn(Configuration.emptyConfig());
       parser = new JacksonConfigurationParser();
       requestor =
           new ConfigurationRequestor<>(
-              mockConfigStore, true, parser, mockConfigClient, createTestRequestFactory());
+              configStore, true, parser, mockConfigClient, createTestRequestFactory());
     }
 
     private void stubConfigClientSuccess(byte[] responseBody) {
@@ -227,11 +229,9 @@ public class ConfigurationRequestorTest {
     void testConfigurationChangeListener() throws IOException {
       String flagConfig = loadInitialFlagConfigString();
       stubConfigClientSuccess(flagConfig.getBytes());
-      when(mockConfigStore.saveConfiguration(any()))
-          .thenReturn(CompletableFuture.completedFuture(null));
 
       List<Configuration> receivedConfigs = new ArrayList<>();
-      Runnable unsubscribe = requestor.onConfigurationChange(receivedConfigs::add);
+      Runnable unsubscribe = configStore.subscribe(receivedConfigs::add);
 
       requestor.fetchAndSaveFromRemote();
       assertEquals(1, receivedConfigs.size());
@@ -247,14 +247,12 @@ public class ConfigurationRequestorTest {
     @Test
     void testMultipleConfigurationChangeListeners() {
       stubConfigClientSuccess("{}".getBytes());
-      when(mockConfigStore.saveConfiguration(any()))
-          .thenReturn(CompletableFuture.completedFuture(null));
 
       AtomicInteger callCount1 = new AtomicInteger(0);
       AtomicInteger callCount2 = new AtomicInteger(0);
 
-      Runnable unsubscribe1 = requestor.onConfigurationChange(v -> callCount1.incrementAndGet());
-      Runnable unsubscribe2 = requestor.onConfigurationChange(v -> callCount2.incrementAndGet());
+      Runnable unsubscribe1 = configStore.subscribe(v -> callCount1.incrementAndGet());
+      Runnable unsubscribe2 = configStore.subscribe(v -> callCount2.incrementAndGet());
 
       requestor.fetchAndSaveFromRemote();
       assertEquals(1, callCount1.get());
@@ -276,7 +274,7 @@ public class ConfigurationRequestorTest {
       stubConfigClientFailure();
 
       AtomicInteger callCount = new AtomicInteger(0);
-      requestor.onConfigurationChange(v -> callCount.incrementAndGet());
+      configStore.subscribe(v -> callCount.incrementAndGet());
 
       try {
         requestor.fetchAndSaveFromRemote();
@@ -287,63 +285,19 @@ public class ConfigurationRequestorTest {
     }
 
     @Test
-    void testConfigurationChangeListenerIgnoresFailedSave() {
-      stubConfigClientSuccess("{}".getBytes());
-      when(mockConfigStore.saveConfiguration(any()))
-          .thenReturn(
-              CompletableFuture.supplyAsync(
-                  () -> {
-                    throw new RuntimeException("Save failed");
-                  }));
-
-      AtomicInteger callCount = new AtomicInteger(0);
-      requestor.onConfigurationChange(v -> callCount.incrementAndGet());
-
-      try {
-        requestor.fetchAndSaveFromRemote();
-      } catch (RuntimeException e) {
-        // Pass
-      }
-      assertEquals(0, callCount.get());
-    }
-
-    @Test
-    void testConfigurationChangeListenerAsyncSave() {
-      EppoConfigurationResponse successResponse =
-          EppoConfigurationResponse.success(200, "version-1", "{\"flags\":{}}".getBytes());
-      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
-          .thenReturn(CompletableFuture.completedFuture(successResponse));
-
-      CompletableFuture<Void> saveFuture = new CompletableFuture<>();
-      when(mockConfigStore.saveConfiguration(any())).thenReturn(saveFuture);
-
-      AtomicInteger callCount = new AtomicInteger(0);
-      requestor.onConfigurationChange(v -> callCount.incrementAndGet());
-
-      CompletableFuture<Void> fetch = requestor.fetchAndSaveFromRemoteAsync();
-      assertEquals(0, callCount.get());
-
-      saveFuture.complete(null);
-      fetch.join();
-      assertEquals(1, callCount.get());
-    }
-
-    @Test
     void testUnsubscribeFromConfigurationChangeByReference() throws IOException {
       String flagConfig = loadInitialFlagConfigString();
       stubConfigClientSuccess(flagConfig.getBytes());
-      when(mockConfigStore.saveConfiguration(any()))
-          .thenReturn(CompletableFuture.completedFuture(null));
 
       List<Configuration> receivedConfigs = new ArrayList<>();
       Consumer<Configuration> callback = receivedConfigs::add;
 
-      requestor.onConfigurationChange(callback);
+      configStore.subscribe(callback);
 
       requestor.fetchAndSaveFromRemote();
       assertEquals(1, receivedConfigs.size());
 
-      boolean removed = requestor.unsubscribeFromConfigurationChange(callback);
+      boolean removed = configStore.unsubscribe(callback);
       assertTrue(removed);
 
       requestor.fetchAndSaveFromRemote();
@@ -353,15 +307,13 @@ public class ConfigurationRequestorTest {
     @Test
     void testUnsubscribeNonExistentConfigurationChangeListener() {
       Consumer<Configuration> callback = config -> {};
-      boolean removed = requestor.unsubscribeFromConfigurationChange(callback);
+      boolean removed = configStore.unsubscribe(callback);
       assertFalse(removed);
     }
 
     @Test
     void testUnsubscribeOneOfMultipleConfigurationChangeListeners() {
       stubConfigClientSuccess("{}".getBytes());
-      when(mockConfigStore.saveConfiguration(any()))
-          .thenReturn(CompletableFuture.completedFuture(null));
 
       AtomicInteger callCount1 = new AtomicInteger(0);
       AtomicInteger callCount2 = new AtomicInteger(0);
@@ -371,16 +323,16 @@ public class ConfigurationRequestorTest {
       Consumer<Configuration> callback2 = v -> callCount2.incrementAndGet();
       Consumer<Configuration> callback3 = v -> callCount3.incrementAndGet();
 
-      requestor.onConfigurationChange(callback1);
-      requestor.onConfigurationChange(callback2);
-      requestor.onConfigurationChange(callback3);
+      configStore.subscribe(callback1);
+      configStore.subscribe(callback2);
+      configStore.subscribe(callback3);
 
       requestor.fetchAndSaveFromRemote();
       assertEquals(1, callCount1.get());
       assertEquals(1, callCount2.get());
       assertEquals(1, callCount3.get());
 
-      boolean removed = requestor.unsubscribeFromConfigurationChange(callback2);
+      boolean removed = configStore.unsubscribe(callback2);
       assertTrue(removed);
 
       requestor.fetchAndSaveFromRemote();
@@ -714,7 +666,7 @@ public class ConfigurationRequestorTest {
       ConfigurationRequestor<Configuration, JsonNode> requestor = createRequestor(configStore);
 
       List<Configuration> receivedConfigs = new ArrayList<>();
-      requestor.onConfigurationChange(receivedConfigs::add);
+      configStore.subscribe(receivedConfigs::add);
 
       requestor.fetchAndSaveFromRemote();
 

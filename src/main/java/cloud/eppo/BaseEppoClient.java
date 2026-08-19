@@ -787,7 +787,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    *     events.
    */
   public Runnable onConfigurationChange(Consumer<ConfigurationType> callback) {
-    return requestor.onConfigurationChange(callback);
+    return configurationStore.subscribe(callback);
   }
 
   /**
@@ -797,7 +797,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * @return true if the callback was found and removed, false otherwise
    */
   public boolean unsubscribeFromConfigurationChange(Consumer<ConfigurationType> callback) {
-    return requestor.unsubscribeFromConfigurationChange(callback);
+    return configurationStore.unsubscribe(callback);
   }
 
   /**

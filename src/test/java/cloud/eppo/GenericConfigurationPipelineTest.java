@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -165,6 +166,16 @@ public class GenericConfigurationPipelineTest {
     public CompletableFuture<Void> saveConfiguration(T configuration) {
       this.config = configuration;
       return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Runnable subscribe(Consumer<T> callback) {
+      return () -> {};
+    }
+
+    @Override
+    public boolean unsubscribe(Consumer<T> callback) {
+      return false;
     }
   }
 

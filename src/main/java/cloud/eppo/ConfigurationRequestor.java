@@ -1,7 +1,6 @@
 package cloud.eppo;
 
 import cloud.eppo.api.SerializableEppoConfiguration;
-import cloud.eppo.callback.CallbackManager;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
@@ -9,7 +8,6 @@ import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.parser.ConfigurationParser;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +27,6 @@ public class ConfigurationRequestor<
   private volatile CompletableFuture<Void> remoteFetchFuture = null;
   private volatile CompletableFuture<Boolean> configurationFuture = null;
   private volatile boolean initialConfigSet = false;
-
-  private final CallbackManager<ConfigurationType> configChangeManager = new CallbackManager<>();
 
   public ConfigurationRequestor(
       @NotNull IConfigurationStore<ConfigurationType> configurationStore,
@@ -226,26 +222,6 @@ public class ConfigurationRequestor<
   }
 
   private CompletableFuture<Void> saveConfigurationAndNotify(ConfigurationType configuration) {
-    CompletableFuture<Void> saveFuture = configurationStore.saveConfiguration(configuration);
-    return saveFuture.thenRun(
-        () -> {
-          synchronized (configChangeManager) {
-            configChangeManager.notifyCallbacks(configuration);
-          }
-        });
-  }
-
-  public Runnable onConfigurationChange(Consumer<ConfigurationType> callback) {
-    return configChangeManager.subscribe(callback);
-  }
-
-  /**
-   * Unsubscribe from configuration change notifications.
-   *
-   * @param callback The callback to unsubscribe
-   * @return true if the callback was found and removed, false otherwise
-   */
-  public boolean unsubscribeFromConfigurationChange(Consumer<ConfigurationType> callback) {
-    return configChangeManager.unsubscribe(callback);
+    return configurationStore.saveConfiguration(configuration);
   }
 }
