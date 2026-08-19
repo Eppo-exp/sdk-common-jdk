@@ -47,7 +47,8 @@ public class ConfigurationRequestor<
       throw new IllegalStateException("Initial configuration has already been set");
     }
 
-    initialConfigSet = saveConfigurationAndNotify(configuration).thenApply(v -> true).join();
+    initialConfigSet =
+        configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
   }
 
   /**
@@ -74,7 +75,8 @@ public class ConfigurationRequestor<
                       log.debug("Fetch has completed; ignoring initial config load.");
                       return CompletableFuture.completedFuture(false);
                     } else {
-                      return saveConfigurationAndNotify(config)
+                      return configurationStore
+                          .saveConfiguration(config)
                           .thenApply(
                               (s) -> {
                                 initialConfigSet = true;
@@ -135,7 +137,7 @@ public class ConfigurationRequestor<
       }
     }
 
-    saveConfigurationAndNotify(config).join();
+    configurationStore.saveConfiguration(config).join();
   }
 
   /** Fetches bandit parameters from the configuration client. */
@@ -214,14 +216,10 @@ public class ConfigurationRequestor<
                   updated =
                       configurationParser.applyBanditParameters(config, banditResponse.getBody());
                 }
-                return saveConfigurationAndNotify(updated);
+                return configurationStore.saveConfiguration(updated);
               });
     }
 
-    return saveConfigurationAndNotify(config);
-  }
-
-  private CompletableFuture<Void> saveConfigurationAndNotify(ConfigurationType configuration) {
-    return configurationStore.saveConfiguration(configuration);
+    return configurationStore.saveConfiguration(config);
   }
 }

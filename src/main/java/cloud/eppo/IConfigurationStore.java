@@ -15,6 +15,12 @@ import org.jetbrains.annotations.NotNull;
 public interface IConfigurationStore<ConfigurationType extends SerializableEppoConfiguration> {
   @NotNull ConfigurationType getConfiguration();
 
+  /**
+   * Persists the given configuration and notifies any registered subscribers.
+   *
+   * <p>Implementations must update the stored configuration value <em>before</em> notifying
+   * subscribers, so that any subscriber that calls {@link #getConfiguration()} sees the new value.
+   */
   CompletableFuture<Void> saveConfiguration(ConfigurationType configuration);
 
   /**

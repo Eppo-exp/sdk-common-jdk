@@ -168,6 +168,7 @@ public class GenericConfigurationPipelineTest {
       return CompletableFuture.completedFuture(null);
     }
 
+    // No-op: this pipeline test only verifies fetch/parse/save, not subscription behavior.
     @Override
     public Runnable subscribe(Consumer<T> callback) {
       return () -> {};
