@@ -19,8 +19,6 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -119,9 +117,7 @@ public class GenericConfigurationPipelineTest {
     @Override
     public Set<String> referencedBanditModelVersions() {
       // Return a model version that is not loaded when update is required.
-      return requireBanditUpdate
-          ? Stream.of("stub-model-v1").collect(Collectors.toSet())
-          : Collections.emptySet();
+      return requireBanditUpdate ? Collections.singleton("stub-model-v1") : Collections.emptySet();
     }
 
     @Override

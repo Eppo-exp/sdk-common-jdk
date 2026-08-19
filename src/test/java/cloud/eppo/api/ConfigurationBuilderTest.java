@@ -303,6 +303,13 @@ public class ConfigurationBuilderTest {
   }
 
   @Test
+  public void requiresUpdatedBanditModels_false_whenNoBanditsReferenced() {
+    // Steady-state for flags-only configs: no references, no loaded = no update needed
+    Configuration config = Configuration.emptyConfig();
+    assertFalse(config.requiresUpdatedBanditModels());
+  }
+
+  @Test
   public void requiresUpdatedBanditModels_true_whenReferencedVersionNotLoaded() {
     BanditReference ref = new BanditReference.Default("model-v99", Collections.emptyList());
     Map<String, BanditReference> refs = Collections.singletonMap("bandit-a", ref);
