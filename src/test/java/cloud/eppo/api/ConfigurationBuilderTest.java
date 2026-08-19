@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.api.dto.BanditModelData;
 import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.BanditParametersResponse;
+import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
@@ -14,6 +15,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 
@@ -240,5 +242,96 @@ public class ConfigurationBuilderTest {
     Configuration fromFactory = Configuration.builder(response).build();
     assertEquals(fromConstructor.isConfigObfuscated(), fromFactory.isConfigObfuscated());
     assertEquals(fromConstructor.getFlagKeys(), fromFactory.getFlagKeys());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tests for referencedBanditModelVersions, loadedBanditModelVersions, requiresUpdatedBanditModels
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void referencedBanditModelVersions_empty_whenNoBanditReferences() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
+    assertTrue(config.referencedBanditModelVersions().isEmpty());
+  }
+
+  @Test
+  public void referencedBanditModelVersions_returnsModelVersionsFromReferences() {
+    BanditReference ref1 = new BanditReference.Default("model-v1", Collections.emptyList());
+    BanditReference ref2 = new BanditReference.Default("model-v2", Collections.emptyList());
+    Map<String, BanditReference> refs = new HashMap<>();
+    refs.put("bandit-1", ref1);
+    refs.put("bandit-2", ref2);
+    FlagConfigResponse response =
+        new FlagConfigResponse.Default(
+            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
+
+    Set<String> versions = config.referencedBanditModelVersions();
+    assertEquals(2, versions.size());
+    assertTrue(versions.contains("model-v1"));
+    assertTrue(versions.contains("model-v2"));
+  }
+
+  @Test
+  public void loadedBanditModelVersions_empty_whenNoBandits() {
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config = new Configuration.Builder(response).build();
+    assertTrue(config.loadedBanditModelVersions().isEmpty());
+  }
+
+  @Test
+  public void loadedBanditModelVersions_returnsModelVersionsFromBandits() {
+    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+    BanditParameters bandit1 =
+        new BanditParameters.Default("b1", new Date(), "falcon", "model-v1", modelData);
+    BanditParameters bandit2 =
+        new BanditParameters.Default("b2", new Date(), "cb", "model-v2", modelData);
+    Map<String, BanditParameters> banditsMap = new HashMap<>();
+    banditsMap.put("b1", bandit1);
+    banditsMap.put("b2", bandit2);
+    BanditParametersResponse banditResponse = new BanditParametersResponse.Default(banditsMap);
+
+    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
+    Configuration config =
+        new Configuration.Builder(response).banditParameters(banditResponse).build();
+
+    Set<String> versions = config.loadedBanditModelVersions();
+    assertEquals(2, versions.size());
+    assertTrue(versions.contains("model-v1"));
+    assertTrue(versions.contains("model-v2"));
+  }
+
+  @Test
+  public void requiresUpdatedBanditModels_true_whenReferencedVersionNotLoaded() {
+    BanditReference ref = new BanditReference.Default("model-v99", Collections.emptyList());
+    Map<String, BanditReference> refs = Collections.singletonMap("bandit-a", ref);
+    FlagConfigResponse response =
+        new FlagConfigResponse.Default(
+            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER);
+    // No bandit parameters loaded
+    Configuration config = new Configuration.Builder(response).build();
+
+    assertTrue(config.requiresUpdatedBanditModels());
+  }
+
+  @Test
+  public void requiresUpdatedBanditModels_false_whenAllReferencedVersionsLoaded() {
+    BanditReference ref = new BanditReference.Default("model-v1", Collections.emptyList());
+    Map<String, BanditReference> refs = Collections.singletonMap("bandit-a", ref);
+    FlagConfigResponse flagResponse =
+        new FlagConfigResponse.Default(
+            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER);
+
+    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
+    BanditParameters bandit =
+        new BanditParameters.Default("bandit-a", new Date(), "falcon", "model-v1", modelData);
+    BanditParametersResponse banditResponse =
+        new BanditParametersResponse.Default(Collections.singletonMap("bandit-a", bandit));
+
+    Configuration config =
+        new Configuration.Builder(flagResponse).banditParameters(banditResponse).build();
+
+    assertFalse(config.requiresUpdatedBanditModels());
   }
 }

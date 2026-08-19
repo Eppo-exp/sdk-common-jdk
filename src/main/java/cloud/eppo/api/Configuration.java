@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -201,6 +202,22 @@ public class Configuration implements SerializableEppoConfiguration {
   @Override
   public Set<String> getFlagKeys() {
     return flags == null ? Collections.emptySet() : flags.keySet();
+  }
+
+  @Override
+  public Set<String> referencedBanditModelVersions() {
+    if (banditReferences == null) return Collections.emptySet();
+    return banditReferences.values().stream()
+        .map(BanditReference::getModelVersion)
+        .collect(Collectors.toSet());
+  }
+
+  @Override
+  public Set<String> loadedBanditModelVersions() {
+    if (bandits == null) return Collections.emptySet();
+    return bandits.values().stream()
+        .map(BanditParameters::getModelVersion)
+        .collect(Collectors.toSet());
   }
 
   @Override

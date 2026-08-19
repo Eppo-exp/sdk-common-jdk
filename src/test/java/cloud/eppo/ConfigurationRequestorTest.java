@@ -528,7 +528,6 @@ public class ConfigurationRequestorTest {
       Configuration builtConfig =
           new Configuration.Builder(new FlagConfigResponse.Default()).build();
       when(mockParser.buildConfig(any(byte[].class), any(), any())).thenReturn(builtConfig);
-      when(mockParser.requiresUpdatedBanditModels(any())).thenReturn(false);
     }
 
     @Test

@@ -2,7 +2,6 @@ package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
 import cloud.eppo.api.dto.BanditParametersResponse;
-import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
@@ -10,8 +9,6 @@ import cloud.eppo.ufc.dto.adapters.EppoModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -73,24 +70,6 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
       throw new RuntimeException(
           new ConfigurationParseException("Failed to parse flag configuration", e));
     }
-  }
-
-  /**
-   * Returns true if the config references bandit model versions that are not yet loaded.
-   *
-   * <p>This logic was previously in {@code AbstractBuilder.requiresUpdatedBanditModels()}.
-   */
-  @Override
-  public boolean requiresUpdatedBanditModels(@NotNull Configuration config) {
-    Set<String> referencedModelVersions =
-        config.getBanditReferences().values().stream()
-            .map(BanditReference::getModelVersion)
-            .collect(Collectors.toSet());
-    Set<String> loadedModelVersions =
-        config.getBandits().values().stream()
-            .map(cloud.eppo.api.dto.BanditParameters::getModelVersion)
-            .collect(Collectors.toSet());
-    return !loadedModelVersions.containsAll(referencedModelVersions);
   }
 
   /**

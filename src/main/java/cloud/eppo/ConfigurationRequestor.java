@@ -132,7 +132,7 @@ public class ConfigurationRequestor<
             flagResponse.getBody(), flagResponse.getVersionId(), lastConfig);
 
     // Phase 2: fetch and apply fresh bandits if needed
-    if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
+    if (supportBandits && config.requiresUpdatedBanditModels()) {
       byte[] banditBytes = fetchBanditParameterBytes();
       if (banditBytes != null) {
         config = configurationParser.applyBanditParameters(config, banditBytes);
@@ -207,7 +207,7 @@ public class ConfigurationRequestor<
         configurationParser.buildConfig(
             flagResponse.getBody(), flagResponse.getVersionId(), lastConfig);
 
-    if (supportBandits && configurationParser.requiresUpdatedBanditModels(config)) {
+    if (supportBandits && config.requiresUpdatedBanditModels()) {
       EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
       return configurationClient
           .execute(banditRequest)

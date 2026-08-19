@@ -31,16 +31,6 @@ public interface ConfigurationParser<
       @Nullable ConfigurationType previousConfig);
 
   /**
-   * Returns true if the config references bandit model versions not yet loaded. Lives on parser
-   * (not on SerializableEppoConfiguration) so config implementors don't need to implement bandit
-   * logic.
-   *
-   * @param config the configuration to check
-   * @return true if updated bandit models are needed
-   */
-  boolean requiresUpdatedBanditModels(@NotNull ConfigurationType config);
-
-  /**
    * Applies freshly fetched bandit parameters to the config, returning an updated config. Parser
    * owns the bytes-to-config transformation; BanditParametersResponse is an implementation detail.
    *

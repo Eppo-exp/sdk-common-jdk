@@ -30,4 +30,24 @@ public interface SerializableEppoConfiguration extends Serializable {
   @Nullable String getFlagsSnapshotId();
 
   Set<String> getFlagKeys();
+
+  /**
+   * Returns the set of bandit model versions referenced by the flag configuration. Used to
+   * determine whether fresh bandit parameters need to be fetched.
+   */
+  Set<String> referencedBanditModelVersions();
+
+  /**
+   * Returns the set of bandit model versions currently loaded in this configuration. Used to
+   * determine whether fresh bandit parameters need to be fetched.
+   */
+  Set<String> loadedBanditModelVersions();
+
+  /**
+   * Returns true if any referenced bandit model version is not present in the loaded set. Logic
+   * lives here once in core so implementations never rewrite it.
+   */
+  default boolean requiresUpdatedBanditModels() {
+    return !loadedBanditModelVersions().containsAll(referencedBanditModelVersions());
+  }
 }

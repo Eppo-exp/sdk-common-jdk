@@ -19,6 +19,8 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,10 +43,22 @@ public class GenericConfigurationPipelineTest {
     final boolean banditsApplied;
     final String snapshotId;
 
+    /**
+     * When true, referencedBanditModelVersions() returns a version not in
+     * loadedBanditModelVersions().
+     */
+    final boolean requireBanditUpdate;
+
     StubConfig(String source, boolean banditsApplied, String snapshotId) {
+      this(source, banditsApplied, snapshotId, false);
+    }
+
+    StubConfig(
+        String source, boolean banditsApplied, String snapshotId, boolean requireBanditUpdate) {
       this.source = source;
       this.banditsApplied = banditsApplied;
       this.snapshotId = snapshotId;
+      this.requireBanditUpdate = requireBanditUpdate;
     }
 
     @Override
@@ -101,6 +115,19 @@ public class GenericConfigurationPipelineTest {
     public Set<String> getFlagKeys() {
       return Collections.emptySet();
     }
+
+    @Override
+    public Set<String> referencedBanditModelVersions() {
+      // Return a model version that is not loaded when update is required.
+      return requireBanditUpdate
+          ? Stream.of("stub-model-v1").collect(Collectors.toSet())
+          : Collections.emptySet();
+    }
+
+    @Override
+    public Set<String> loadedBanditModelVersions() {
+      return Collections.emptySet();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -109,7 +136,6 @@ public class GenericConfigurationPipelineTest {
 
   static class StubParser implements ConfigurationParser<StubConfig, String> {
     final AtomicInteger buildConfigCallCount = new AtomicInteger(0);
-    final AtomicInteger requiresUpdatedBanditsCallCount = new AtomicInteger(0);
     final AtomicInteger applyBanditParamsCallCount = new AtomicInteger(0);
 
     boolean shouldRequireBanditUpdate = false;
@@ -121,20 +147,14 @@ public class GenericConfigurationPipelineTest {
         @Nullable StubConfig previousConfig) {
       buildConfigCallCount.incrementAndGet();
       String bytesStr = new String(flagConfigBytes);
-      return new StubConfig(bytesStr, false, flagsSnapshotId);
-    }
-
-    @Override
-    public boolean requiresUpdatedBanditModels(@NotNull StubConfig config) {
-      requiresUpdatedBanditsCallCount.incrementAndGet();
-      return shouldRequireBanditUpdate;
+      return new StubConfig(bytesStr, false, flagsSnapshotId, shouldRequireBanditUpdate);
     }
 
     @Override
     @NotNull public StubConfig applyBanditParameters(
         @NotNull StubConfig config, @NotNull byte[] banditParamsBytes) {
       applyBanditParamsCallCount.incrementAndGet();
-      return new StubConfig(config.source, true, config.snapshotId);
+      return new StubConfig(config.source, true, config.snapshotId, false);
     }
 
     @Override
@@ -273,7 +293,6 @@ public class GenericConfigurationPipelineTest {
 
     requestor.fetchAndSaveFromRemote();
 
-    assertEquals(1, stubParser.requiresUpdatedBanditsCallCount.get());
     assertEquals(0, stubParser.applyBanditParamsCallCount.get());
     // Config client should only be called once (for flags, not bandits)
     verify(mockConfigClient, times(1)).execute(any());
@@ -307,8 +326,7 @@ public class GenericConfigurationPipelineTest {
 
     requestor.fetchAndSaveFromRemote();
 
-    // requiresUpdatedBanditModels should not be called since supportBandits=false
-    assertEquals(0, stubParser.requiresUpdatedBanditsCallCount.get());
+    // applyBanditParameters should not be called since supportBandits=false
     assertEquals(0, stubParser.applyBanditParamsCallCount.get());
   }
 
