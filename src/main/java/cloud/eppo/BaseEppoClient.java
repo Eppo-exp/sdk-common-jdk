@@ -801,6 +801,31 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
+   * Synchronously applies {@code config} as the current configuration, replacing whatever was
+   * previously stored (last-write-wins). All registered {@link #onConfigurationChange} subscribers
+   * are notified before this method returns.
+   *
+   * <p>If {@code config} is {@code null} and the client is in graceful mode, the call is silently
+   * ignored. If {@code config} is {@code null} and graceful mode is disabled, an {@link
+   * IllegalArgumentException} is thrown.
+   *
+   * <p>In-flight remote fetches are not cancelled; if a fetch completes after this call it will
+   * overwrite the configuration supplied here (last-write-wins).
+   *
+   * @param config the configuration to apply
+   */
+  public void setConfiguration(@NotNull ConfigurationType config) {
+    if (config == null) {
+      if (isGracefulMode) {
+        log.warn("setConfiguration called with null config; ignoring (graceful mode)");
+        return;
+      }
+      throw new IllegalArgumentException("config must not be null");
+    }
+    configurationStore.saveConfiguration(config).join();
+  }
+
+  /**
    * Returns the configuration object used by the EppoClient for assignment and bandit evaluation.
    *
    * <p>The configuration object is for debugging (inspect the loaded config) and other advanced use
