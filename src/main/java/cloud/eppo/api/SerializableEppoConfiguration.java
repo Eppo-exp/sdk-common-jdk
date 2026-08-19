@@ -4,7 +4,6 @@ import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.VariationType;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
 import org.jetbrains.annotations.Nullable;
@@ -33,26 +32,11 @@ public interface SerializableEppoConfiguration extends Serializable {
   Set<String> getFlagKeys();
 
   /**
-   * Returns the set of bandit model versions referenced by the flag configuration. Used to
-   * determine whether fresh bandit parameters need to be fetched.
-   */
-  default Set<String> referencedBanditModelVersions() {
-    return Collections.emptySet();
-  }
-
-  /**
-   * Returns the set of bandit model versions currently loaded in this configuration. Used to
-   * determine whether fresh bandit parameters need to be fetched.
-   */
-  default Set<String> loadedBanditModelVersions() {
-    return Collections.emptySet();
-  }
-
-  /**
-   * Returns true if any referenced bandit model version is not present in the loaded set. Logic
-   * lives here once in core so implementations never rewrite it.
+   * Returns true if the configuration references bandit model versions that have not been loaded.
+   * Default returns false — safe for configurations that do not use bandits. Override or extend
+   * AbstractEppoConfiguration for bandit-aware behavior.
    */
   default boolean requiresUpdatedBanditModels() {
-    return !loadedBanditModelVersions().containsAll(referencedBanditModelVersions());
+    return false;
   }
 }

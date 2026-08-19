@@ -115,14 +115,8 @@ public class GenericConfigurationPipelineTest {
     }
 
     @Override
-    public Set<String> referencedBanditModelVersions() {
-      // Return a model version that is not loaded when update is required.
-      return requireBanditUpdate ? Collections.singleton("stub-model-v1") : Collections.emptySet();
-    }
-
-    @Override
-    public Set<String> loadedBanditModelVersions() {
-      return Collections.emptySet();
+    public boolean requiresUpdatedBanditModels() {
+      return requireBanditUpdate;
     }
   }
 

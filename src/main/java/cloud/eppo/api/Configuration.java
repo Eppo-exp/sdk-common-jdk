@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * Configuration config = builder.build();
  * }</pre>
  */
-public class Configuration implements SerializableEppoConfiguration {
+public class Configuration extends AbstractEppoConfiguration {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
   final Map<String, BanditReference> banditReferences;
@@ -205,7 +205,7 @@ public class Configuration implements SerializableEppoConfiguration {
   }
 
   @Override
-  public Set<String> referencedBanditModelVersions() {
+  protected Set<String> referencedBanditModelVersions() {
     if (banditReferences == null) return Collections.emptySet();
     return banditReferences.values().stream()
         .map(BanditReference::getModelVersion)
@@ -213,7 +213,7 @@ public class Configuration implements SerializableEppoConfiguration {
   }
 
   @Override
-  public Set<String> loadedBanditModelVersions() {
+  protected Set<String> loadedBanditModelVersions() {
     if (bandits == null) return Collections.emptySet();
     return bandits.values().stream()
         .map(BanditParameters::getModelVersion)
