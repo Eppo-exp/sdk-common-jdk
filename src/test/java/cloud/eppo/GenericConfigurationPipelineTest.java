@@ -10,7 +10,6 @@ import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
-import cloud.eppo.callback.CallbackManager;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
@@ -23,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -160,9 +158,8 @@ public class GenericConfigurationPipelineTest {
 
   /** Minimal in-memory store for any SerializableEppoConfiguration subtype. */
   static class SimpleConfigStore<T extends SerializableEppoConfiguration>
-      implements IConfigurationStore<T> {
+      extends AbstractConfigurationStore<T> {
     private volatile T config;
-    private final CallbackManager<T> callbackManager = new CallbackManager<>();
 
     SimpleConfigStore(T initial) {
       this.config = initial;
@@ -174,20 +171,9 @@ public class GenericConfigurationPipelineTest {
     }
 
     @Override
-    public CompletableFuture<Void> saveConfiguration(T configuration) {
+    protected CompletableFuture<Void> persist(T configuration) {
       this.config = configuration;
-      callbackManager.notifyCallbacks(configuration);
       return CompletableFuture.completedFuture(null);
-    }
-
-    @Override
-    public Runnable subscribe(Consumer<T> callback) {
-      return callbackManager.subscribe(callback);
-    }
-
-    @Override
-    public boolean unsubscribe(Consumer<T> callback) {
-      return callbackManager.unsubscribe(callback);
     }
   }
 
