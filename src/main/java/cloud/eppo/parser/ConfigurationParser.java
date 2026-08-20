@@ -1,58 +1,54 @@
 package cloud.eppo.parser;
 
 import cloud.eppo.api.SerializableEppoConfiguration;
+import cloud.eppo.api.dto.FlagConfigResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Defines the contract for parsing configuration JSON responses.
+ * Defines the contract for parsing configuration JSON responses and building configuration objects.
  *
- * <p>Implementations of this interface handle deserialization of flag configuration and bandit
- * parameters from raw JSON bytes, as well as building and updating configuration objects. The SDK
- * includes a default implementation using Jackson (in the eppo-sdk-common module), but users can
- * supply custom implementations to accommodate specialized needs.
+ * <p>Implementations handle deserialization of flag configuration and bandit parameters from raw
+ * JSON bytes, as well as building immutable configuration objects. The SDK includes a default
+ * implementation using Jackson (in the eppo-sdk-common module), but users can supply custom
+ * implementations to accommodate specialized needs.
  */
 public interface ConfigurationParser<
     ConfigurationType extends SerializableEppoConfiguration, JSONFlagType> {
 
   /**
-   * Parses raw flag config bytes and builds a configuration object. Bandit parameters from
-   * previousConfig are carried over if still valid. flagsSnapshotId comes from the HTTP ETag header
-   * (may be null). previousConfig is null on first fetch.
+   * Parses raw flag configuration JSON bytes into a {@link FlagConfigResponse}.
    *
    * @param flagConfigBytes raw JSON bytes for flag configuration
+   * @return parsed FlagConfigResponse containing flags, bandit references, format, etc.
+   * @throws ConfigurationParseException if parsing fails
+   */
+  @NotNull FlagConfigResponse parseFlagConfig(@NotNull byte[] flagConfigBytes)
+      throws ConfigurationParseException;
+
+  /**
+   * Builds an immutable configuration object from a parsed flag response, snapshot ID, previous
+   * configuration, and optional fresh bandit parameters.
+   *
+   * <p>If {@code banditParamsBytes} is non-null, fresh bandit parameters are applied. If null,
+   * bandit parameters are carried over from {@code previousConfig} (if available). Pass null when
+   * the caller has determined fresh bandit parameters are not needed.
+   *
+   * @param flags parsed flag configuration response
    * @param flagsSnapshotId opaque snapshot ID from HTTP ETag header, or null
-   * @param previousConfig previous configuration to carry over bandit parameters, or null
-   * @return a new configuration object built from the flag config bytes
+   * @param previousConfig previous configuration to carry over bandit parameters from, or null on
+   *     first fetch
+   * @param banditParamsBytes raw JSON bytes for fresh bandit parameters, or null if not needed
+   * @return a new immutable configuration object
    */
   @NotNull ConfigurationType buildConfig(
-      @NotNull byte[] flagConfigBytes,
+      @NotNull FlagConfigResponse flags,
       @Nullable String flagsSnapshotId,
-      @Nullable ConfigurationType previousConfig);
+      @Nullable ConfigurationType previousConfig,
+      @Nullable byte[] banditParamsBytes);
 
   /**
-   * Returns true if the config references bandit model versions not yet loaded. Lives on parser
-   * (not on SerializableEppoConfiguration) so config implementors don't need to implement bandit
-   * logic.
-   *
-   * @param config the configuration to check
-   * @return true if updated bandit models are needed
-   */
-  boolean requiresUpdatedBanditModels(@NotNull ConfigurationType config);
-
-  /**
-   * Applies freshly fetched bandit parameters to the config, returning an updated config. Parser
-   * owns the bytes-to-config transformation; BanditParametersResponse is an implementation detail.
-   *
-   * @param config the configuration to update
-   * @param banditParamsBytes raw JSON bytes for bandit parameters
-   * @return an updated configuration with the new bandit parameters applied
-   */
-  @NotNull ConfigurationType applyBanditParameters(
-      @NotNull ConfigurationType config, @NotNull byte[] banditParamsBytes);
-
-  /**
-   * Unwraps a JSON value to the appropriate JSONFlagType.
+   * Unwraps a JSON value string to the appropriate JSONFlagType.
    *
    * @param jsonValue the encoded JSON value
    * @return the parsed JSON value
