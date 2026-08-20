@@ -36,14 +36,11 @@ jobs:
       - name: Download test data
         run: make test-data
 
-      - name: Test
-        run: ./gradlew check
-
       - name: Verify JReleaser
         run: ./gradlew jreleaserConfig
 
-      - name: Stage artifacts
-        run: ./gradlew clean publish -Psnapshot
+      - name: Test and stage artifacts
+        run: ./gradlew clean check publish -Psnapshot --no-build-cache
 
       - name: Deploy to Maven Central
         run: ./gradlew jreleaserDeploy
