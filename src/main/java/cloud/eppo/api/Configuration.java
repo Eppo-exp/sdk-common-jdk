@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Usage: Building with just flag configuration (obfuscation auto-detected from format):
  *
- * <p>Usage: Building with just flag configuration (obfuscation auto-detected from format):
- *
  * <pre>{@code
  * Configuration config = new Configuration.Builder(flagConfigResponse).build();
  * }</pre>

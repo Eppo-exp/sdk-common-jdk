@@ -129,9 +129,13 @@ public class ConfigurationRequestor<
           "Failed to fetch flag configuration. Status: " + flagResponse.getStatusCode());
     }
 
+    byte[] flagBody = flagResponse.getBody();
+    if (flagBody == null) {
+      throw new RuntimeException("Flag configuration response body is null");
+    }
     FlagConfigResponse flagConfigResponse;
     try {
-      flagConfigResponse = configurationParser.parseFlagConfig(flagResponse.getBody());
+      flagConfigResponse = configurationParser.parseFlagConfig(flagBody);
     } catch (ConfigurationParseException e) {
       log.error("Failed to parse flag configuration", e);
       throw new RuntimeException(e);
@@ -216,9 +220,13 @@ public class ConfigurationRequestor<
   private CompletableFuture<Void> buildAndSaveConfiguration(
       EppoConfigurationResponse flagResponse, ConfigurationType lastConfig) {
 
+    byte[] flagBody = flagResponse.getBody();
+    if (flagBody == null) {
+      throw new RuntimeException("Flag configuration response body is null");
+    }
     FlagConfigResponse flagConfigResponse;
     try {
-      flagConfigResponse = configurationParser.parseFlagConfig(flagResponse.getBody());
+      flagConfigResponse = configurationParser.parseFlagConfig(flagBody);
     } catch (ConfigurationParseException e) {
       log.error("Failed to parse flag configuration", e);
       throw new RuntimeException(e);
