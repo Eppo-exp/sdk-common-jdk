@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 
 import cloud.eppo.api.SerializableEppoConfiguration;
 import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
+import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
@@ -16,6 +18,7 @@ import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -110,32 +113,38 @@ public class GenericConfigurationPipelineTest {
 
   static class StubParser implements ConfigurationParser<StubConfig, String> {
     final AtomicInteger buildConfigCallCount = new AtomicInteger(0);
-    final AtomicInteger requiresUpdatedBanditsCallCount = new AtomicInteger(0);
-    final AtomicInteger applyBanditParamsCallCount = new AtomicInteger(0);
+    final AtomicInteger parseFlagConfigCallCount = new AtomicInteger(0);
 
-    boolean shouldRequireBanditUpdate = false;
+    // Controls what bandit references the parsed flag response will report.
+    Map<String, BanditReference> banditReferences = Collections.emptyMap();
+
+    @Override
+    @NotNull public FlagConfigResponse parseFlagConfig(@NotNull byte[] flagConfigBytes)
+        throws ConfigurationParseException {
+      parseFlagConfigCallCount.incrementAndGet();
+      String bytesStr = new String(flagConfigBytes);
+      return new FlagConfigResponse.Default(null, banditReferences) {
+        @Override
+        public String toString() {
+          return "StubFlagConfigResponse[" + bytesStr + "]";
+        }
+      };
+    }
 
     @Override
     @NotNull public StubConfig buildConfig(
-        @NotNull byte[] flagConfigBytes,
+        @NotNull FlagConfigResponse flags,
         @Nullable String flagsSnapshotId,
-        @Nullable StubConfig previousConfig) {
+        @Nullable StubConfig previousConfig,
+        @Nullable byte[] banditParamsBytes) {
       buildConfigCallCount.incrementAndGet();
-      String bytesStr = new String(flagConfigBytes);
-      return new StubConfig(bytesStr, false, flagsSnapshotId);
-    }
-
-    @Override
-    public boolean requiresUpdatedBanditModels(@NotNull StubConfig config) {
-      requiresUpdatedBanditsCallCount.incrementAndGet();
-      return shouldRequireBanditUpdate;
-    }
-
-    @Override
-    @NotNull public StubConfig applyBanditParameters(
-        @NotNull StubConfig config, @NotNull byte[] banditParamsBytes) {
-      applyBanditParamsCallCount.incrementAndGet();
-      return new StubConfig(config.source, true, config.snapshotId);
+      boolean banditsApplied = banditParamsBytes != null;
+      // Recover the original "source" string from the flag response toString
+      String source = flags.toString();
+      if (source.startsWith("StubFlagConfigResponse[") && source.endsWith("]")) {
+        source = source.substring("StubFlagConfigResponse[".length(), source.length() - 1);
+      }
+      return new StubConfig(source, banditsApplied, flagsSnapshotId);
     }
 
     @Override
@@ -244,10 +253,12 @@ public class GenericConfigurationPipelineTest {
         new StubParser() {
           @Override
           @NotNull public StubConfig buildConfig(
-              @NotNull byte[] flagConfigBytes,
+              @NotNull FlagConfigResponse flags,
               @Nullable String flagsSnapshotId,
-              @Nullable StubConfig previousConfig) {
-            StubConfig result = super.buildConfig(flagConfigBytes, flagsSnapshotId, previousConfig);
+              @Nullable StubConfig previousConfig,
+              @Nullable byte[] banditParamsBytes) {
+            StubConfig result =
+                super.buildConfig(flags, flagsSnapshotId, previousConfig, banditParamsBytes);
             if (previousConfig != null && "first-body".equals(previousConfig.source)) {
               secondCallPreviousConfigCount.incrementAndGet();
             }
@@ -278,21 +289,21 @@ public class GenericConfigurationPipelineTest {
   }
 
   @Test
-  void testNoBanditFetchWhenRequiresUpdatedBanditModelsReturnsFalse() {
+  void testNoBanditFetchWhenNoBanditReferences() {
+    // No bandit references in the parsed response → no bandit fetch
     stubSuccessResponse("{}", "v1");
-    stubParser.shouldRequireBanditUpdate = false;
+    stubParser.banditReferences = Collections.emptyMap();
     ConfigurationRequestor<StubConfig, String> requestor = createRequestor(true);
 
     requestor.fetchAndSaveFromRemote();
 
-    assertEquals(1, stubParser.requiresUpdatedBanditsCallCount.get());
-    assertEquals(0, stubParser.applyBanditParamsCallCount.get());
     // Config client should only be called once (for flags, not bandits)
     verify(mockConfigClient, times(1)).execute(any());
+    assertFalse(configStore.getConfiguration().banditsApplied);
   }
 
   @Test
-  void testBanditFetchAndApplyWhenRequired() {
+  void testBanditFetchAndApplyWhenBanditReferencePresent() {
     EppoConfigurationResponse flagResponse =
         EppoConfigurationResponse.success(200, "v1", "flag-body".getBytes());
     EppoConfigurationResponse banditResponse =
@@ -302,26 +313,30 @@ public class GenericConfigurationPipelineTest {
         .thenReturn(CompletableFuture.completedFuture(flagResponse))
         .thenReturn(CompletableFuture.completedFuture(banditResponse));
 
-    stubParser.shouldRequireBanditUpdate = true;
+    // Simulate a flag response that references a bandit model not yet loaded
+    BanditReference ref = new BanditReference.Default("v1", Collections.emptyList());
+    stubParser.banditReferences = Collections.singletonMap("test-bandit", ref);
     ConfigurationRequestor<StubConfig, String> requestor = createRequestor(true);
 
     requestor.fetchAndSaveFromRemote();
 
-    assertEquals(1, stubParser.applyBanditParamsCallCount.get());
+    // Two HTTP calls: one for flags, one for bandits
+    verify(mockConfigClient, times(2)).execute(any());
     assertTrue(configStore.getConfiguration().banditsApplied);
   }
 
   @Test
-  void testNoBanditEvenIfRequiredWhenSupportBanditsIsFalse() {
+  void testNoBanditEvenIfReferencedWhenSupportBanditsIsFalse() {
     stubSuccessResponse("{}", "v1");
-    stubParser.shouldRequireBanditUpdate = true;
+    BanditReference ref = new BanditReference.Default("v1", Collections.emptyList());
+    stubParser.banditReferences = Collections.singletonMap("test-bandit", ref);
     ConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
 
     requestor.fetchAndSaveFromRemote();
 
-    // requiresUpdatedBanditModels should not be called since supportBandits=false
-    assertEquals(0, stubParser.requiresUpdatedBanditsCallCount.get());
-    assertEquals(0, stubParser.applyBanditParamsCallCount.get());
+    // supportBandits=false → no bandit fetch regardless of references
+    verify(mockConfigClient, times(1)).execute(any());
+    assertFalse(configStore.getConfiguration().banditsApplied);
   }
 
   @Test

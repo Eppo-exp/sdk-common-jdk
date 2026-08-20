@@ -12,6 +12,7 @@ import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.http.EppoConfigurationResponse;
+import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
@@ -52,12 +53,14 @@ public class ConfigurationRequestorTest {
   private static ConfigurationParser<Configuration, JsonNode> configurationParser =
       new JacksonConfigurationParser();
 
-  private Configuration buildConfig(String json) {
-    return configurationParser.buildConfig(json.getBytes(), null, null);
+  private Configuration buildConfig(String json) throws Exception {
+    FlagConfigResponse flags = configurationParser.parseFlagConfig(json.getBytes());
+    return configurationParser.buildConfig(flags, null, null, null);
   }
 
-  private Configuration buildConfig(byte[] json) {
-    return configurationParser.buildConfig(json, null, null);
+  private Configuration buildConfig(byte[] json) throws Exception {
+    FlagConfigResponse flags = configurationParser.parseFlagConfig(json);
+    return configurationParser.buildConfig(flags, null, null, null);
   }
 
   @Nested
@@ -78,7 +81,7 @@ public class ConfigurationRequestorTest {
     }
 
     @Test
-    void testInitialConfigurationFuture() throws IOException {
+    void testInitialConfigurationFuture() throws Exception {
       CompletableFuture<Configuration> futureConfig = new CompletableFuture<>();
       byte[] flagConfig = loadInitialFlagConfig();
 
@@ -98,7 +101,7 @@ public class ConfigurationRequestorTest {
     }
 
     @Test
-    void testInitialConfigurationDoesntClobberFetch() throws IOException {
+    void testInitialConfigurationDoesntClobberFetch() throws Exception {
       CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
       String flagConfig = loadInitialFlagConfigString();
       String fetchedFlagConfig =
@@ -136,7 +139,7 @@ public class ConfigurationRequestorTest {
     }
 
     @Test
-    void testBrokenFetchDoesntClobberCache() throws IOException {
+    void testBrokenFetchDoesntClobberCache() throws Exception {
       CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
       String flagConfig = loadInitialFlagConfigString();
 
@@ -164,7 +167,7 @@ public class ConfigurationRequestorTest {
     }
 
     @Test
-    void testCacheWritesAfterBrokenFetch() throws IOException {
+    void testCacheWritesAfterBrokenFetch() throws Exception {
       CompletableFuture<Configuration> initialConfigFuture = new CompletableFuture<>();
       String flagConfig = loadInitialFlagConfigString();
 
@@ -477,10 +480,11 @@ public class ConfigurationRequestorTest {
     }
 
     private void stubParserSuccess() throws Exception {
-      Configuration builtConfig =
-          new Configuration.Builder(new FlagConfigResponse.Default()).build();
-      when(mockParser.buildConfig(any(byte[].class), any(), any())).thenReturn(builtConfig);
-      when(mockParser.requiresUpdatedBanditModels(any())).thenReturn(false);
+      FlagConfigResponse mockFlagConfigResponse = new FlagConfigResponse.Default();
+      when(mockParser.parseFlagConfig(flagConfigBytes)).thenReturn(mockFlagConfigResponse);
+      Configuration builtConfig = new Configuration.Builder(mockFlagConfigResponse).build();
+      when(mockParser.buildConfig(eq(mockFlagConfigResponse), any(), any(), any()))
+          .thenReturn(builtConfig);
     }
 
     @Test
@@ -494,7 +498,8 @@ public class ConfigurationRequestorTest {
 
       requestor.fetchAndSaveFromRemote();
 
-      verify(mockParser).buildConfig(eq(flagConfigBytes), any(), any());
+      verify(mockParser).parseFlagConfig(eq(flagConfigBytes));
+      verify(mockParser).buildConfig(any(FlagConfigResponse.class), any(), any(), any());
       verify(configStore).saveConfiguration(any());
     }
 
@@ -509,7 +514,8 @@ public class ConfigurationRequestorTest {
 
       requestor.fetchAndSaveFromRemoteAsync().join();
 
-      verify(mockParser).buildConfig(eq(flagConfigBytes), any(), any());
+      verify(mockParser).parseFlagConfig(eq(flagConfigBytes));
+      verify(mockParser).buildConfig(any(FlagConfigResponse.class), any(), any(), any());
       verify(configStore).saveConfiguration(any());
     }
 
@@ -522,8 +528,8 @@ public class ConfigurationRequestorTest {
       when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(successResponse));
 
-      when(mockParser.buildConfig(eq(invalidBytes), any(), any()))
-          .thenThrow(new RuntimeException("Failed to parse configuration"));
+      when(mockParser.parseFlagConfig(eq(invalidBytes)))
+          .thenThrow(new ConfigurationParseException("Failed to parse configuration"));
 
       ConfigurationRequestor<Configuration, JsonNode> requestor =
           new ConfigurationRequestor<>(
