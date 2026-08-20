@@ -4,7 +4,6 @@ import static cloud.eppo.Utils.getMD5Hex;
 
 import cloud.eppo.api.dto.BanditFlagVariation;
 import cloud.eppo.api.dto.BanditParameters;
-import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
@@ -14,7 +13,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,43 +30,23 @@ import org.slf4j.LoggerFactory;
  * <p>Usage: Building with just flag configuration (obfuscation auto-detected from format):
  *
  * <pre>{@code
- * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- * Configuration config = new Configuration.Builder(flagConfig).build();
+ * Configuration config = new Configuration.Builder(flagConfigResponse).build();
  * }</pre>
  *
- * <p>Building with bandits (known configuration):
+ * <p>Building with bandits:
  *
  * <pre>{@code
- * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- * BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
- * Configuration config = new Configuration.Builder(flagConfig)
- *     .banditParameters(banditParams)
- *     .build();
+ * Configuration.Builder builder = new Configuration.Builder(flagConfigResponse);
+ * builder.banditParameters(banditParamsResponse);
+ * Configuration config = builder.build();
  * }</pre>
- *
- * <p>Conditionally loading bandit models (with or without an existing bandit configuration):
- *
- * <pre>{@code
- * FlagConfigResponse flagConfig = parser.parseFlagConfig(flagConfigJsonBytes);
- * Configuration.Builder configBuilder = new Configuration.Builder(flagConfig)
- *     .banditParametersFromConfig(existingConfig);
- * if (configBuilder.requiresUpdatedBanditModels()) {
- *   BanditParametersResponse banditParams = parser.parseBanditParams(banditParamsJsonBytes);
- *   configBuilder.banditParameters(banditParams);
- * }
- * Configuration config = configBuilder.build();
- * }</pre>
- *
- * <p>Hint: when loading new flag configuration values, set the current bandit models in the builder
- * using {@link Builder#banditParametersFromConfig(Configuration)}, then check {@link
- * Builder#requiresUpdatedBanditModels()}.
  */
 public class Configuration implements SerializableEppoConfiguration {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(Configuration.class);
-  private final Map<String, BanditReference> banditReferences;
+  final Map<String, BanditReference> banditReferences;
   private final Map<String, FlagConfig> flags;
-  private final Map<String, BanditParameters> bandits;
+  final Map<String, BanditParameters> bandits;
   private final boolean isConfigObfuscated;
   private final String environmentName;
   private final Date configFetchedAt;
@@ -156,6 +135,7 @@ public class Configuration implements SerializableEppoConfiguration {
         flagsSnapshotId);
   }
 
+  @Override
   public FlagConfig getFlag(String flagKey) {
     String flagKeyForLookup = flagKey;
     if (isConfigObfuscated()) {
@@ -176,6 +156,7 @@ public class Configuration implements SerializableEppoConfiguration {
    *
    * @return The flag's variation type or null.
    */
+  @Override
   public @Nullable VariationType getFlagType(String flagKey) {
     FlagConfig flag = getFlag(flagKey);
     if (flag == null) {
@@ -184,6 +165,7 @@ public class Configuration implements SerializableEppoConfiguration {
     return flag.getVariationType();
   }
 
+  @Override
   public String banditKeyForVariation(String flagKey, String variationValue) {
     // Note: In practice this double loop should be quite quick as the number of bandits and bandit
     // variations will be small. Should this ever change, we can optimize things.
@@ -199,30 +181,37 @@ public class Configuration implements SerializableEppoConfiguration {
     return null;
   }
 
+  @Override
   public BanditParameters getBanditParameters(String banditKey) {
     return bandits.get(banditKey);
   }
 
+  @Override
   public boolean isConfigObfuscated() {
     return isConfigObfuscated;
   }
 
+  @Override
   public boolean isEmpty() {
     return flags == null || flags.isEmpty();
   }
 
+  @Override
   public Set<String> getFlagKeys() {
     return flags == null ? Collections.emptySet() : flags.keySet();
   }
 
+  @Override
   public String getEnvironmentName() {
     return environmentName;
   }
 
+  @Override
   public Date getConfigFetchedAt() {
     return configFetchedAt;
   }
 
+  @Override
   public Date getConfigPublishedAt() {
     return configPublishedAt;
   }
@@ -236,6 +225,7 @@ public class Configuration implements SerializableEppoConfiguration {
    *
    * @return the snapshot ID, or null if not available
    */
+  @Override
   @Nullable public String getFlagsSnapshotId() {
     return flagsSnapshotId;
   }
@@ -245,11 +235,33 @@ public class Configuration implements SerializableEppoConfiguration {
   }
 
   /**
+   * Returns a new Builder that is pre-populated with the data from this configuration, allowing
+   * selective updates (e.g. applying new bandit parameters).
+   */
+  @NotNull public Builder toBuilder() {
+    return new Builder(this);
+  }
+
+  /** Returns the bandit references map. Package-level detail exposed for parser implementations. */
+  public Map<String, BanditReference> getBanditReferences() {
+    return banditReferences;
+  }
+
+  /**
+   * Returns the loaded bandit parameters map. Package-level detail exposed for parser
+   * implementations.
+   */
+  public Map<String, BanditParameters> getBandits() {
+    return bandits;
+  }
+
+  /**
    * Builder to create the immutable config object.
    *
    * @see Configuration for usage.
    */
   public static class Builder {
+    private static final Logger log = LoggerFactory.getLogger(Builder.class);
 
     private final boolean isConfigObfuscated;
     private final Map<String, FlagConfig> flags;
@@ -258,6 +270,7 @@ public class Configuration implements SerializableEppoConfiguration {
     private final String environmentName;
     private final Date configPublishedAt;
     @Nullable private String flagsSnapshotId;
+    @Nullable private Date configFetchedAt;
 
     public Builder(FlagConfigResponse flagConfigResponse) {
       this(flagConfigResponse, flagConfigResponse.getFormat() == FlagConfigResponse.Format.CLIENT);
@@ -274,33 +287,26 @@ public class Configuration implements SerializableEppoConfiguration {
       } else {
         flags = Collections.unmodifiableMap(flagConfigResponse.getFlags());
         banditReferences = Collections.unmodifiableMap(flagConfigResponse.getBanditReferences());
-
-        // Extract environment name and published at timestamp from the response
         environmentName = flagConfigResponse.getEnvironmentName();
         configPublishedAt = flagConfigResponse.getCreatedAt();
-
         log.debug("Loaded {} flag definitions from flag definition JSON", flags.size());
       }
     }
 
-    public boolean requiresUpdatedBanditModels() {
-      Set<String> neededModelVersions = referencedBanditModelVersion();
-      return !loadedBanditModelVersions().containsAll(neededModelVersions);
+    /** Copy constructor — reconstructs a Builder from an existing Configuration. */
+    private Builder(@NotNull Configuration existing) {
+      this.isConfigObfuscated = existing.isConfigObfuscated;
+      this.flags = existing.flags;
+      this.banditReferences = existing.banditReferences;
+      this.bandits = existing.bandits;
+      this.environmentName = existing.environmentName;
+      this.configPublishedAt = existing.configPublishedAt;
+      this.flagsSnapshotId = existing.flagsSnapshotId;
+      this.configFetchedAt = existing.getConfigFetchedAt();
     }
 
-    public Set<String> loadedBanditModelVersions() {
-      return bandits.values().stream()
-          .map(BanditParameters::getModelVersion)
-          .collect(Collectors.toSet());
-    }
-
-    public Set<String> referencedBanditModelVersion() {
-      return banditReferences.values().stream()
-          .map(BanditReference::getModelVersion)
-          .collect(Collectors.toSet());
-    }
-
-    public Builder banditParametersFromConfig(Configuration currentConfig) {
+    /** Carry over bandit parameters from an existing configuration (if non-null). */
+    public Builder banditParametersFromConfig(@Nullable Configuration currentConfig) {
       if (currentConfig == null || currentConfig.bandits == null) {
         bandits = Collections.emptyMap();
       } else {
@@ -309,7 +315,8 @@ public class Configuration implements SerializableEppoConfiguration {
       return this;
     }
 
-    public Builder banditParameters(BanditParametersResponse banditParametersResponse) {
+    public Builder banditParameters(
+        @Nullable cloud.eppo.api.dto.BanditParametersResponse banditParametersResponse) {
       if (banditParametersResponse == null || banditParametersResponse.getBandits() == null) {
         bandits = Collections.emptyMap();
         return this;
@@ -324,15 +331,15 @@ public class Configuration implements SerializableEppoConfiguration {
     }
 
     public Configuration build() {
-      // Record the time when configuration is built/fetched
-      Date configFetchedAt = new Date();
+      Date resolvedConfigFetchedAt =
+          this.configFetchedAt != null ? this.configFetchedAt : new Date();
       return new Configuration(
           flags,
           banditReferences,
           bandits,
           isConfigObfuscated,
           environmentName,
-          configFetchedAt,
+          resolvedConfigFetchedAt,
           configPublishedAt,
           flagsSnapshotId);
     }

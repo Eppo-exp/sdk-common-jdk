@@ -4,9 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import cloud.eppo.api.Attributes;
+import cloud.eppo.api.Configuration;
 import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
-import cloud.eppo.parser.ConfigurationParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
@@ -24,8 +25,8 @@ public class ProfileBaseEppoClientTest {
   private static final String TEST_HOST =
       "https://us-central1-eppo-qa.cloudfunctions.net/serveGitHubRacTestFile";
 
-  private static BaseEppoClient eppoClient;
-  private static final ConfigurationParser parser = new JacksonConfigurationParser();
+  private static BaseEppoClient<Configuration, JsonNode> eppoClient;
+  private static final JacksonConfigurationParser parser = new JacksonConfigurationParser();
   private static final AssignmentLogger noOpAssignmentLogger =
       new AssignmentLogger() {
         @Override
@@ -37,14 +38,14 @@ public class ProfileBaseEppoClientTest {
   @BeforeAll
   public static void initClient() {
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_FLAG_API_KEY,
             "java",
             "3.0.0",
             TEST_HOST,
             noOpAssignmentLogger,
             null,
-            null,
+            new ConfigurationStore(),
             false,
             false,
             true,

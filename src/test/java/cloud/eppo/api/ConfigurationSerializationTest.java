@@ -6,7 +6,6 @@ import cloud.eppo.JacksonConfigurationParser;
 import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
-import cloud.eppo.parser.ConfigurationParser;
 import java.io.*;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,7 @@ public class ConfigurationSerializationTest {
   private static final File banditModelsFile =
       new File("src/test/resources/shared/ufc/bandit-models-v1.json");
 
-  private static final ConfigurationParser<?> parser = new JacksonConfigurationParser();
+  private static final JacksonConfigurationParser parser = new JacksonConfigurationParser();
 
   @Test
   public void testConfigurationSerializesAndDeserializes() throws Exception {

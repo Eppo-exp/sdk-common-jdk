@@ -4,6 +4,7 @@ import cloud.eppo.api.Configuration;
 import cloud.eppo.api.IAssignmentCache;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditLogger;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * implementations of {@link cloud.eppo.http.EppoConfigurationClient} and {@link
  * cloud.eppo.parser.ConfigurationParser}.
  */
-public class CommonEppoClient extends BaseEppoClient {
+public class CommonEppoClient extends BaseEppoClient<Configuration, JsonNode> {
 
   /**
    * Creates a new CommonEppoClient with the specified configuration.
@@ -46,7 +47,7 @@ public class CommonEppoClient extends BaseEppoClient {
       @Nullable String apiBaseUrl,
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
-      @Nullable IConfigurationStore configurationStore,
+      @Nullable IConfigurationStore<Configuration> configurationStore,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       boolean supportBandits,
@@ -60,7 +61,7 @@ public class CommonEppoClient extends BaseEppoClient {
         apiBaseUrl,
         assignmentLogger,
         banditLogger,
-        configurationStore,
+        configurationStore != null ? configurationStore : new ConfigurationStore(),
         isGracefulMode,
         expectObfuscatedConfig,
         supportBandits,
