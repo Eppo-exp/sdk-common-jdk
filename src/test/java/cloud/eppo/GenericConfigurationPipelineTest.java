@@ -10,6 +10,7 @@ import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
+import cloud.eppo.callback.CallbackManager;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
@@ -161,6 +162,7 @@ public class GenericConfigurationPipelineTest {
   static class SimpleConfigStore<T extends SerializableEppoConfiguration>
       implements IConfigurationStore<T> {
     private volatile T config;
+    private final CallbackManager<T> callbackManager = new CallbackManager<>();
 
     SimpleConfigStore(T initial) {
       this.config = initial;
@@ -174,18 +176,18 @@ public class GenericConfigurationPipelineTest {
     @Override
     public CompletableFuture<Void> saveConfiguration(T configuration) {
       this.config = configuration;
+      callbackManager.notifyCallbacks(configuration);
       return CompletableFuture.completedFuture(null);
     }
 
-    // No-op: this pipeline test only verifies fetch/parse/save, not subscription behavior.
     @Override
     public Runnable subscribe(Consumer<T> callback) {
-      return () -> {};
+      return callbackManager.subscribe(callback);
     }
 
     @Override
     public boolean unsubscribe(Consumer<T> callback) {
-      return false;
+      return callbackManager.unsubscribe(callback);
     }
   }
 
