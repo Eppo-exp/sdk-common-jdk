@@ -5,12 +5,12 @@ import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
 /** Memory-only configuration store. */
-public class ConfigurationStore extends AbstractConfigurationStore<Configuration> {
+public class MemoryOnlyConfigurationStore extends AbstractConfigurationStore<Configuration> {
 
   // this is the fallback value if no configuration is provided (i.e. by fetch or initial config).
   @NotNull private volatile Configuration configuration = Configuration.emptyConfig();
 
-  public ConfigurationStore() {}
+  public MemoryOnlyConfigurationStore() {}
 
   @NotNull @Override
   public Configuration getConfiguration() {

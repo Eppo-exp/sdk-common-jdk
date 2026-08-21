@@ -14,11 +14,11 @@ import org.junit.jupiter.api.Test;
 
 public class ConfigurationStoreTest {
 
-  private ConfigurationStore store;
+  private MemoryOnlyConfigurationStore store;
 
   @BeforeEach
   void setUp() {
-    store = new ConfigurationStore();
+    store = new MemoryOnlyConfigurationStore();
   }
 
   @Test

@@ -45,7 +45,7 @@ public class ProfileBaseEppoClientTest {
             TEST_HOST,
             noOpAssignmentLogger,
             null,
-            new ConfigurationStore(),
+            new MemoryOnlyConfigurationStore(),
             false,
             false,
             true,

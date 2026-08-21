@@ -72,7 +72,7 @@ public class ConfigurationRequestorTest {
 
     @BeforeEach
     void setUp() {
-      configStore = Mockito.spy(new ConfigurationStore());
+      configStore = Mockito.spy(new MemoryOnlyConfigurationStore());
       mockConfigClient = mock(EppoConfigurationClient.class);
       parser = new JacksonConfigurationParser();
       requestor =
@@ -197,14 +197,14 @@ public class ConfigurationRequestorTest {
 
   @Nested
   class ConfigurationChangeListenerTests {
-    private ConfigurationStore configStore;
+    private MemoryOnlyConfigurationStore configStore;
     private EppoConfigurationClient mockConfigClient;
     private ConfigurationParser<Configuration, JsonNode> parser;
     private ConfigurationRequestor<Configuration, JsonNode> requestor;
 
     @BeforeEach
     void setUp() {
-      configStore = new ConfigurationStore();
+      configStore = new MemoryOnlyConfigurationStore();
       mockConfigClient = mock(EppoConfigurationClient.class);
       parser = new JacksonConfigurationParser();
       requestor =
@@ -352,7 +352,7 @@ public class ConfigurationRequestorTest {
 
     @BeforeEach
     void setUp() throws IOException {
-      configStore = Mockito.spy(new ConfigurationStore());
+      configStore = Mockito.spy(new MemoryOnlyConfigurationStore());
       mockConfigClient = mock(EppoConfigurationClient.class);
       parser = new JacksonConfigurationParser();
       requestFactory = createTestRequestFactory();
@@ -462,7 +462,7 @@ public class ConfigurationRequestorTest {
 
     @BeforeEach
     void setUp() throws IOException {
-      configStore = Mockito.spy(new ConfigurationStore());
+      configStore = Mockito.spy(new MemoryOnlyConfigurationStore());
       mockConfigClient = mock(EppoConfigurationClient.class);
       mockParser = mock(ConfigurationParser.class);
       requestFactory = createTestRequestFactory();
@@ -577,7 +577,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testFetchWithCommonParserAndClient() throws IOException, InterruptedException {
-      IConfigurationStore<Configuration> configStore = new ConfigurationStore();
+      IConfigurationStore<Configuration> configStore = new MemoryOnlyConfigurationStore();
       String flagConfig = loadInitialFlagConfigString();
 
       enqueueSuccessResponse(flagConfig, "version-real-1");
@@ -595,7 +595,8 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testFetchHandles304NotModified() throws IOException, InterruptedException {
-      IConfigurationStore<Configuration> configStore = Mockito.spy(new ConfigurationStore());
+      IConfigurationStore<Configuration> configStore =
+          Mockito.spy(new MemoryOnlyConfigurationStore());
       String flagConfig = loadInitialFlagConfigString();
 
       enqueueSuccessResponse(flagConfig, "version-etag-test");
@@ -619,7 +620,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testFetchAsync() throws Exception {
-      IConfigurationStore<Configuration> configStore = new ConfigurationStore();
+      IConfigurationStore<Configuration> configStore = new MemoryOnlyConfigurationStore();
       String flagConfig = loadInitialFlagConfigString();
 
       enqueueSuccessResponse(flagConfig, "version-async-real");
@@ -633,7 +634,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testFetchHandlesInvalidJson() {
-      IConfigurationStore<Configuration> configStore = new ConfigurationStore();
+      IConfigurationStore<Configuration> configStore = new MemoryOnlyConfigurationStore();
 
       mockServer.enqueue(
           new okhttp3.mockwebserver.MockResponse()
@@ -647,7 +648,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testFetchHandlesServerError() {
-      IConfigurationStore<Configuration> configStore = new ConfigurationStore();
+      IConfigurationStore<Configuration> configStore = new MemoryOnlyConfigurationStore();
 
       mockServer.enqueue(
           new okhttp3.mockwebserver.MockResponse()
@@ -661,7 +662,7 @@ public class ConfigurationRequestorTest {
 
     @Test
     void testConfigurationChangeListener() throws Exception {
-      IConfigurationStore<Configuration> configStore = new ConfigurationStore();
+      IConfigurationStore<Configuration> configStore = new MemoryOnlyConfigurationStore();
       String flagConfig = loadInitialFlagConfigString();
 
       enqueueSuccessResponse(flagConfig, "version-callback");
