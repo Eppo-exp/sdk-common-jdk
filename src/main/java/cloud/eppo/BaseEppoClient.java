@@ -805,34 +805,35 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
-   * Synchronously applies {@code config} as the current configuration, replacing whatever was
-   * previously stored (last-write-wins). All registered {@link #onConfigurationChange(Consumer)}
-   * subscribers are notified before this method returns.
+   * Experimental API: pushes {@code config} as the active configuration without triggering a remote
+   * fetch. Intended for extraordinary use cases — testing, warm-start from an external cache, or
+   * offline scenarios. For normal SDK initialization use the {@code initialConfiguration} parameter
+   * on the client builder or rely on the automatic fetch-on-init behaviour; this method is not a
+   * replacement for those paths.
    *
-   * <p>If {@code config} is {@code null} and the client is in graceful mode, the call is silently
-   * ignored. If {@code config} is {@code null} and graceful mode is disabled, an {@link
+   * <p>The call is synchronous: it blocks until the store has persisted the new configuration and
+   * all registered {@link #onConfigurationChange(Consumer)} subscribers have been notified.
+   *
+   * <p><strong>Last-write-wins:</strong> any source — a completing remote fetch, a pending
+   * initial-configuration future, or another call to this method — that writes to the store after
+   * this call will overwrite the configuration supplied here. Concurrent calls from multiple
+   * threads have an unspecified winner; callers must coordinate externally if ordering matters.
+   *
+   * <p><strong>Subscriber re-entrancy:</strong> subscribers must not call {@code setConfiguration}
+   * from within their callback. Re-entrant calls are silently dropped to prevent infinite
+   * recursion.
+   *
+   * <p>If {@code config} is {@code null} and graceful mode is enabled the call is silently ignored.
+   * If {@code config} is {@code null} and graceful mode is disabled an {@link
    * IllegalArgumentException} is thrown.
    *
-   * <p>In-flight remote fetches are not cancelled; if a fetch completes after this call it will
-   * overwrite the configuration supplied here (last-write-wins). Concurrent calls to this method
-   * from multiple threads have an unspecified winner — callers must coordinate externally if write
-   * ordering matters.
-   *
-   * <p>This method blocks until the underlying store's {@code saveConfiguration} completes. For the
-   * default in-memory {@link MemoryOnlyConfigurationStore} this is immediate, but custom store
-   * implementations that perform I/O may cause this call to block for the duration of that
-   * operation.
-   *
-   * <p><strong>Subscriber re-entrancy:</strong> subscribers registered via {@link
-   * #onConfigurationChange(Consumer)} must not call {@code setConfiguration} from within their
-   * callback. Re-entrant calls are silently dropped to prevent infinite recursion.
-   *
-   * @param config the configuration to apply
+   * @param config the configuration to apply, or {@code null} (see graceful-mode behaviour above)
    * @throws IllegalArgumentException if {@code config} is {@code null} and graceful mode is
    *     disabled
-   * @throws java.util.concurrent.CompletionException if the underlying store's {@code
-   *     saveConfiguration} completes exceptionally
+   * @throws java.util.concurrent.CompletionException if the store's {@code saveConfiguration}
+   *     completes exceptionally
    */
+  @org.jetbrains.annotations.ApiStatus.Experimental
   public void setConfiguration(@Nullable ConfigurationType config) {
     if (inSetConfiguration.get()) {
       log.debug("setConfiguration called re-entrantly from a subscriber; ignoring");
