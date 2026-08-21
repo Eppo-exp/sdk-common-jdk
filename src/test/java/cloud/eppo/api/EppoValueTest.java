@@ -1,6 +1,7 @@
 package cloud.eppo.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +27,21 @@ public class EppoValueTest {
           return null;
         }
       };
+
+  @Test
+  public void testValueOfNullStringReturnsNullValue() {
+    EppoValue result = EppoValue.valueOf((String) null);
+    assertTrue(result.isNull(), "valueOf((String) null) should return a NULL-typed EppoValue");
+    assertSame(EppoValue.nullValue().getType(), result.getType());
+  }
+
+  @Test
+  public void testValueOfNullListReturnsNullValue() {
+    EppoValue result = EppoValue.valueOf((List<String>) null);
+    assertTrue(
+        result.isNull(), "valueOf((List<String>) null) should return a NULL-typed EppoValue");
+    assertSame(EppoValue.nullValue().getType(), result.getType());
+  }
 
   @Test
   public void testDoubleValue() {

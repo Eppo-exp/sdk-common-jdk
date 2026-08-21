@@ -53,10 +53,12 @@ public class EppoValue implements Serializable {
   }
 
   public static EppoValue valueOf(String stringValue) {
+    if (stringValue == null) return nullValue();
     return new EppoValue(stringValue);
   }
 
   public static EppoValue valueOf(List<String> value) {
+    if (value == null) return nullValue();
     return new EppoValue(value);
   }
 

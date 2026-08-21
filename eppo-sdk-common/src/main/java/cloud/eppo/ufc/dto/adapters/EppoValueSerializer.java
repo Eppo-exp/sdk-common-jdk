@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.IOException;
+import java.util.List;
 
 public class EppoValueSerializer extends StdSerializer<EppoValue> {
   protected EppoValueSerializer(Class<EppoValue> t) {
@@ -25,8 +26,13 @@ public class EppoValueSerializer extends StdSerializer<EppoValue> {
     } else if (src.isString()) {
       jgen.writeString(src.stringValue());
     } else if (src.isStringArray()) {
-      String[] arr = src.stringArrayValue().toArray(new String[0]);
-      jgen.writeArray(arr, 0, arr.length);
+      List<String> list = src.stringArrayValue();
+      if (list == null) {
+        jgen.writeNull();
+      } else {
+        String[] arr = list.toArray(new String[0]);
+        jgen.writeArray(arr, 0, arr.length);
+      }
     } else {
       jgen.writeNull();
     }
