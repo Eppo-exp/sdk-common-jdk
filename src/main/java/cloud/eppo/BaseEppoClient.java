@@ -802,8 +802,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   /**
    * Synchronously applies {@code config} as the current configuration, replacing whatever was
-   * previously stored (last-write-wins). All registered {@link #onConfigurationChange} subscribers
-   * are notified before this method returns.
+   * previously stored (last-write-wins). All registered {@link #onConfigurationChange(Consumer)}
+   * subscribers are notified before this method returns.
    *
    * <p>If {@code config} is {@code null} and the client is in graceful mode, the call is silently
    * ignored. If {@code config} is {@code null} and graceful mode is disabled, an {@link
