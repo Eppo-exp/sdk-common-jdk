@@ -3,7 +3,6 @@ package cloud.eppo;
 import cloud.eppo.api.SerializableEppoConfiguration;
 import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.FlagConfigResponse;
-import cloud.eppo.callback.CallbackManager;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
 import cloud.eppo.http.EppoConfigurationRequestFactory;
@@ -12,7 +11,6 @@ import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +31,6 @@ public class ConfigurationRequestor<
   private volatile CompletableFuture<Boolean> configurationFuture = null;
   private volatile boolean initialConfigSet = false;
 
-  private final CallbackManager<ConfigurationType> configChangeManager = new CallbackManager<>();
-
   public ConfigurationRequestor(
       @NotNull IConfigurationStore<ConfigurationType> configurationStore,
       boolean supportBandits,
@@ -48,18 +44,20 @@ public class ConfigurationRequestor<
     this.requestFactory = requestFactory;
   }
 
-  // Synchronously set the initial configuration.
+  // Synchronously set initial configuration.
   public void setInitialConfiguration(@NotNull ConfigurationType configuration) {
     if (initialConfigSet || this.configurationFuture != null) {
       throw new IllegalStateException("Initial configuration has already been set");
     }
 
-    initialConfigSet = saveConfigurationAndNotify(configuration).thenApply(v -> true).join();
+    initialConfigSet =
+        configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
   }
 
   /**
-   * Asynchronously sets the initial configuration. Resolves to `true` if the initial configuration
-   * was used, false if not (due to being empty, a fetched config taking precedence, etc.)
+   * Asynchronously sets the initial configuration. Resolves to {@code true} if the initial
+   * configuration was used, false if not (due to being empty, a fetched config taking precedence,
+   * etc.)
    */
   public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<ConfigurationType> configurationFuture) {
@@ -81,7 +79,8 @@ public class ConfigurationRequestor<
                       log.debug("Fetch has completed; ignoring initial config load.");
                       return CompletableFuture.completedFuture(false);
                     } else {
-                      return saveConfigurationAndNotify(config)
+                      return configurationStore
+                          .saveConfiguration(config)
                           .thenApply(
                               (s) -> {
                                 initialConfigSet = true;
@@ -102,7 +101,7 @@ public class ConfigurationRequestor<
   void fetchAndSaveFromRemote() {
     log.debug("Fetching configuration");
 
-    // Reuse the `lastConfig` as its bandits may be useful
+    // Reuse the lastConfig as its bandits may be useful
     ConfigurationType lastConfig = configurationStore.getConfiguration();
 
     EppoConfigurationRequest flagRequest =
@@ -162,7 +161,7 @@ public class ConfigurationRequestor<
     ConfigurationType config =
         configurationParser.buildConfig(
             flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
-    saveConfigurationAndNotify(config).join();
+    configurationStore.saveConfiguration(config).join();
   }
 
   private boolean needsFreshBandits(FlagConfigResponse flagResponse, ConfigurationType lastConfig) {
@@ -245,37 +244,13 @@ public class ConfigurationRequestor<
                 ConfigurationType config =
                     configurationParser.buildConfig(
                         flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
-                return saveConfigurationAndNotify(config);
+                return configurationStore.saveConfiguration(config);
               });
     }
 
     ConfigurationType config =
         configurationParser.buildConfig(
             flagConfigResponse, flagResponse.getVersionId(), lastConfig, null);
-    return saveConfigurationAndNotify(config);
-  }
-
-  private CompletableFuture<Void> saveConfigurationAndNotify(ConfigurationType configuration) {
-    CompletableFuture<Void> saveFuture = configurationStore.saveConfiguration(configuration);
-    return saveFuture.thenRun(
-        () -> {
-          synchronized (configChangeManager) {
-            configChangeManager.notifyCallbacks(configuration);
-          }
-        });
-  }
-
-  public Runnable onConfigurationChange(Consumer<ConfigurationType> callback) {
-    return configChangeManager.subscribe(callback);
-  }
-
-  /**
-   * Unsubscribe from configuration change notifications.
-   *
-   * @param callback The callback to unsubscribe
-   * @return true if the callback was found and removed, false otherwise
-   */
-  public boolean unsubscribeFromConfigurationChange(Consumer<ConfigurationType> callback) {
-    return configChangeManager.unsubscribe(callback);
+    return configurationStore.saveConfiguration(config);
   }
 }

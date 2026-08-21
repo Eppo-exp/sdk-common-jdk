@@ -158,7 +158,7 @@ public class GenericConfigurationPipelineTest {
 
   /** Minimal in-memory store for any SerializableEppoConfiguration subtype. */
   static class SimpleConfigStore<T extends SerializableEppoConfiguration>
-      implements IConfigurationStore<T> {
+      extends AbstractConfigurationStore<T> {
     private volatile T config;
 
     SimpleConfigStore(T initial) {
@@ -171,7 +171,7 @@ public class GenericConfigurationPipelineTest {
     }
 
     @Override
-    public CompletableFuture<Void> saveConfiguration(T configuration) {
+    protected CompletableFuture<Void> persist(T configuration) {
       this.config = configuration;
       return CompletableFuture.completedFuture(null);
     }

@@ -61,7 +61,7 @@ public class CommonEppoClient extends BaseEppoClient<Configuration, JsonNode> {
         apiBaseUrl,
         assignmentLogger,
         banditLogger,
-        configurationStore != null ? configurationStore : new ConfigurationStore(),
+        configurationStore != null ? configurationStore : new MemoryOnlyConfigurationStore(),
         isGracefulMode,
         expectObfuscatedConfig,
         supportBandits,
