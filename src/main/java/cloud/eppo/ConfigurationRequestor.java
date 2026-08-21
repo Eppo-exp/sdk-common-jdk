@@ -55,8 +55,9 @@ public class ConfigurationRequestor<
   }
 
   /**
-   * Asynchronously sets the initial configuration. Resolves to true if the initial configuration
-   * was used, false if not (due to being empty, a fetched config taking precedence, etc.)
+   * Asynchronously sets the initial configuration. Resolves to {@code true} if the initial
+   * configuration was used, false if not (due to being empty, a fetched config taking precedence,
+   * etc.)
    */
   public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<ConfigurationType> configurationFuture) {
@@ -163,10 +164,8 @@ public class ConfigurationRequestor<
 
   private boolean needsFreshBandits(FlagConfigResponse flagResponse, ConfigurationType lastConfig) {
     if (!supportBandits) return false;
-    if (flagResponse.getBanditReferences() == null
-        || flagResponse.getBanditReferences().isEmpty()) {
+    if (flagResponse.getBanditReferences() == null || flagResponse.getBanditReferences().isEmpty())
       return false;
-    }
     return flagResponse.getBanditReferences().entrySet().stream()
         .anyMatch(
             entry -> {

@@ -4,6 +4,7 @@ import cloud.eppo.api.SerializableEppoConfiguration;
 import cloud.eppo.callback.CallbackManager;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Convenience base class for {@link IConfigurationStore} implementations.
@@ -47,8 +48,14 @@ public abstract class AbstractConfigurationStore<
    * #persist(SerializableEppoConfiguration)} instead.
    */
   @Override
-  public CompletableFuture<Void> saveConfiguration(ConfigurationType configuration) {
-    return persist(configuration).thenRun(() -> callbackManager.notifyCallbacks(configuration));
+  public final CompletableFuture<Void> saveConfiguration(@NotNull ConfigurationType configuration) {
+    return persist(configuration)
+        .thenRun(
+            () -> {
+              synchronized (callbackManager) {
+                callbackManager.notifyCallbacks(configuration);
+              }
+            });
   }
 
   /**
@@ -58,7 +65,7 @@ public abstract class AbstractConfigurationStore<
    * <p>Implementations must update the stored value so that a subsequent {@link
    * #getConfiguration()} call returns {@code configuration}.
    */
-  protected abstract CompletableFuture<Void> persist(ConfigurationType configuration);
+  protected abstract CompletableFuture<Void> persist(@NotNull ConfigurationType configuration);
 
   @Override
   public Runnable subscribe(Consumer<ConfigurationType> callback) {

@@ -197,9 +197,6 @@ public class ConfigurationRequestorTest {
 
   @Nested
   class ConfigurationChangeListenerTests {
-    // Subscriber management moved from ConfigurationRequestor into ConfigurationStore.
-    // These tests verify that fetches trigger store notifications via the store's subscribe API.
-
     private ConfigurationStore configStore;
     private EppoConfigurationClient mockConfigClient;
     private ConfigurationParser<Configuration, JsonNode> parser;
