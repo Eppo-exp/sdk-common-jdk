@@ -7,11 +7,13 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.IOException;
 import java.util.Date;
+import org.jetbrains.annotations.ApiStatus;
 
 /**
  * This adapter for Date allows gson to serialize to UTC ISO 8601 (vs. its default of local
  * timezone)
  */
+@ApiStatus.Internal
 public class DateSerializer extends StdSerializer<Date> {
   protected DateSerializer(Class<Date> t) {
     super(t);

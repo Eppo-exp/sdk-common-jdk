@@ -13,7 +13,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.Internal
 public class RuleEvaluator {
 
   public static TargetingRule findMatchingRule(

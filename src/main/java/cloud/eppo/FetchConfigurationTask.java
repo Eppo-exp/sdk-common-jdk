@@ -2,9 +2,11 @@ package cloud.eppo;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ApiStatus.Internal
 public class FetchConfigurationTask extends TimerTask {
   private static final Logger log = LoggerFactory.getLogger(FetchConfigurationTask.class);
   private final Runnable runnable;

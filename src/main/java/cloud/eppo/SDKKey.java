@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
+import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,13 +14,16 @@ import org.slf4j.LoggerFactory;
  * Wrapper for an SDK key; built from the SDK Key token string, this class extracts encoded fields,
  * such as the customer-specific service gateway subdomain
  */
+@ApiStatus.Internal
 public class SDKKey {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
   private final String sdkTokenString;
   private final Map<String, String> decodedParams;
 
-  /** @param sdkToken The "SDK Key" string provided by the user. */
+  /**
+   * @param sdkToken The "SDK Key" string provided by the user.
+   */
   public SDKKey(String sdkToken) {
     this.sdkTokenString = sdkToken;
     this.decodedParams = decodeToken(sdkToken);
@@ -28,18 +31,21 @@ public class SDKKey {
 
   @Override
   public String toString() {
-    return "SDKKey{" +
-      "sdkTokenString='" + sdkTokenString + '\'' +
-      ", decodedParams=" + decodedParams +
-      '}';
+    return "SDKKey{"
+        + "sdkTokenString='"
+        + sdkTokenString
+        + '\''
+        + ", decodedParams="
+        + decodedParams
+        + '}';
   }
 
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     SDKKey sdkKey = (SDKKey) o;
-    return Objects.equals(sdkTokenString, sdkKey.sdkTokenString) &&
-            Objects.equals(decodedParams, sdkKey.decodedParams);
+    return Objects.equals(sdkTokenString, sdkKey.sdkTokenString)
+        && Objects.equals(decodedParams, sdkKey.decodedParams);
   }
 
   @Override

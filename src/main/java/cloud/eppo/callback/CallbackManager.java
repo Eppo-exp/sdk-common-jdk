@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
  *
  * @param <T> The type of data that will be passed to the callbacks
  */
+@ApiStatus.Internal
 public class CallbackManager<T> {
   private static final Logger log = LoggerFactory.getLogger(CallbackManager.class);
   private final Map<String, Consumer<T>> subscribers;

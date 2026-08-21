@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
  * unreliable when ProGuard minification is in-use and not configured to protect
  * JSON-deserialization-related classes and annotations.
  */
+@ApiStatus.Internal
 public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigResponse> {
   private static final Logger log = LoggerFactory.getLogger(FlagConfigResponseDeserializer.class);
   private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT =
