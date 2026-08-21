@@ -16,9 +16,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ApiStatus.Internal
 public class BanditParametersResponseDeserializer
     extends StdDeserializer<BanditParametersResponse> {
   private static final Logger log =
