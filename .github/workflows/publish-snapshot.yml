@@ -39,8 +39,11 @@ jobs:
       - name: Verify JReleaser
         run: ./gradlew jreleaserConfig
 
-      - name: Test and stage artifacts
-        run: ./gradlew clean check publish -Psnapshot --no-build-cache
+      - name: Test
+        run: ./gradlew check
+
+      - name: Stage artifacts
+        run: ./gradlew clean publish -Psnapshot
 
       - name: Deploy to Maven Central
         run: ./gradlew jreleaserDeploy

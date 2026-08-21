@@ -75,6 +75,7 @@ public class ConfigurationRequestor<
                     } else if (remoteFetchFuture != null
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
+                      // Don't clobber a successful fetch.
                       log.debug("Fetch has completed; ignoring initial config load.");
                       return CompletableFuture.completedFuture(false);
                     } else {

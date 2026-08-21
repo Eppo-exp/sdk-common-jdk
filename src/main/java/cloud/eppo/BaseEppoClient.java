@@ -813,7 +813,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * overwrite the configuration supplied here (last-write-wins).
    *
    * <p>This method blocks until the underlying store's {@code saveConfiguration} completes. For the
-   * default in-memory {@link ConfigurationStore} this is immediate, but custom store
+   * default in-memory {@link MemoryOnlyConfigurationStore} this is immediate, but custom store
    * implementations that perform I/O may cause this call to block for the duration of that
    * operation.
    *
