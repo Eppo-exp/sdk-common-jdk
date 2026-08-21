@@ -15,12 +15,12 @@ import org.mockito.Mockito;
 
 public class SetConfigurationTest {
 
-  private ConfigurationStore configStore;
+  private MemoryOnlyConfigurationStore configStore;
   private BaseEppoClient<Configuration, JsonNode> client;
 
   @BeforeEach
   void setUp() {
-    configStore = new ConfigurationStore();
+    configStore = new MemoryOnlyConfigurationStore();
     client =
         new BaseEppoClient<>(
             "test-api-key",
