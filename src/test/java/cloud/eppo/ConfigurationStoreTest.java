@@ -5,18 +5,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.api.Configuration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ConfigurationStoreTest {
 
-  private ConfigurationStore store;
+  private MemoryOnlyConfigurationStore store;
 
   @BeforeEach
   void setUp() {
-    store = new ConfigurationStore();
+    store = new MemoryOnlyConfigurationStore();
   }
 
   @Test
@@ -113,5 +115,61 @@ public class ConfigurationStoreTest {
     store.saveConfiguration(config).join();
 
     assertSame(config, store.getConfiguration());
+  }
+
+  // Helper for tests that need to control persist behavior
+  private static class ControllableStore extends AbstractConfigurationStore<Configuration> {
+    private volatile Configuration config = Configuration.emptyConfig();
+    private CompletableFuture<Void> persistFuture = CompletableFuture.completedFuture(null);
+
+    @NotNull @Override
+    public Configuration getConfiguration() {
+      return config;
+    }
+
+    @Override
+    protected CompletableFuture<Void> persist(@NotNull Configuration configuration) {
+      this.config = configuration;
+      return persistFuture;
+    }
+
+    void setPersistFuture(CompletableFuture<Void> future) {
+      this.persistFuture = future;
+    }
+  }
+
+  @Test
+  void testSaveConfigurationDoesNotNotifyOnFailedPersist() {
+    ControllableStore store = new ControllableStore();
+    List<Configuration> received = new ArrayList<>();
+    store.subscribe(received::add);
+
+    CompletableFuture<Void> failedFuture = new CompletableFuture<>();
+    store.setPersistFuture(failedFuture);
+    failedFuture.completeExceptionally(new RuntimeException("persist failed"));
+
+    Configuration config = Configuration.emptyConfig();
+    store.saveConfiguration(config);
+
+    assertTrue(received.isEmpty(), "Subscribers must not be notified when persist fails");
+  }
+
+  @Test
+  void testSaveConfigurationDefersNotificationUntilPersistCompletes() {
+    ControllableStore store = new ControllableStore();
+    List<Configuration> received = new ArrayList<>();
+    store.subscribe(received::add);
+
+    CompletableFuture<Void> asyncPersist = new CompletableFuture<>();
+    store.setPersistFuture(asyncPersist);
+
+    Configuration config = Configuration.emptyConfig();
+    store.saveConfiguration(config);
+
+    assertTrue(received.isEmpty(), "Subscribers must not be notified before persist completes");
+
+    asyncPersist.complete(null);
+
+    assertEquals(1, received.size(), "Subscribers must be notified after persist completes");
   }
 }

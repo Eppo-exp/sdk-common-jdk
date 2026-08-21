@@ -55,8 +55,9 @@ public class ConfigurationRequestor<
   }
 
   /**
-   * Asynchronously sets the initial configuration. Resolves to true if the initial configuration
-   * was used, false if not (due to being empty, a fetched config taking precedence, etc.)
+   * Asynchronously sets the initial configuration. Resolves to {@code true} if the initial
+   * configuration was used, false if not (due to being empty, a fetched config taking precedence,
+   * etc.)
    */
   public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<ConfigurationType> configurationFuture) {
@@ -99,6 +100,7 @@ public class ConfigurationRequestor<
   void fetchAndSaveFromRemote() {
     log.debug("Fetching configuration");
 
+    // Reuse the lastConfig as its bandits may be useful
     ConfigurationType lastConfig = configurationStore.getConfiguration();
 
     EppoConfigurationRequest flagRequest =

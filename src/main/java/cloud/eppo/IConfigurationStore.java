@@ -20,20 +20,26 @@ public interface IConfigurationStore<ConfigurationType extends SerializableEppoC
    *
    * <p>Implementations must update the stored configuration value <em>before</em> notifying
    * subscribers, so that any subscriber that calls {@link #getConfiguration()} sees the new value.
+   *
+   * <p>Prefer extending {@link AbstractConfigurationStore} rather than implementing this method
+   * directly; it handles locking and subscriber notification automatically.
    */
-  CompletableFuture<Void> saveConfiguration(ConfigurationType configuration);
+  CompletableFuture<Void> saveConfiguration(@NotNull ConfigurationType configuration);
 
   /**
    * Subscribe to configuration change notifications.
    *
    * @param callback invoked with the new configuration each time {@link
-   *     #saveConfiguration(SerializableEppoConfiguration)} completes
+   *     #saveConfiguration(ConfigurationType)} succeeds
    * @return a {@link Runnable} that, when called, removes this subscription
    */
   Runnable subscribe(Consumer<ConfigurationType> callback);
 
   /**
-   * Unsubscribe a previously registered callback.
+   * Unsubscribes a previously registered callback using identity comparison ({@code ==}).
+   *
+   * <p>Pass the exact callback reference returned to {@link #subscribe}; implementations compare by
+   * identity, not {@code equals}.
    *
    * @param callback the callback to remove
    * @return {@code true} if the callback was found and removed, {@code false} otherwise
