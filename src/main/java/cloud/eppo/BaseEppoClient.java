@@ -846,6 +846,11 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
     inSetConfiguration.set(true);
     try {
       configurationStore.saveConfiguration(config).join();
+    } catch (Exception e) {
+      if (!isGracefulMode) {
+        throw e;
+      }
+      log.error("setConfiguration store failure in graceful mode; ignoring", e);
     } finally {
       inSetConfiguration.remove();
     }
