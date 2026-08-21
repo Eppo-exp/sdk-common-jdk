@@ -75,6 +75,7 @@ public class ConfigurationRequestor<
                     } else if (remoteFetchFuture != null
                         && remoteFetchFuture.isDone()
                         && !remoteFetchFuture.isCompletedExceptionally()) {
+                      // Don't clobber a successful fetch.
                       log.debug("Fetch has completed; ignoring initial config load.");
                       return CompletableFuture.completedFuture(false);
                     } else {
@@ -100,6 +101,7 @@ public class ConfigurationRequestor<
   void fetchAndSaveFromRemote() {
     log.debug("Fetching configuration");
 
+    // Reuse the lastConfig as its bandits may be useful
     ConfigurationType lastConfig = configurationStore.getConfiguration();
 
     EppoConfigurationRequest flagRequest =

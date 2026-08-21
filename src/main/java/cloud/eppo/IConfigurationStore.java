@@ -30,7 +30,7 @@ public interface IConfigurationStore<ConfigurationType extends SerializableEppoC
    * Subscribe to configuration change notifications.
    *
    * @param callback invoked with the new configuration each time {@link
-   *     #saveConfiguration(SerializableEppoConfiguration)} completes
+   *     #saveConfiguration(ConfigurationType)} succeeds
    * @return a {@link Runnable} that, when called, removes this subscription
    */
   Runnable subscribe(Consumer<ConfigurationType> callback);
