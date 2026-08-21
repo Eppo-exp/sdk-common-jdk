@@ -29,6 +29,10 @@ import org.slf4j.LoggerFactory;
 public class BaseEppoClient<ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
+  /** Guards against re-entrant calls to {@link #setConfiguration} from within a subscriber. */
+  private static final ThreadLocal<Boolean> inSetConfiguration =
+      ThreadLocal.withInitial(() -> false);
+
   protected final ConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final AssignmentLogger assignmentLogger;
@@ -817,9 +821,17 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * implementations that perform I/O may cause this call to block for the duration of that
    * operation.
    *
+   * <p><strong>Subscriber re-entrancy:</strong> subscribers registered via {@link
+   * #onConfigurationChange(Consumer)} must not call {@code setConfiguration} from within their
+   * callback. Re-entrant calls are silently dropped to prevent infinite recursion.
+   *
    * @param config the configuration to apply
    */
   public void setConfiguration(@NotNull ConfigurationType config) {
+    if (inSetConfiguration.get()) {
+      log.debug("setConfiguration called re-entrantly from a subscriber; ignoring");
+      return;
+    }
     if (config == null) {
       if (!isGracefulMode) {
         throw new IllegalArgumentException("config must not be null");
@@ -827,7 +839,12 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
       log.debug("setConfiguration called with null config in graceful mode; ignoring");
       return;
     }
-    configurationStore.saveConfiguration(config).join();
+    inSetConfiguration.set(true);
+    try {
+      configurationStore.saveConfiguration(config).join();
+    } finally {
+      inSetConfiguration.remove();
+    }
   }
 
   /**
