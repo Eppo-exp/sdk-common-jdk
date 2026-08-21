@@ -21,9 +21,7 @@ public class SDKKey {
   private final String sdkTokenString;
   private final Map<String, String> decodedParams;
 
-  /**
-   * @param sdkToken The "SDK Key" string provided by the user.
-   */
+  /** Creates a new {@code SDKKey} from the provided SDK token string. */
   public SDKKey(String sdkToken) {
     this.sdkTokenString = sdkToken;
     this.decodedParams = decodeToken(sdkToken);
