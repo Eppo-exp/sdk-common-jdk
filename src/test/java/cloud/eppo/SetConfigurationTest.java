@@ -90,9 +90,6 @@ public class SetConfigurationTest {
 
   @Test
   void testSetConfigurationLastWriteWins() {
-    // Sequential writes verify second call overwrites first. Concurrent last-write-wins
-    // is correct by Java memory model (volatile write in ConfigurationStore), so sequential
-    // testing is sufficient to confirm the basic contract.
     Configuration first = Configuration.emptyConfig();
     Configuration second = Configuration.emptyConfig();
 

@@ -814,7 +814,9 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * IllegalArgumentException} is thrown.
    *
    * <p>In-flight remote fetches are not cancelled; if a fetch completes after this call it will
-   * overwrite the configuration supplied here (last-write-wins).
+   * overwrite the configuration supplied here (last-write-wins). Concurrent calls to this method
+   * from multiple threads have an unspecified winner — callers must coordinate externally if write
+   * ordering matters.
    *
    * <p>This method blocks until the underlying store's {@code saveConfiguration} completes. For the
    * default in-memory {@link MemoryOnlyConfigurationStore} this is immediate, but custom store
