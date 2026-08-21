@@ -833,7 +833,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * @throws java.util.concurrent.CompletionException if the underlying store's {@code
    *     saveConfiguration} completes exceptionally
    */
-  public void setConfiguration(@NotNull ConfigurationType config) {
+  public void setConfiguration(@Nullable ConfigurationType config) {
     if (inSetConfiguration.get()) {
       log.debug("setConfiguration called re-entrantly from a subscriber; ignoring");
       return;
