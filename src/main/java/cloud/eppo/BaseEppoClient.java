@@ -821,11 +821,11 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    */
   public void setConfiguration(@NotNull ConfigurationType config) {
     if (config == null) {
-      if (isGracefulMode) {
-        log.warn("setConfiguration called with null config; ignoring (graceful mode)");
-        return;
+      if (!isGracefulMode) {
+        throw new IllegalArgumentException("config must not be null");
       }
-      throw new IllegalArgumentException("config must not be null");
+      log.warn("setConfiguration called with null config; ignoring (graceful mode)");
+      return;
     }
     configurationStore.saveConfiguration(config).join();
   }
