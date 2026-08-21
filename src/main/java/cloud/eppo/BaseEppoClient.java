@@ -826,6 +826,10 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * callback. Re-entrant calls are silently dropped to prevent infinite recursion.
    *
    * @param config the configuration to apply
+   * @throws IllegalArgumentException if {@code config} is {@code null} and graceful mode is
+   *     disabled
+   * @throws java.util.concurrent.CompletionException if the underlying store's {@code
+   *     saveConfiguration} completes exceptionally
    */
   public void setConfiguration(@NotNull ConfigurationType config) {
     if (inSetConfiguration.get()) {
