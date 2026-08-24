@@ -43,13 +43,7 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
     this.objectMapper = objectMapper;
   }
 
-  /**
-   * Creates a new {@link ObjectMapper} configured with Eppo's custom deserializers.
-   *
-   * <p>Useful for test code or other scenarios that need to deserialize Eppo types (e.g., {@link
-   * cloud.eppo.api.EppoValue}) without constructing a full parser instance.
-   */
-  public static ObjectMapper createDefaultObjectMapper() {
+  private static ObjectMapper createDefaultObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(EppoModule.eppoModule());
     return mapper;
