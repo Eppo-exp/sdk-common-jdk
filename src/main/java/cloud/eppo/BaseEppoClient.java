@@ -29,10 +29,6 @@ import org.slf4j.LoggerFactory;
 public class BaseEppoClient<ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
-  /** Guards against re-entrant calls to {@link #setConfiguration} from within a subscriber. */
-  private static final ThreadLocal<Boolean> inSetConfiguration =
-      ThreadLocal.withInitial(() -> false);
-
   protected final ConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final AssignmentLogger assignmentLogger;
@@ -825,8 +821,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * threads have an unspecified winner; callers must coordinate externally if ordering matters.
    *
    * <p><strong>Subscriber re-entrancy:</strong> subscribers must not call {@code setConfiguration}
-   * from within their callback. Re-entrant calls are silently dropped to prevent infinite
-   * recursion.
+   * from within their callback. Re-entrant calls are detected by the store and silently dropped.
    *
    * <p>If {@code config} is {@code null} and graceful mode is enabled the call is silently ignored.
    * If {@code config} is {@code null} and graceful mode is disabled an {@link
@@ -840,10 +835,6 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    */
   @org.jetbrains.annotations.ApiStatus.Experimental
   public void setConfiguration(@Nullable ConfigurationType config) {
-    if (inSetConfiguration.get()) {
-      log.debug("setConfiguration called re-entrantly from a subscriber; ignoring");
-      return;
-    }
     if (config == null) {
       if (!isGracefulMode) {
         throw new IllegalArgumentException("config must not be null");
@@ -851,7 +842,6 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
       log.debug("setConfiguration called with null config in graceful mode; ignoring");
       return;
     }
-    inSetConfiguration.set(true);
     try {
       configurationStore.saveConfiguration(config).join();
     } catch (Exception e) {
@@ -859,8 +849,6 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
         throw e;
       }
       log.error("setConfiguration store failure in graceful mode; ignoring", e);
-    } finally {
-      inSetConfiguration.remove();
     }
   }
 
