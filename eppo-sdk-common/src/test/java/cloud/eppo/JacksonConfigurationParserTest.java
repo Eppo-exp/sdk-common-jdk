@@ -3,16 +3,21 @@ package cloud.eppo;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
+import cloud.eppo.api.EppoValue;
 import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
 import cloud.eppo.parser.ConfigurationParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,6 +123,33 @@ public class JacksonConfigurationParserTest {
 
     assertNotNull(response.getBanditReferences());
     assertThat(response.getBanditReferences()).isNotEmpty();
+  }
+
+  @Test
+  public void testCreateDefaultObjectMapper_deserializesEppoValueTypes() throws Exception {
+    ObjectMapper mapper = JacksonConfigurationParser.createDefaultObjectMapper();
+
+    EppoValue boolVal = mapper.convertValue(mapper.valueToTree(true), EppoValue.class);
+    assertTrue(boolVal.booleanValue());
+
+    EppoValue numVal = mapper.convertValue(mapper.valueToTree(3.14), EppoValue.class);
+    assertEquals(3.14, numVal.doubleValue(), 0.001);
+
+    EppoValue strVal = mapper.convertValue(mapper.valueToTree("hello"), EppoValue.class);
+    assertEquals("hello", strVal.stringValue());
+
+    List<String> list = Arrays.asList("a", "b");
+    EppoValue arrVal = mapper.convertValue(mapper.valueToTree(list), EppoValue.class);
+    assertEquals(list, arrVal.stringArrayValue());
+  }
+
+  @Test
+  public void testCreateDefaultObjectMapper_nullNodeReturnsJavaNull() throws Exception {
+    // Jackson short-circuits null tokens before invoking deserializers, so convertValue of a
+    // NullNode returns Java null rather than EppoValue.nullValue().
+    ObjectMapper mapper = JacksonConfigurationParser.createDefaultObjectMapper();
+    EppoValue result = mapper.convertValue(NullNode.getInstance(), EppoValue.class);
+    assertNull(result);
   }
 
   private byte[] loadTestResource(String relativePath) throws IOException {
