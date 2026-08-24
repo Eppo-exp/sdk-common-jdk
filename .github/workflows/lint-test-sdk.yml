@@ -50,5 +50,14 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Stagger GCF requests across matrix jobs
+        run: |
+          case "${{ matrix.java-version }}" in
+            8)  sleep 0  ;;
+            11) sleep 5  ;;
+            17) sleep 10 ;;
+            21) sleep 15 ;;
+          esac
+
       - name: Run tests
         run: make test branchName=${TEST_DATA_BRANCH}

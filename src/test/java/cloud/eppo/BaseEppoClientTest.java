@@ -186,9 +186,14 @@ public class BaseEppoClientTest {
 
   @BeforeEach
   public void setUp() {
-    // Use real OkHttpEppoClient by default for integration tests that fetch real test data
-    // Individual tests can override with a mock if needed
-    mockConfigClient = new OkHttpEppoClient();
+    // Use real OkHttpEppoClient with a longer timeout to reduce GCF flakiness.
+    // Individual tests can override with a mock if needed.
+    mockConfigClient =
+        new OkHttpEppoClient(
+            new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build());
   }
 
   @ParameterizedTest
