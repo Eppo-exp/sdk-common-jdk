@@ -5,6 +5,7 @@ import cloud.eppo.http.EppoConfigurationRequest.HttpMethod;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>This factory encapsulates the logic for constructing requests for fetching flag configurations
  * and bandit parameters from the Eppo API.
  */
+@ApiStatus.Internal
 public class EppoConfigurationRequestFactory {
 
   private final String baseUrl;
