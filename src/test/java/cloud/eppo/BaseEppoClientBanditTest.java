@@ -82,7 +82,11 @@ public class BaseEppoClientBanditTest {
             new ExpiringInMemoryAssignmentCache(
                 banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {},
             parser,
-            new OkHttpEppoClient());
+            new OkHttpEppoClient(
+                new okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()));
 
     eppoClient.loadConfiguration();
 

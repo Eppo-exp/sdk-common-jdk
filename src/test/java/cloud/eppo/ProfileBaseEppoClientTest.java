@@ -53,7 +53,11 @@ public class ProfileBaseEppoClientTest {
             null,
             null,
             parser,
-            new OkHttpEppoClient());
+            new OkHttpEppoClient(
+                new okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()));
 
     eppoClient.loadConfiguration();
 

@@ -23,7 +23,7 @@ plugins {
 apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
-version = '0.1.0'
+version = '0.1.0-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 // Set base archives name to match published artifactId so Gradle can resolve project(':') references

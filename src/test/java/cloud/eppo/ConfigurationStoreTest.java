@@ -172,4 +172,37 @@ public class ConfigurationStoreTest {
 
     assertEquals(1, received.size(), "Subscribers must be notified after persist completes");
   }
+
+  @Test
+  void testReentrantSaveFromSubscriberOnAsyncCompletingThreadIsIgnored()
+      throws InterruptedException {
+    ControllableStore store = new ControllableStore();
+    java.util.concurrent.atomic.AtomicInteger notificationCount =
+        new java.util.concurrent.atomic.AtomicInteger(0);
+    java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+
+    store.subscribe(
+        config -> {
+          int count = notificationCount.incrementAndGet();
+          if (count == 1) {
+            // Re-entrant save from the completing thread — must not recurse
+            store.saveConfiguration(Configuration.emptyConfig());
+            done.countDown();
+          }
+        });
+
+    // Use an async persist so thenRun fires on a different thread
+    CompletableFuture<Void> asyncPersist = new CompletableFuture<>();
+    store.setPersistFuture(asyncPersist);
+
+    store.saveConfiguration(Configuration.emptyConfig());
+
+    // Complete persist on a separate thread
+    new Thread(() -> asyncPersist.complete(null)).start();
+
+    assertTrue(
+        done.await(2, java.util.concurrent.TimeUnit.SECONDS), "subscriber should have been called");
+    assertEquals(
+        1, notificationCount.get(), "re-entrant save must not trigger a second notification");
+  }
 }

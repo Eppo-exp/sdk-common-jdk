@@ -36,11 +36,11 @@ jobs:
       - name: Download test data
         run: make test-data
 
-      - name: Test
-        run: ./gradlew check
-
       - name: Verify JReleaser
         run: ./gradlew jreleaserConfig
+
+      - name: Test
+        run: ./gradlew check
 
       - name: Stage artifacts
         run: ./gradlew clean publish -Psnapshot

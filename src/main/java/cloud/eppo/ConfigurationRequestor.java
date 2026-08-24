@@ -166,8 +166,10 @@ public class ConfigurationRequestor<
 
   private boolean needsFreshBandits(FlagConfigResponse flagResponse, ConfigurationType lastConfig) {
     if (!supportBandits) return false;
-    if (flagResponse.getBanditReferences() == null || flagResponse.getBanditReferences().isEmpty())
+    if (flagResponse.getBanditReferences() == null
+        || flagResponse.getBanditReferences().isEmpty()) {
       return false;
+    }
     return flagResponse.getBanditReferences().entrySet().stream()
         .anyMatch(
             entry -> {

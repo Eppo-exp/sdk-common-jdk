@@ -801,6 +801,58 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
+   * Experimental API: pushes {@code config} as the active configuration without triggering a remote
+   * fetch. Intended for extraordinary use cases — testing, warm-start from an external cache, or
+   * offline scenarios. For normal SDK initialization use the {@code initialConfiguration} parameter
+   * on the client builder or rely on the automatic fetch-on-init behaviour; this method is not a
+   * replacement for those paths.
+   *
+   * <p>The call is synchronous: it blocks until the store's {@code saveConfiguration} future
+   * completes. For {@link AbstractConfigurationStore} subclasses this guarantees that all
+   * registered {@link #onConfigurationChange(Consumer)} subscribers have been notified before this
+   * method returns, because notification is chained onto the persist future via {@code thenRun}.
+   * Custom {@link IConfigurationStore} implementations are only required to update the stored value
+   * before notifying; they may dispatch callbacks asynchronously, in which case subscribers may run
+   * on the store's completing thread rather than the caller's thread.
+   *
+   * <p><strong>Last-write-wins:</strong> any source — a completing remote fetch, a pending
+   * initial-configuration future, or another call to this method — that writes to the store after
+   * this call will overwrite the configuration supplied here. Concurrent calls from multiple
+   * threads have an unspecified winner; callers must coordinate externally if ordering matters.
+   *
+   * <p><strong>Subscriber re-entrancy:</strong> subscribers must not call {@code setConfiguration}
+   * from within their callback. Re-entrant calls are detected by the store and silently dropped.
+   *
+   * <p>If {@code config} is {@code null} and graceful mode is enabled the call is silently ignored.
+   * If {@code config} is {@code null} and graceful mode is disabled an {@link
+   * IllegalArgumentException} is thrown.
+   *
+   * @param config the configuration to apply, or {@code null} (see graceful-mode behaviour above)
+   * @throws IllegalArgumentException if {@code config} is {@code null} and graceful mode is
+   *     disabled
+   * @throws java.util.concurrent.CompletionException if the store's {@code saveConfiguration}
+   *     completes exceptionally
+   */
+  @org.jetbrains.annotations.ApiStatus.Experimental
+  public void setConfiguration(@Nullable ConfigurationType config) {
+    if (config == null) {
+      if (!isGracefulMode) {
+        throw new IllegalArgumentException("config must not be null");
+      }
+      log.debug("setConfiguration called with null config in graceful mode; ignoring");
+      return;
+    }
+    try {
+      configurationStore.saveConfiguration(config).join();
+    } catch (Exception e) {
+      if (!isGracefulMode) {
+        throw e;
+      }
+      log.error("setConfiguration store failure in graceful mode; ignoring", e);
+    }
+  }
+
+  /**
    * Returns the configuration object used by the EppoClient for assignment and bandit evaluation.
    *
    * <p>The configuration object is for debugging (inspect the loaded config) and other advanced use

@@ -5,6 +5,8 @@ import cloud.eppo.callback.CallbackManager;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Convenience base class for {@link IConfigurationStore} implementations.
@@ -38,6 +40,10 @@ public abstract class AbstractConfigurationStore<
         ConfigurationType extends SerializableEppoConfiguration>
     implements IConfigurationStore<ConfigurationType> {
 
+  private static final Logger log = LoggerFactory.getLogger(AbstractConfigurationStore.class);
+
+  private static final ThreadLocal<Boolean> inNotification = ThreadLocal.withInitial(() -> false);
+
   private final CallbackManager<ConfigurationType> callbackManager = new CallbackManager<>();
 
   /**
@@ -49,11 +55,20 @@ public abstract class AbstractConfigurationStore<
    */
   @Override
   public final CompletableFuture<Void> saveConfiguration(@NotNull ConfigurationType configuration) {
+    if (Boolean.TRUE.equals(inNotification.get())) {
+      log.debug("saveConfiguration called re-entrantly during notification; ignoring");
+      return CompletableFuture.completedFuture(null);
+    }
     return persist(configuration)
         .thenRun(
             () -> {
-              synchronized (callbackManager) {
-                callbackManager.notifyCallbacks(configuration);
+              inNotification.set(true);
+              try {
+                synchronized (callbackManager) {
+                  callbackManager.notifyCallbacks(configuration);
+                }
+              } finally {
+                inNotification.remove();
               }
             });
   }
