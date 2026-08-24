@@ -26,7 +26,11 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
 
   private final ObjectMapper objectMapper;
 
-  /** Creates a new parser with the default ObjectMapper configuration. */
+  /**
+   * Creates a new parser with the default ObjectMapper configuration.
+   *
+   * @see #createDefaultObjectMapper()
+   */
   public JacksonConfigurationParser() {
     this(createDefaultObjectMapper());
   }
@@ -48,6 +52,13 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
    *
    * <p>Useful for test code or other scenarios that need to deserialize Eppo types (e.g., {@link
    * cloud.eppo.api.EppoValue}) without constructing a full parser instance.
+   *
+   * <p><b>Null behavior:</b> Jackson short-circuits null JSON tokens before invoking registered
+   * deserializers, so {@code mapper.convertValue(NullNode.getInstance(), EppoValue.class)} and
+   * {@code mapper.treeToValue(NullNode.getInstance(), EppoValue.class)} both return Java {@code
+   * null} rather than {@link cloud.eppo.api.EppoValue#nullValue()}. Callers that need a non-null
+   * result for null JSON nodes must guard explicitly, e.g. {@code result != null ? result :
+   * EppoValue.nullValue()}.
    */
   public static ObjectMapper createDefaultObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
