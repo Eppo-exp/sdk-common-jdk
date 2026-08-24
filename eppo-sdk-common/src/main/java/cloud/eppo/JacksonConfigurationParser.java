@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
    * result for null JSON nodes must guard explicitly, e.g. {@code result != null ? result :
    * EppoValue.nullValue()}.
    */
+  @VisibleForTesting
   public static ObjectMapper createDefaultObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(EppoModule.eppoModule());
