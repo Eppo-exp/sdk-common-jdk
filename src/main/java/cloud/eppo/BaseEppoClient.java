@@ -811,8 +811,13 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * on the client builder or rely on the automatic fetch-on-init behaviour; this method is not a
    * replacement for those paths.
    *
-   * <p>The call is synchronous: it blocks until the store has persisted the new configuration and
-   * all registered {@link #onConfigurationChange(Consumer)} subscribers have been notified.
+   * <p>The call is synchronous: it blocks until the store's {@code saveConfiguration} future
+   * completes. For {@link AbstractConfigurationStore} subclasses this guarantees that all
+   * registered {@link #onConfigurationChange(Consumer)} subscribers have been notified before this
+   * method returns, because notification is chained onto the persist future via {@code thenRun}.
+   * Custom {@link IConfigurationStore} implementations are only required to update the stored value
+   * before notifying; they may dispatch callbacks asynchronously, in which case subscribers may run
+   * on the store's completing thread rather than the caller's thread.
    *
    * <p><strong>Last-write-wins:</strong> any source — a completing remote fetch, a pending
    * initial-configuration future, or another call to this method — that writes to the store after
