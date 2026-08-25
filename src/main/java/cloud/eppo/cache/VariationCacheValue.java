@@ -1,7 +1,9 @@
 package cloud.eppo.cache;
 
 import java.util.Objects;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.Internal
 public class VariationCacheValue implements AssignmentCacheValue {
   private final String allocationKey;
   private final String variationKey;

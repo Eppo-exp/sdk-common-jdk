@@ -2,9 +2,11 @@ package cloud.eppo;
 
 import cloud.eppo.api.Configuration;
 import java.util.concurrent.CompletableFuture;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /** Memory-only configuration store. */
+@ApiStatus.Internal
 public class MemoryOnlyConfigurationStore extends AbstractConfigurationStore<Configuration> {
 
   // this is the fallback value if no configuration is provided (i.e. by fetch or initial config).
