@@ -27,10 +27,9 @@ public class EppoValueSerializer extends StdSerializer<EppoValue> {
       jgen.writeString(src.stringValue());
     } else if (src.isStringArray()) {
       List<String> list = src.stringArrayValue();
-      // Defense in depth: valueOf(List) normalizes null to nullValue(), but protected
-      // constructors are callable from subclasses and Java deserialization bypasses
-      // constructors entirely, so an ARRAY_OF_STRING-typed value with a null payload
-      // remains reachable.
+      // Defense in depth: constructors normalize a null payload to NULL type, but Java
+      // deserialization bypasses constructors, so an ARRAY_OF_STRING-typed value with a
+      // null payload can still arrive from a Configuration serialized by a pre-fix SDK.
       if (list == null) {
         jgen.writeNull();
       } else {

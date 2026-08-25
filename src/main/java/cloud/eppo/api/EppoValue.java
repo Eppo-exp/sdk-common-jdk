@@ -32,12 +32,12 @@ public class EppoValue implements Serializable {
 
   protected EppoValue(String stringValue) {
     this.stringValue = stringValue;
-    this.type = EppoValueType.STRING;
+    this.type = stringValue == null ? EppoValueType.NULL : EppoValueType.STRING;
   }
 
   protected EppoValue(List<String> stringArrayValue) {
     this.stringArrayValue = stringArrayValue;
-    this.type = EppoValueType.ARRAY_OF_STRING;
+    this.type = stringArrayValue == null ? EppoValueType.NULL : EppoValueType.ARRAY_OF_STRING;
   }
 
   public static EppoValue nullValue() {
@@ -52,13 +52,13 @@ public class EppoValue implements Serializable {
     return new EppoValue(doubleValue);
   }
 
+  /** Returns {@link #nullValue()} if {@code stringValue} is null. */
   public static EppoValue valueOf(String stringValue) {
-    if (stringValue == null) return nullValue();
     return new EppoValue(stringValue);
   }
 
+  /** Returns {@link #nullValue()} if {@code value} is null. */
   public static EppoValue valueOf(List<String> value) {
-    if (value == null) return nullValue();
     return new EppoValue(value);
   }
 
