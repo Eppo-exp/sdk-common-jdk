@@ -25,8 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.ApiStatus;
 
-class FlagEvaluator {
+@ApiStatus.Internal
+public class FlagEvaluator {
 
   /**
    * Evaluates a flag and returns detailed evaluation information including allocation statuses,
