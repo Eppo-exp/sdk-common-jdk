@@ -25,6 +25,11 @@ public class EppoValueDeserializer extends StdDeserializer<EppoValue> {
   }
 
   @Override
+  public EppoValue getNullValue(DeserializationContext ctxt) {
+    return EppoValue.nullValue();
+  }
+
+  @Override
   public EppoValue deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
     return deserializeNode(jp.getCodec().readTree(jp));
   }
