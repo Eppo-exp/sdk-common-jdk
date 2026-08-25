@@ -2,7 +2,6 @@ package cloud.eppo;
 
 import static cloud.eppo.Constants.DEFAULT_BASE_URL;
 
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,8 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * Utility class for constructing Eppo API base URL. Determines the effective base URL considering
  * baseUrl, subdomain from SDK token, and defaultUrl in that order.
  */
-@ApiStatus.Internal
-public class ApiEndpoints {
+class ApiEndpoints {
 
   private final SDKKey sdkKey;
   private final String baseUrl;

@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,8 +13,7 @@ import org.slf4j.LoggerFactory;
  * Wrapper for an SDK key; built from the SDK Key token string, this class extracts encoded fields,
  * such as the customer-specific service gateway subdomain
  */
-@ApiStatus.Internal
-public class SDKKey {
+class SDKKey {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
   private final String sdkTokenString;

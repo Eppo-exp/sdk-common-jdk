@@ -12,12 +12,10 @@ import cloud.eppo.api.dto.BanditModelData;
 import cloud.eppo.api.dto.BanditNumericAttributeCoefficients;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ApiStatus.Internal
-public class BanditEvaluator {
+class BanditEvaluator {
   private static final Logger logger = LoggerFactory.getLogger(BanditEvaluator.class);
   private static final int BANDIT_ASSIGNMENT_SHARDS = 10000; // hard-coded for now
 

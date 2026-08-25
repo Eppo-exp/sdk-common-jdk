@@ -2,10 +2,8 @@ package cloud.eppo;
 
 import cloud.eppo.api.DiscriminableAttributes;
 import java.util.Objects;
-import org.jetbrains.annotations.ApiStatus;
 
-@ApiStatus.Internal
-public class BanditEvaluationResult {
+class BanditEvaluationResult {
 
   private final String flagKey;
   private final String subjectKey;

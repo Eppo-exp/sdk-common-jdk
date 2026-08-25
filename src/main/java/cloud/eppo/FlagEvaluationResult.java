@@ -5,11 +5,9 @@ import cloud.eppo.api.dto.Variation;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
-import org.jetbrains.annotations.ApiStatus;
 
 /** Flag evaluation result that includes detailed evaluation information. */
-@ApiStatus.Internal
-public class FlagEvaluationResult {
+class FlagEvaluationResult {
 
   private final String flagKey;
   private final String subjectKey;

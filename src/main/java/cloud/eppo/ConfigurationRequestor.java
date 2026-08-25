@@ -11,13 +11,11 @@ import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ApiStatus.Internal
-public class ConfigurationRequestor<
+class ConfigurationRequestor<
     ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
