@@ -5,9 +5,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
-import org.jetbrains.annotations.ApiStatus;
 
-@ApiStatus.Internal
 public class ExpiringInMemoryAssignmentCache extends AbstractAssignmentCache {
   public ExpiringInMemoryAssignmentCache(int cacheTimeout, TimeUnit timeUnit) {
     super(Collections.synchronizedMap(new PassiveExpiringMap<>(cacheTimeout, timeUnit)));
