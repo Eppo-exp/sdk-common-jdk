@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -100,5 +101,19 @@ public class EppoValueSerializerTest {
     String json = mapper.writeValueAsString(value);
 
     assertEquals("null", json);
+  }
+
+  // Simulates a legacy instance where type=ARRAY_OF_STRING but payload is null —
+  // reachable via Java deserialization of a Configuration cached by a pre-fix SDK,
+  // which bypasses constructors.
+  private static class NullBackedArray extends EppoValue {
+    NullBackedArray() {
+      super((List<String>) null);
+    }
+  }
+
+  @Test
+  public void testSerializeNullBackedStringArray() throws JsonProcessingException {
+    assertEquals("null", mapper.writeValueAsString(new NullBackedArray()));
   }
 }

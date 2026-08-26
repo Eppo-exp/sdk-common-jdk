@@ -312,7 +312,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
       String errorDescription =
           String.format(
               "Variation (%s) is configured for type %s, but is set to incompatible value (%s)",
-              variationKey, expectedType, assignedValue.doubleValue());
+              variationKey, expectedType, assignedValue);
 
       return EvaluationDetails.builder(evaluationDetails)
           .flagEvaluationCode(
