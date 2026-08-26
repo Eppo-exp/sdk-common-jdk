@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class BaseEppoClient<ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
-  protected final ConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
+  final ConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
