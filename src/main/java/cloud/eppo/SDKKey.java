@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * such as the customer-specific service gateway subdomain
  */
 class SDKKey {
-  private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
+  private static final Logger log = LoggerFactory.getLogger(SDKKey.class);
 
   private final String sdkTokenString;
   private final Map<String, String> decodedParams;

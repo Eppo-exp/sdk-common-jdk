@@ -1,9 +1,7 @@
 package cloud.eppo.cache;
 
 import java.util.Objects;
-import org.jetbrains.annotations.ApiStatus;
 
-@ApiStatus.Internal
 public class BanditCacheValue implements AssignmentCacheValue {
   private final String banditKey;
   private final String actionKey;
