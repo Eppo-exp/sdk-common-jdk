@@ -43,8 +43,8 @@ dependencies {
   implementation 'com.github.zafarkhaja:java-semver:0.10.2'
   // For LRU and expiring maps
   implementation 'org.apache.commons:commons-collections4:4.5.0'
-  implementation 'org.slf4j:slf4j-api:2.0.17'
-  testImplementation 'org.slf4j:slf4j-simple:2.0.17'
+  implementation 'org.slf4j:slf4j-api:2.0.18'
+  testImplementation 'org.slf4j:slf4j-simple:2.0.18'
   testImplementation platform('org.junit:junit-bom:5.14.3')
   testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
   testImplementation 'org.junit.jupiter:junit-jupiter'
