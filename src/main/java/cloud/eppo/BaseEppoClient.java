@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class BaseEppoClient<ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
-  final IConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
+  final ConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
@@ -89,7 +89,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
             effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
 
     requestor =
-        new ConfigurationRequestor<>(
+        new EppoConfigurationRequestor<>(
             this.configurationStore,
             supportBandits,
             configurationParser,
