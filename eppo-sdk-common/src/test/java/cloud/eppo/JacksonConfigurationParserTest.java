@@ -144,12 +144,12 @@ public class JacksonConfigurationParserTest {
   }
 
   @Test
-  public void testCreateDefaultObjectMapper_nullNodeReturnsJavaNull() throws Exception {
-    // Jackson short-circuits null tokens before invoking deserializers, so convertValue of a
-    // NullNode returns Java null rather than EppoValue.nullValue().
+  public void testCreateDefaultObjectMapper_nullNodeReturnsNullValue() throws Exception {
+    // getNullValue() override ensures Jackson null tokens round-trip to EppoValue.nullValue()
+    // rather than Java null.
     ObjectMapper mapper = JacksonConfigurationParser.createDefaultObjectMapper();
     EppoValue result = mapper.convertValue(NullNode.getInstance(), EppoValue.class);
-    assertNull(result);
+    assertEquals(EppoValue.nullValue(), result);
   }
 
   private byte[] loadTestResource(String relativePath) throws IOException {

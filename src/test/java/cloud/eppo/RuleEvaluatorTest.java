@@ -273,4 +273,22 @@ public class RuleEvaluatorTest {
     assertEquals(
         targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
   }
+
+  @Test
+  public void testNullStringAttributeMatchesIsNull() {
+    Set<TargetingRule> targetingRules = new HashSet<>();
+    TargetingRule targetingRule =
+        createRule(
+            new HashSet<>(
+                Collections.singletonList(
+                    new TargetingCondition.Default(
+                        OperatorType.IS_NULL, "plan", EppoValue.valueOf(true)))));
+    targetingRules.add(targetingRule);
+
+    Attributes subjectAttributes = new Attributes();
+    subjectAttributes.put("plan", (String) null);
+
+    assertEquals(
+        targetingRule, RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules, false));
+  }
 }
