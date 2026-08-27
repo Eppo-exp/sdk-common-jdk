@@ -15,8 +15,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ConfigurationRequestor<
-    ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
+class ConfigurationRequestor<ConfigurationType extends SerializableEppoConfiguration, JsonFlagType>
+    implements IConfigurationRequestor<ConfigurationType, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationRequestor.class);
 
   private final IConfigurationStore<ConfigurationType> configurationStore;
@@ -45,6 +45,7 @@ class ConfigurationRequestor<
   }
 
   // Synchronously set initial configuration.
+  @Override
   public void setInitialConfiguration(@NotNull ConfigurationType configuration) {
     if (initialConfigSet || this.configurationFuture != null) {
       throw new IllegalStateException("Initial configuration has already been set");
@@ -59,6 +60,7 @@ class ConfigurationRequestor<
    * configuration was used, false if not (due to being empty, a fetched config taking precedence,
    * etc.)
    */
+  @Override
   public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<ConfigurationType> configurationFuture) {
     if (initialConfigSet || this.configurationFuture != null) {
@@ -98,7 +100,8 @@ class ConfigurationRequestor<
   }
 
   /** Loads configuration synchronously from the API server. */
-  void fetchAndSaveFromRemote() {
+  @Override
+  public void fetchAndSaveFromRemote() {
     log.debug("Fetching configuration");
 
     // Reuse the lastConfig as its bandits may be useful
@@ -180,7 +183,8 @@ class ConfigurationRequestor<
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
-  CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
+  @Override
+  public CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
     log.debug("Fetching configuration from API server");
     final ConfigurationType lastConfig = configurationStore.getConfiguration();
 
