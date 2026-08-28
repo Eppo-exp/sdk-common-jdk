@@ -89,7 +89,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
             effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
 
     requestor =
-        new EppoConfigurationRequestor<>(
+        new ConfigurationRequestor<>(
             this.configurationStore,
             supportBandits,
             configurationParser,

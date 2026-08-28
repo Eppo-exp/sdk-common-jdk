@@ -192,8 +192,8 @@ public class GenericConfigurationPipelineTest {
             "https://test.eppo.cloud", "test-api-key", "java", "1.0.0");
   }
 
-  private EppoConfigurationRequestor<StubConfig, String> createRequestor(boolean supportBandits) {
-    return new EppoConfigurationRequestor<>(
+  private ConfigurationRequestor<StubConfig, String> createRequestor(boolean supportBandits) {
+    return new ConfigurationRequestor<>(
         configStore, supportBandits, stubParser, mockConfigClient, requestFactory);
   }
 
@@ -211,7 +211,7 @@ public class GenericConfigurationPipelineTest {
   @Test
   void testBuildConfigIsCalledOnFetch() {
     stubSuccessResponse("stub-flags-body", "etag-1");
-    EppoConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
+    ConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
 
     requestor.fetchAndSaveFromRemote();
 
@@ -226,7 +226,7 @@ public class GenericConfigurationPipelineTest {
   @Test
   void testSnapshotIdPassedThroughToBuildConfig() {
     stubSuccessResponse("{}", "my-etag-v2");
-    EppoConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
+    ConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
 
     requestor.fetchAndSaveFromRemote();
 
@@ -254,8 +254,8 @@ public class GenericConfigurationPipelineTest {
           }
         };
 
-    EppoConfigurationRequestor<StubConfig, String> requestor =
-        new EppoConfigurationRequestor<>(
+    ConfigurationRequestor<StubConfig, String> requestor =
+        new ConfigurationRequestor<>(
             configStore, false, trackingParser, mockConfigClient, requestFactory);
 
     EppoConfigurationResponse first =
@@ -281,7 +281,7 @@ public class GenericConfigurationPipelineTest {
     // No bandit references in the parsed response → no bandit fetch
     stubSuccessResponse("{}", "v1");
     stubParser.banditReferences = Collections.emptyMap();
-    EppoConfigurationRequestor<StubConfig, String> requestor = createRequestor(true);
+    ConfigurationRequestor<StubConfig, String> requestor = createRequestor(true);
 
     requestor.fetchAndSaveFromRemote();
 
@@ -304,7 +304,7 @@ public class GenericConfigurationPipelineTest {
     // Simulate a flag response that references a bandit model not yet loaded
     BanditReference ref = new BanditReference.Default("v1", Collections.emptyList());
     stubParser.banditReferences = Collections.singletonMap("test-bandit", ref);
-    EppoConfigurationRequestor<StubConfig, String> requestor = createRequestor(true);
+    ConfigurationRequestor<StubConfig, String> requestor = createRequestor(true);
 
     requestor.fetchAndSaveFromRemote();
 
@@ -318,7 +318,7 @@ public class GenericConfigurationPipelineTest {
     stubSuccessResponse("{}", "v1");
     BanditReference ref = new BanditReference.Default("v1", Collections.emptyList());
     stubParser.banditReferences = Collections.singletonMap("test-bandit", ref);
-    EppoConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
+    ConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
 
     requestor.fetchAndSaveFromRemote();
 
@@ -330,7 +330,7 @@ public class GenericConfigurationPipelineTest {
   @Test
   void testAsyncFetchCallsBuildConfig() {
     stubSuccessResponse("async-body", "async-etag");
-    EppoConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
+    ConfigurationRequestor<StubConfig, String> requestor = createRequestor(false);
 
     requestor.fetchAndSaveFromRemoteAsync().join();
 
