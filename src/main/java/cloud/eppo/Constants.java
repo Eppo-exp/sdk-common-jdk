@@ -1,6 +1,9 @@
 package cloud.eppo;
 
+import org.jetbrains.annotations.ApiStatus;
+
 /** Constants Class */
+@ApiStatus.Internal
 public class Constants {
   /** API Endpoint Settings */
   public static final String BANDIT_ENDPOINT = "/flag-config/v1/bandits";

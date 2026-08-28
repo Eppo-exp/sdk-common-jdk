@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.IOException;
 import java.util.List;
 
-public class EppoValueSerializer extends StdSerializer<EppoValue> {
+class EppoValueSerializer extends StdSerializer<EppoValue> {
   protected EppoValueSerializer(Class<EppoValue> t) {
     super(t);
   }

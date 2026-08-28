@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * Utility class for constructing Eppo API base URL. Determines the effective base URL considering
  * baseUrl, subdomain from SDK token, and defaultUrl in that order.
  */
-public class ApiEndpoints {
+class ApiEndpoints {
 
   private final SDKKey sdkKey;
   private final String baseUrl;

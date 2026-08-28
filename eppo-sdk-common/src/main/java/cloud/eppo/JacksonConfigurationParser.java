@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +38,8 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
   /**
    * Creates a new parser with a custom ObjectMapper.
    *
-   * <p>Note: The provided ObjectMapper must be configured with {@link EppoModule#eppoModule()} for
-   * proper deserialization of Eppo configuration types.
+   * <p>The provided ObjectMapper must be configured with Eppo's custom deserializers. Use {@link
+   * #createDefaultObjectMapper()} to obtain a correctly configured instance.
    *
    * @param objectMapper the ObjectMapper instance to use
    */
@@ -51,17 +50,10 @@ public class JacksonConfigurationParser implements ConfigurationParser<Configura
   /**
    * Creates a new {@link ObjectMapper} configured with Eppo's custom deserializers.
    *
-   * <p>Useful for test code or other scenarios that need to deserialize Eppo types (e.g., {@link
-   * cloud.eppo.api.EppoValue}) without constructing a full parser instance.
-   *
-   * <p><b>Null behavior:</b> Jackson short-circuits null JSON tokens before invoking registered
-   * deserializers, so {@code mapper.convertValue(NullNode.getInstance(), EppoValue.class)} and
-   * {@code mapper.treeToValue(NullNode.getInstance(), EppoValue.class)} both return Java {@code
-   * null} rather than {@link cloud.eppo.api.EppoValue#nullValue()}. Callers that need a non-null
-   * result for null JSON nodes must guard explicitly, e.g. {@code result != null ? result :
-   * EppoValue.nullValue()}.
+   * <p>Use this when you need to deserialize Eppo types (e.g., {@link cloud.eppo.api.EppoValue})
+   * outside of a full parser instance, such as in custom {@link
+   * cloud.eppo.http.EppoConfigurationClient} implementations.
    */
-  @VisibleForTesting
   public static ObjectMapper createDefaultObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(EppoModule.eppoModule());
