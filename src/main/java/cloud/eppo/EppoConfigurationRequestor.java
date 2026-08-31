@@ -118,7 +118,7 @@ class EppoConfigurationRequestor<
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     } catch (ExecutionException e) {
-      log.error("Config fetch interrupted", e);
+      log.error("Config fetch failed", e);
       throw new RuntimeException(e);
     }
 
