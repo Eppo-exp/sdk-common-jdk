@@ -46,7 +46,7 @@ dependencies {
   implementation 'org.slf4j:slf4j-api:2.0.18'
   testImplementation 'org.slf4j:slf4j-simple:2.0.18'
   testImplementation platform('org.junit:junit-bom:5.14.3')
-  testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+  testImplementation("com.squareup.okhttp3:mockwebserver:5.5.0")
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   testImplementation 'org.skyscreamer:jsonassert:1.5.3'
@@ -58,7 +58,7 @@ dependencies {
   testImplementation 'net.bytebuddy:byte-buddy:1.18.12' // Use the latest available version
   testImplementation 'org.mockito:mockito-inline:4.11.0'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
-  testImplementation "com.squareup.okhttp3:okhttp:4.12.0"
+  testImplementation "com.squareup.okhttp3:okhttp:5.5.0"
 
   // Use common http/parser implementations in tests.
   testImplementation project(':eppo-sdk-common')
