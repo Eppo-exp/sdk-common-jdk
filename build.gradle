@@ -57,7 +57,7 @@ dependencies {
   }
   testImplementation 'net.bytebuddy:byte-buddy:1.18.12' // Use the latest available version
   testImplementation 'org.mockito:mockito-inline:4.11.0'
-  testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.21.0'
   testImplementation "com.squareup.okhttp3:okhttp:4.12.0"
 
   // Use common http/parser implementations in tests.
