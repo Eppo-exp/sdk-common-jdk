@@ -1,7 +1,7 @@
 # Eppo JVM common SDK
 
 [![Test and lint](https://github.com/Eppo-exp/sdk-common-jdk/actions/workflows/lint-test-sdk.yml/badge.svg)](https://github.com/Eppo-exp/sdk-common-jdk/actions/workflows/lint-test-sdk.yml)  
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/cloud.eppo/sdk-common-jvm/badge.svg)](https://maven-badges.herokuapp.com/maven-central/could.eppo/sdk-common-jvm)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/cloud.eppo/sdk-common-jvm/badge.svg)](https://maven-badges.herokuapp.com/maven-central/cloud.eppo/sdk-common-jvm)
 
 This is the common SDK for the Eppo JVM SDKs. It provides a set of classes and interfaces that are used by the SDKs to
 interact with the Eppo API. You should probably not use this library directly and instead use the [Android](https://github.com/Eppo-exp/android-sdk)
@@ -19,24 +19,38 @@ dependencies {
 
 ## Releasing a new version
 
-For publishing a release locally, follow the steps below.
+Releases are published to Maven Central via GitHub Actions. There are two artifacts, each with its own workflow:
 
-### Prerequisites
+| Artifact | artifactId | Workflow |
+|---|---|---|
+| Framework SDK | `eppo-sdk-framework` | `publish-framework.yml` |
+| Common SDK | `sdk-common-jvm` | `publish-common.yml` |
 
-1. [Generate a user token](https://central.sonatype.org/publish/generate-token/) on `s01.oss.sonatype.org`;
-2. [Configure a GPG key](https://central.sonatype.org/publish/requirements/gpg/) for signing the artifact. Don't forget to upload it to the key server;
-3. Make sure you have the following vars in your `~/.gradle/gradle.properties` file:
-   1. `ossrhUsername` - User token username for Sonatype generated in step 1
-   2. `ossrhPassword` - User token password for Sonatype generated in step 1
-   3. `signing.keyId` - GPG key ID generated in step 2
-   4. `signing.password` - GPG key password generated in step 2
-   5. `signing.secretKeyRingFile` - Path to GPG key file generated in step 2
+### Steps
 
-Once you have the prerequisites, follow the steps below to release a new version:
+> **Ordering requirement:** If releasing both artifacts, release `eppo-sdk-framework` first and confirm it is visible on Maven Central before triggering `publish-common.yml`. The `sdk-common-jvm` POM declares `eppo-sdk-framework` as a compile dependency; releasing common first leaves consumers with an unresolvable transitive dependency.
 
-1. Bump the project version in `build.gradle`
-2. Run `./gradlew publish`
-3. Follow the steps in [this page](https://central.sonatype.org/publish/release/#credentials) to promote your release
+1. Bump the version in the relevant `build.gradle` (root for framework, `eppo-sdk-common/build.gradle` for common) — drop the `-SNAPSHOT` suffix
+2. Merge the version bump to `main`
+3. Trigger the workflow via the GitHub UI or CLI:
+
+```bash
+# Release the Framework SDK (do this first if releasing both)
+gh workflow run publish-framework.yml --ref main --field version=0.1.0
+
+# Release the Common SDK
+gh workflow run publish-common.yml --ref main --field version=4.0.0
+```
+
+The workflow will:
+- Verify the version in `build.gradle` matches the input
+- Run all tests
+- Sign and publish the artifact to Maven Central
+- Create and push a tag (`eppo-sdk-framework-vN.N.N` or `sdk-common-jvm-vN.N.N`) on successful deploy
+
+4. After **both** artifacts are confirmed on Maven Central, bump `main` back to the next `-SNAPSHOT` version (e.g. `4.0.1-SNAPSHOT` / `0.1.1-SNAPSHOT`) so that snapshot publishing continues to work. Do not bump either version to SNAPSHOT until common has been released — the common POM embeds the framework version at publish time, and a SNAPSHOT framework version would produce a broken transitive dependency in the common release artifact.
+
+Monitor progress at [GitHub Actions](https://github.com/Eppo-exp/sdk-common-jdk/actions).
 
 ## Using Snapshots
 
@@ -79,7 +93,7 @@ To publish a snapshot from a branch that hasn't been merged to `main` yet (e.g.,
    - Build and sign artifacts
    - Deploy to Maven Central Snapshots
 
-3. Monitor the workflow at: [Actions > Publish SDK Snapshot](../../actions/workflows/publish-snapshot.yml)
+3. Monitor the workflow at: [Actions > Publish SDK Snapshot](https://github.com/Eppo-exp/sdk-common-jdk/actions/workflows/publish-snapshot.yml)
 
 4. Once published, use the snapshot in downstream projects by updating the version in `build.gradle`.
 
