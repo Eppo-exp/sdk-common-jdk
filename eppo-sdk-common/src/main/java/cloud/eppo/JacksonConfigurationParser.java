@@ -1,5 +1,6 @@
 package cloud.eppo;
 
+import cloud.eppo.api.Configuration;
 import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.parser.ConfigurationParseException;
@@ -9,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,12 +22,16 @@ import org.slf4j.LoggerFactory;
  * format. The deserializers are hand-rolled to avoid reliance on annotations and method names,
  * which can be unreliable when ProGuard minification is in use.
  */
-public class JacksonConfigurationParser implements ConfigurationParser<JsonNode> {
+public class JacksonConfigurationParser implements ConfigurationParser<Configuration, JsonNode> {
   private static final Logger log = LoggerFactory.getLogger(JacksonConfigurationParser.class);
 
   private final ObjectMapper objectMapper;
 
-  /** Creates a new parser with the default ObjectMapper configuration. */
+  /**
+   * Creates a new parser with the default ObjectMapper configuration.
+   *
+   * @see #createDefaultObjectMapper()
+   */
   public JacksonConfigurationParser() {
     this(createDefaultObjectMapper());
   }
@@ -41,24 +48,68 @@ public class JacksonConfigurationParser implements ConfigurationParser<JsonNode>
     this.objectMapper = objectMapper;
   }
 
-  private static ObjectMapper createDefaultObjectMapper() {
+  /**
+   * Creates a new {@link ObjectMapper} configured with Eppo's custom deserializers.
+   *
+   * <p>Useful for test code or other scenarios that need to deserialize Eppo types (e.g., {@link
+   * cloud.eppo.api.EppoValue}) without constructing a full parser instance.
+   *
+   * <p><b>Null behavior:</b> Jackson short-circuits null JSON tokens before invoking registered
+   * deserializers, so {@code mapper.convertValue(NullNode.getInstance(), EppoValue.class)} and
+   * {@code mapper.treeToValue(NullNode.getInstance(), EppoValue.class)} both return Java {@code
+   * null} rather than {@link cloud.eppo.api.EppoValue#nullValue()}. Callers that need a non-null
+   * result for null JSON nodes must guard explicitly, e.g. {@code result != null ? result :
+   * EppoValue.nullValue()}.
+   */
+  @VisibleForTesting
+  public static ObjectMapper createDefaultObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(EppoModule.eppoModule());
     return mapper;
   }
 
+  /** Parses raw flag configuration JSON bytes into a {@link FlagConfigResponse}. */
   @Override
-  public FlagConfigResponse parseFlagConfig(byte[] flagConfigJson)
+  @NotNull public FlagConfigResponse parseFlagConfig(@NotNull byte[] flagConfigBytes)
       throws ConfigurationParseException {
     try {
-      log.debug("Parsing flag configuration, {} bytes", flagConfigJson.length);
-      return objectMapper.readValue(flagConfigJson, FlagConfigResponse.class);
+      log.debug("Parsing flag configuration, {} bytes", flagConfigBytes.length);
+      return objectMapper.readValue(flagConfigBytes, FlagConfigResponse.class);
     } catch (IOException e) {
       throw new ConfigurationParseException("Failed to parse flag configuration", e);
     }
   }
 
+  /**
+   * Builds a Configuration from a parsed flag response, snapshot ID, previous config, and optional
+   * fresh bandit parameter bytes. If {@code banditParamsBytes} is non-null, fresh bandit parameters
+   * are parsed and applied. Otherwise, bandit parameters are carried over from {@code
+   * previousConfig}.
+   */
   @Override
+  @NotNull public Configuration buildConfig(
+      @NotNull FlagConfigResponse flags,
+      @Nullable String flagsSnapshotId,
+      @Nullable Configuration previousConfig,
+      @Nullable byte[] banditParamsBytes) {
+    Configuration.Builder builder = new Configuration.Builder(flags);
+    if (previousConfig != null) {
+      builder.banditParametersFromConfig(previousConfig);
+    }
+    builder.flagsSnapshotId(flagsSnapshotId);
+    if (banditParamsBytes != null) {
+      try {
+        BanditParametersResponse banditResponse =
+            objectMapper.readValue(banditParamsBytes, BanditParametersResponse.class);
+        builder.banditParameters(banditResponse);
+      } catch (IOException e) {
+        throw new ConfigurationParseException("Failed to parse bandit parameters", e);
+      }
+    }
+    return builder.build();
+  }
+
+  /** Parses raw bandit parameter bytes. */
   public BanditParametersResponse parseBanditParams(byte[] banditParamsJson)
       throws ConfigurationParseException {
     try {
@@ -70,8 +121,7 @@ public class JacksonConfigurationParser implements ConfigurationParser<JsonNode>
   }
 
   @Override
-  public @NotNull JsonNode parseJsonValue(@NotNull String jsonValue)
-      throws ConfigurationParseException {
+  @NotNull public JsonNode parseJsonValue(@NotNull String jsonValue) throws ConfigurationParseException {
     try {
       return objectMapper.readTree(jsonValue);
     } catch (IOException e) {

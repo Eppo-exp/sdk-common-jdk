@@ -26,11 +26,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BaseEppoClient<JsonFlagType> {
+public class BaseEppoClient<ConfigurationType extends SerializableEppoConfiguration, JsonFlagType> {
   private static final Logger log = LoggerFactory.getLogger(BaseEppoClient.class);
 
-  protected final ConfigurationRequestor requestor;
-  private final IConfigurationStore configurationStore;
+  protected final ConfigurationRequestor<ConfigurationType, JsonFlagType> requestor;
+  private final IConfigurationStore<ConfigurationType> configurationStore;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
@@ -38,7 +38,7 @@ public class BaseEppoClient<JsonFlagType> {
   private volatile boolean isGracefulMode;
   private final IAssignmentCache assignmentCache;
   private final IAssignmentCache banditAssignmentCache;
-  private final ConfigurationParser<JsonFlagType> configurationParser;
+  private final ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser;
   private Timer pollTimer;
 
   @Nullable protected CompletableFuture<Boolean> getInitialConfigFuture() {
@@ -57,14 +57,14 @@ public class BaseEppoClient<JsonFlagType> {
       @Nullable String apiBaseUrl,
       @Nullable AssignmentLogger assignmentLogger,
       @Nullable BanditLogger banditLogger,
-      @Nullable IConfigurationStore configurationStore,
+      @NotNull IConfigurationStore<ConfigurationType> configurationStore,
       boolean isGracefulMode,
       boolean expectObfuscatedConfig,
       boolean supportBandits,
-      @Nullable CompletableFuture<Configuration> initialConfiguration,
+      @Nullable CompletableFuture<ConfigurationType> initialConfiguration,
       @Nullable IAssignmentCache assignmentCache,
       @Nullable IAssignmentCache banditAssignmentCache,
-      @NotNull ConfigurationParser<JsonFlagType> configurationParser,
+      @NotNull ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser,
       @NotNull EppoConfigurationClient configurationClient) {
 
     if (apiBaseUrl == null) {
@@ -79,15 +79,17 @@ public class BaseEppoClient<JsonFlagType> {
     ApiEndpoints endpointHelper = new ApiEndpoints(sdkKey, apiBaseUrl);
     String effectiveBaseUrl = endpointHelper.getBaseUrl();
 
-    this.configurationStore =
-        configurationStore != null ? configurationStore : new ConfigurationStore();
+    if (configurationStore == null) {
+      throw new IllegalArgumentException("ConfigurationStore must not be null");
+    }
+    this.configurationStore = configurationStore;
 
     EppoConfigurationRequestFactory requestFactory =
         new EppoConfigurationRequestFactory(
             effectiveBaseUrl, sdkKey.getToken(), sdkName, sdkVersion);
 
     requestor =
-        new ConfigurationRequestor(
+        new ConfigurationRequestor<>(
             this.configurationStore,
             supportBandits,
             configurationParser,
@@ -233,7 +235,7 @@ public class BaseEppoClient<JsonFlagType> {
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
 
-    Configuration config = getConfiguration();
+    ConfigurationType config = getConfiguration();
 
     // Check if flag exists
     FlagConfig flag = config.getFlag(flagKey);
@@ -310,7 +312,7 @@ public class BaseEppoClient<JsonFlagType> {
       String errorDescription =
           String.format(
               "Variation (%s) is configured for type %s, but is set to incompatible value (%s)",
-              variationKey, expectedType, assignedValue.doubleValue());
+              variationKey, expectedType, assignedValue);
 
       return EvaluationDetails.builder(evaluationDetails)
           .flagEvaluationCode(
@@ -630,7 +632,7 @@ public class BaseEppoClient<JsonFlagType> {
       DiscriminableAttributes subjectAttributes,
       Actions actions,
       String defaultValue) {
-    final Configuration config = getConfiguration();
+    final ConfigurationType config = getConfiguration();
     try {
       // Get detailed flag assignment
       AssignmentDetails<String> flagDetails =
@@ -784,8 +786,8 @@ public class BaseEppoClient<JsonFlagType> {
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.
    */
-  public Runnable onConfigurationChange(Consumer<Configuration> callback) {
-    return requestor.onConfigurationChange(callback);
+  public Runnable onConfigurationChange(Consumer<ConfigurationType> callback) {
+    return configurationStore.subscribe(callback);
   }
 
   /**
@@ -794,8 +796,60 @@ public class BaseEppoClient<JsonFlagType> {
    * @param callback The callback to unsubscribe
    * @return true if the callback was found and removed, false otherwise
    */
-  public boolean unsubscribeFromConfigurationChange(Consumer<Configuration> callback) {
-    return requestor.unsubscribeFromConfigurationChange(callback);
+  public boolean unsubscribeFromConfigurationChange(Consumer<ConfigurationType> callback) {
+    return configurationStore.unsubscribe(callback);
+  }
+
+  /**
+   * Experimental API: pushes {@code config} as the active configuration without triggering a remote
+   * fetch. Intended for extraordinary use cases — testing, warm-start from an external cache, or
+   * offline scenarios. For normal SDK initialization use the {@code initialConfiguration} parameter
+   * on the client builder or rely on the automatic fetch-on-init behaviour; this method is not a
+   * replacement for those paths.
+   *
+   * <p>The call is synchronous: it blocks until the store's {@code saveConfiguration} future
+   * completes. For {@link AbstractConfigurationStore} subclasses this guarantees that all
+   * registered {@link #onConfigurationChange(Consumer)} subscribers have been notified before this
+   * method returns, because notification is chained onto the persist future via {@code thenRun}.
+   * Custom {@link IConfigurationStore} implementations are only required to update the stored value
+   * before notifying; they may dispatch callbacks asynchronously, in which case subscribers may run
+   * on the store's completing thread rather than the caller's thread.
+   *
+   * <p><strong>Last-write-wins:</strong> any source — a completing remote fetch, a pending
+   * initial-configuration future, or another call to this method — that writes to the store after
+   * this call will overwrite the configuration supplied here. Concurrent calls from multiple
+   * threads have an unspecified winner; callers must coordinate externally if ordering matters.
+   *
+   * <p><strong>Subscriber re-entrancy:</strong> subscribers must not call {@code setConfiguration}
+   * from within their callback. Re-entrant calls are detected by the store and silently dropped.
+   *
+   * <p>If {@code config} is {@code null} and graceful mode is enabled the call is silently ignored.
+   * If {@code config} is {@code null} and graceful mode is disabled an {@link
+   * IllegalArgumentException} is thrown.
+   *
+   * @param config the configuration to apply, or {@code null} (see graceful-mode behaviour above)
+   * @throws IllegalArgumentException if {@code config} is {@code null} and graceful mode is
+   *     disabled
+   * @throws java.util.concurrent.CompletionException if the store's {@code saveConfiguration}
+   *     completes exceptionally
+   */
+  @org.jetbrains.annotations.ApiStatus.Experimental
+  public void setConfiguration(@Nullable ConfigurationType config) {
+    if (config == null) {
+      if (!isGracefulMode) {
+        throw new IllegalArgumentException("config must not be null");
+      }
+      log.debug("setConfiguration called with null config in graceful mode; ignoring");
+      return;
+    }
+    try {
+      configurationStore.saveConfiguration(config).join();
+    } catch (Exception e) {
+      if (!isGracefulMode) {
+        throw e;
+      }
+      log.error("setConfiguration store failure in graceful mode; ignoring", e);
+    }
   }
 
   /**
@@ -810,7 +864,7 @@ public class BaseEppoClient<JsonFlagType> {
    * @see <a href="https://docs.geteppo.com/sdks/best-practices/where-to-assign/">Where To
    *     Assign</a> for more details.
    */
-  public Configuration getConfiguration() {
+  public ConfigurationType getConfiguration() {
     return configurationStore.getConfiguration();
   }
 }

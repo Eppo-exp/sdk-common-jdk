@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.api.dto.BanditModelData;
 import cloud.eppo.api.dto.BanditParameters;
 import cloud.eppo.api.dto.BanditParametersResponse;
-import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfig;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.api.dto.VariationType;
@@ -180,57 +179,6 @@ public class ConfigurationBuilderTest {
     FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
     Configuration config = new Configuration.Builder(response).flagsSnapshotId("etag-123").build();
     assertEquals("etag-123", config.getFlagsSnapshotId());
-  }
-
-  @Test
-  public void referencedBanditModelVersion_returnsVersionsFromResponse() {
-    BanditReference ref = new BanditReference.Default("v2", Collections.emptyList());
-    Map<String, BanditReference> refs = Collections.singletonMap("bandit-1", ref);
-    FlagConfigResponse response =
-        new FlagConfigResponse.Default(
-            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER, null, null);
-    Configuration.Builder builder = new Configuration.Builder(response);
-    assertTrue(builder.referencedBanditModelVersion().contains("v2"));
-  }
-
-  @Test
-  public void loadedBanditModelVersions_returnsVersionsFromSetBandits() {
-    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
-    BanditParameters bandit = new BanditParameters.Default("b", new Date(), "m", "v3", modelData);
-    FlagConfigResponse response = emptyResponse(FlagConfigResponse.Format.SERVER);
-    Configuration.Builder builder =
-        new Configuration.Builder(response)
-            .banditParameters(
-                new BanditParametersResponse.Default(Collections.singletonMap("b", bandit)));
-    assertTrue(builder.loadedBanditModelVersions().contains("v3"));
-  }
-
-  @Test
-  public void requiresUpdatedBanditModels_whenReferencedVersionNotLoaded_returnsTrue() {
-    BanditReference ref = new BanditReference.Default("v-needed", Collections.emptyList());
-    Map<String, BanditReference> refs = Collections.singletonMap("bandit-1", ref);
-    FlagConfigResponse response =
-        new FlagConfigResponse.Default(
-            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER, null, null);
-    Configuration.Builder builder = new Configuration.Builder(response);
-    assertTrue(builder.requiresUpdatedBanditModels());
-  }
-
-  @Test
-  public void requiresUpdatedBanditModels_whenReferencedVersionLoaded_returnsFalse() {
-    BanditReference ref = new BanditReference.Default("v1", Collections.emptyList());
-    Map<String, BanditReference> refs = Collections.singletonMap("bandit-1", ref);
-    BanditModelData modelData = new BanditModelData.Default(0.0, 1.0, 0.1, Collections.emptyMap());
-    BanditParameters bandit =
-        new BanditParameters.Default("bandit-1", new Date(), "m", "v1", modelData);
-    FlagConfigResponse response =
-        new FlagConfigResponse.Default(
-            Collections.emptyMap(), refs, FlagConfigResponse.Format.SERVER, null, null);
-    Configuration.Builder builder =
-        new Configuration.Builder(response)
-            .banditParameters(
-                new BanditParametersResponse.Default(Collections.singletonMap("bandit-1", bandit)));
-    assertFalse(builder.requiresUpdatedBanditModels());
   }
 
   @Test

@@ -12,7 +12,7 @@ import cloud.eppo.logging.Assignment;
 import cloud.eppo.logging.AssignmentLogger;
 import cloud.eppo.logging.BanditAssignment;
 import cloud.eppo.logging.BanditLogger;
-import cloud.eppo.parser.ConfigurationParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -41,10 +41,10 @@ public class BaseEppoClientBanditTest {
 
   private static final AssignmentLogger mockAssignmentLogger = mock(AssignmentLogger.class);
   private static final BanditLogger mockBanditLogger = mock(BanditLogger.class);
-  private static final ConfigurationParser parser = new JacksonConfigurationParser();
+  private static final JacksonConfigurationParser parser = new JacksonConfigurationParser();
   private static final Date testStart = new Date();
 
-  private static BaseEppoClient eppoClient;
+  private static BaseEppoClient<Configuration, JsonNode> eppoClient;
 
   private final File initialFlagConfigFile =
       new File("src/test/resources/static/initial-flag-config-with-bandit.json");
@@ -66,14 +66,14 @@ public class BaseEppoClientBanditTest {
   @BeforeAll
   public static void initClient() {
     eppoClient =
-        new BaseEppoClient(
+        new BaseEppoClient<>(
             DUMMY_BANDIT_API_KEY,
             "java",
             "3.0.0",
             TEST_HOST,
             mockAssignmentLogger,
             mockBanditLogger,
-            null,
+            new MemoryOnlyConfigurationStore(),
             false,
             false,
             true,
@@ -82,14 +82,18 @@ public class BaseEppoClientBanditTest {
             new ExpiringInMemoryAssignmentCache(
                 banditAssignmentCache, 50, TimeUnit.MILLISECONDS) {},
             parser,
-            new OkHttpEppoClient());
+            new OkHttpEppoClient(
+                new okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()));
 
     eppoClient.loadConfiguration();
 
     log.info("Test client initialized");
   }
 
-  private BaseEppoClient initClientWithData(
+  private BaseEppoClient<Configuration, JsonNode> initClientWithData(
       final String initialFlagConfiguration, final String initialBanditParameters) {
 
     CompletableFuture<Configuration> initialConfig =
@@ -98,14 +102,14 @@ public class BaseEppoClientBanditTest {
                 .banditParameters(parser.parseBanditParams(initialBanditParameters.getBytes()))
                 .build());
 
-    return new BaseEppoClient(
+    return new BaseEppoClient<>(
         DUMMY_BANDIT_API_KEY,
         "java",
         "3.0.0",
         TEST_HOST,
         mockAssignmentLogger,
         mockBanditLogger,
-        null,
+        new MemoryOnlyConfigurationStore(),
         false,
         false,
         true,
@@ -460,7 +464,7 @@ public class BaseEppoClientBanditTest {
       String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
       String banditConfig = FileUtils.readFileToString(initialBanditParamFile, "UTF8");
 
-      BaseEppoClient client = initClientWithData(flagConfig, banditConfig);
+      BaseEppoClient<Configuration, JsonNode> client = initClientWithData(flagConfig, banditConfig);
 
       BanditActions actions = new BanditActions();
       actions.put("nike", new Attributes());
