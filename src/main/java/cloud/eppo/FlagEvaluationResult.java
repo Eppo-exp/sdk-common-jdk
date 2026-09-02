@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.ApiStatus;
 
 /** Flag evaluation result that includes detailed evaluation information. */
-@ApiStatus.Internal
+@ApiStatus.Experimental
 public class FlagEvaluationResult {
 
   private final String flagKey;

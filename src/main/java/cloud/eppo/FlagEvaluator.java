@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.ApiStatus;
 
-@ApiStatus.Internal
+@ApiStatus.Experimental
 public class FlagEvaluator {
 
   /**

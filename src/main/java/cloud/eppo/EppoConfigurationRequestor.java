@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 class EppoConfigurationRequestor<
         ConfigurationType extends SerializableEppoConfiguration, JsonFlagType>
-    implements ConfigurationRequestor<ConfigurationType, JsonFlagType> {
+    implements ConfigurationRequestor<ConfigurationType> {
   private static final Logger log = LoggerFactory.getLogger(EppoConfigurationRequestor.class);
 
   private final IConfigurationStore<ConfigurationType> configurationStore;
@@ -43,17 +43,6 @@ class EppoConfigurationRequestor<
     this.configurationParser = configurationParser;
     this.configurationClient = configurationClient;
     this.requestFactory = requestFactory;
-  }
-
-  // Synchronously set initial configuration.
-  @Override
-  public void setInitialConfiguration(@NotNull ConfigurationType configuration) {
-    if (initialConfigSet || this.configurationFuture != null) {
-      throw new IllegalStateException("Initial configuration has already been set");
-    }
-
-    initialConfigSet =
-        configurationStore.saveConfiguration(configuration).thenApply(v -> true).join();
   }
 
   /**
