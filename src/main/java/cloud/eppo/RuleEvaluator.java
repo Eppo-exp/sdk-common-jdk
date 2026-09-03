@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class RuleEvaluator {
+class RuleEvaluator {
 
   public static TargetingRule findMatchingRule(
       Attributes subjectAttributes, Set<TargetingRule> rules, boolean isObfuscated) {

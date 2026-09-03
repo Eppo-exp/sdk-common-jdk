@@ -34,7 +34,7 @@ For publishing a release locally, follow the steps below.
 
 Once you have the prerequisites, follow the steps below to release a new version:
 
-1. Bump the project version in `build.gradle`
+1. Bump the version in **both** `build.gradle` (root — `eppo-sdk-framework`) and `eppo-sdk-common/build.gradle` (`sdk-common-jvm`). The two artifacts have independent version numbers and must each be bumped before their respective publish steps.
 2. Run `./gradlew publish`
 3. Follow the steps in [this page](https://central.sonatype.org/publish/release/#credentials) to promote your release
 
