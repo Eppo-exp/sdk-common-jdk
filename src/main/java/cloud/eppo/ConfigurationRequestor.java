@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>Implementations must be thread-safe; multiple threads may call these methods concurrently.
  */
-public interface ConfigurationRequestor<ConfigurationType extends SerializableEppoConfiguration> {
+interface ConfigurationRequestor<ConfigurationType extends SerializableEppoConfiguration> {
 
   /**
    * Asynchronously sets the initial configuration from a future. Returns {@code true} if the
