@@ -7,12 +7,18 @@ on:
         description: 'Version to release (e.g. 0.1.0)'
         required: true
 
+concurrency:
+  group: publish-framework
+  cancel-in-progress: false
+
 env:
   CI: true
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: maven-central-release
     permissions:
       contents: write
     env:
@@ -37,11 +43,17 @@ jobs:
           distribution: 'temurin'
 
       - name: Verify version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          ACTUAL=$(./gradlew :properties -q | grep "^version:" | awk '{print $2}')
-          if [ "$ACTUAL" != "${{ inputs.version }}" ]; then
-            echo "Version mismatch: build.gradle has $ACTUAL, expected ${{ inputs.version }}"
-            exit 1
+          set -euo pipefail
+          if [[ ! "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must be MAJOR.MINOR.PATCH, got '$INPUT_VERSION'"; exit 1
+          fi
+          ACTUAL=$(./gradlew :properties -q | awk -F': ' '/^version: /{print $2; exit}')
+          if [ -z "$ACTUAL" ]; then echo "::error::could not read project version"; exit 1; fi
+          if [ "$ACTUAL" != "$INPUT_VERSION" ]; then
+            echo "::error::Version mismatch: build.gradle has '$ACTUAL', input was '$INPUT_VERSION'"; exit 1
           fi
 
       - name: Download test data
@@ -61,27 +73,25 @@ jobs:
         run: ./gradlew jreleaserDeploy
 
       - name: Tag and release
-        # Tag and create GitHub release after successful deploy — avoids orphaned tags on failed publishes
+        # Tag and create GitHub release after successful deploy — avoids orphaned tags on failed publishes.
         # Changelog covers commits touching the root project since the last eppo-sdk-framework-v* tag,
-        # excluding the eppo-sdk-common subproject directory
+        # excluding the eppo-sdk-common subproject directory.
+        # LAST_TAG is resolved before creating the new tag to avoid picking it as its own predecessor.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          TAG="eppo-sdk-framework-v${{ inputs.version }}"
-          git tag -a "$TAG" -m "Release eppo-sdk-framework v${{ inputs.version }}"
-          git push origin "$TAG"
-
-          LAST_TAG=$(git tag -l "eppo-sdk-framework-v*" --sort=-version:refname | sed -n '2p')
-          if [ -n "$LAST_TAG" ]; then
-            RANGE="${LAST_TAG}..HEAD"
-          else
-            RANGE="HEAD"
-          fi
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'eppo-sdk-framework-v*' HEAD 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then RANGE="${LAST_TAG}..HEAD"; else RANGE="HEAD"; fi
           NOTES=$(git log "$RANGE" --oneline -- . ':(exclude)eppo-sdk-common/' | sed 's/^/- /')
 
+          TAG="eppo-sdk-framework-v${INPUT_VERSION}"
+          git tag -a "$TAG" -m "Release eppo-sdk-framework v${INPUT_VERSION}"
+          git push origin "$TAG"
+
           gh release create "$TAG" \
-            --title "eppo-sdk-framework v${{ inputs.version }}" \
+            --title "eppo-sdk-framework v${INPUT_VERSION}" \
             --notes "${NOTES:-No changes recorded}"
