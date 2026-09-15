@@ -55,6 +55,17 @@ jobs:
           if [ "$ACTUAL" != "$INPUT_VERSION" ]; then
             echo "::error::Version mismatch: eppo-sdk-common/build.gradle has '$ACTUAL', input was '$INPUT_VERSION'"; exit 1
           fi
+          ROOT=$(./gradlew :properties -q | awk -F': ' '/^version: /{print $2; exit}')
+          if [ -z "$ROOT" ]; then echo "::error::could not read root version"; exit 1; fi
+          case "$ROOT" in
+            *-SNAPSHOT)
+              echo "::error::root version is $ROOT. Releasing sdk-common-jvm now would embed a SNAPSHOT framework dependency in the release POM and route the deploy to the snapshot repository. Release eppo-sdk-framework first."
+              exit 1 ;;
+          esac
+          if ! curl -fsI "https://repo1.maven.org/maven2/cloud/eppo/eppo-sdk-framework/${ROOT}/eppo-sdk-framework-${ROOT}.pom" > /dev/null; then
+            echo "::error::eppo-sdk-framework:${ROOT} not found on Maven Central. Confirm the framework publish job succeeded and the version is indexed before releasing sdk-common-jvm."
+            exit 1
+          fi
 
       - name: Download test data
         run: make test-data
