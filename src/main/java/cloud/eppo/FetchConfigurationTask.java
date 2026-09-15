@@ -5,7 +5,7 @@ import java.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FetchConfigurationTask extends TimerTask {
+class FetchConfigurationTask extends TimerTask {
   private static final Logger log = LoggerFactory.getLogger(FetchConfigurationTask.class);
   private final Runnable runnable;
   private final Timer timer;

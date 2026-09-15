@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * unreliable when ProGuard minification is in-use and not configured to protect
  * JSON-deserialization-related classes and annotations.
  */
-public class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigResponse> {
+class FlagConfigResponseDeserializer extends StdDeserializer<FlagConfigResponse> {
   private static final Logger log = LoggerFactory.getLogger(FlagConfigResponseDeserializer.class);
   private static final ThreadLocal<SimpleDateFormat> UTC_ISO_DATE_FORMAT =
       ThreadLocal.withInitial(

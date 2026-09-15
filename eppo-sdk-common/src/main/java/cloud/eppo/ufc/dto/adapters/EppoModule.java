@@ -5,7 +5,9 @@ import cloud.eppo.api.dto.BanditParametersResponse;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.util.Date;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.Internal
 public class EppoModule {
   public static SimpleModule eppoModule() {
     SimpleModule module = new SimpleModule();

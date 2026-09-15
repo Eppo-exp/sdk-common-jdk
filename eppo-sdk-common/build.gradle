@@ -77,6 +77,11 @@ javadoc {
   }
 }
 
+// Ensure version is consistent with the -Prelease/-Psnapshot flag before publishing
+tasks.named('publish').configure {
+  dependsOn rootProject.tasks.named('checkVersion')
+}
+
 publishing {
   publications {
     maven(MavenPublication) {

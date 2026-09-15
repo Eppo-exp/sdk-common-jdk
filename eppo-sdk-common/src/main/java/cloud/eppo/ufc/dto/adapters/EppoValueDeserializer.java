@@ -8,9 +8,11 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ApiStatus.Internal
 public class EppoValueDeserializer extends StdDeserializer<EppoValue> {
   private static final Logger log = LoggerFactory.getLogger(EppoValueDeserializer.class);
 
