@@ -221,27 +221,6 @@ class ReleaseTests(unittest.TestCase):
                 os.chdir(previous)
 
 
-    def test_draft_is_pinned_and_contains_both_versions(self):
-        plan = {'tag': 'v4.0.0', 'commit': 'exact-reviewed-sha', 'artifacts': {
-            r.FRAMEWORK: {'version': '0.1.0', 'action': 'publish'},
-            r.COMMON: {'version': '4.0.0', 'action': 'publish'}}}
-        captured = {}
-
-        def create(command, **kwargs):
-            captured['command'] = command
-            captured['notes'] = Path(command[command.index('--notes-file') + 1]).read_text()
-
-        with patch.object(r, 'previous_tag', return_value='v3.13.2'), \
-                patch.object(r, 'releases', return_value=[]), \
-                patch.object(r, 'run', return_value='- Changes'), \
-                patch.object(r.subprocess, 'run', side_effect=create):
-            r.draft(plan)
-        command = captured['command']
-        self.assertIn('--draft', command)
-        self.assertEqual(command[command.index('--target') + 1], 'exact-reviewed-sha')
-        self.assertIn('sdk-common-jvm | 4.0.0 | publish', captured['notes'])
-        self.assertIn('eppo-sdk-framework | 0.1.0 | publish', captured['notes'])
-
     def test_mutable_fixture_reference_is_rejected(self):
         with patch.object(r, 'run', return_value=''), patch.object(Path, 'read_text', return_value='main'):
             with self.assertRaisesRegex(ValueError, 'full Git commit SHA'):

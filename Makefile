@@ -62,16 +62,6 @@ snapshot-release:
 	git push origin HEAD:refs/heads/snapshot/$(LOCAL_BRANCH)
 	@echo "$(OK)Snapshot workflow triggered for snapshot/$(LOCAL_BRANCH)$(END)"
 
-## release-plan - Validate the committed versions and show packages to publish/reuse.
-.PHONY: release-plan
-release-plan:
-	python3 scripts/release/release.py plan
-
-## release-draft - Prepare a draft GitHub release; publish it in GitHub to release packages.
-.PHONY: release-draft
-release-draft:
-	python3 scripts/release/release.py draft
-
 ## test-release - Test the release planner and publication recovery behavior.
 .PHONY: test-release
 test-release:

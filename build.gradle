@@ -216,7 +216,7 @@ javadoc {
   }
 }
 
-// Machine-readable versions for the draft helper and release workflow.
+// Machine-readable versions for the release workflow.
 tasks.register('releaseVersions') {
   doLast {
     println groovy.json.JsonOutput.toJson([

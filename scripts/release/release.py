@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare and publish a common release; uses only Python's standard library and gh."""
+"""Validate and publish packages for an existing GitHub release."""
 import argparse
 import hashlib
 import json
@@ -206,56 +206,6 @@ def upload_record(tag, record):
         subprocess.run(['gh', 'release', 'upload', tag, str(path), '--clobber', '--repo', REPO], check=True)
 
 
-def previous_tag(patterns):
-    command = ['git', 'describe', '--tags', '--abbrev=0']
-    for pattern in patterns:
-        command.extend(['--match', pattern])
-    result = subprocess.run(command + ['HEAD^'], text=True, capture_output=True)
-    return result.stdout.strip() if result.returncode == 0 else None
-
-
-def draft(plan):
-    lines = ['## Packages', '', '| Package | Version | Action |', '|---|---|---|']
-    for artifact, item in plan['artifacts'].items():
-        lines.append('| ' + artifact + ' | ' + item['version'] + ' | ' + item['action'] + ' |')
-    for artifact in (COMMON, FRAMEWORK):
-        item = plan['artifacts'][artifact]
-        if artifact == FRAMEWORK and item['action'] == 'reuse':
-            continue
-        previous = previous_tag(['v[0-9]*', 'sdk-common-jvm-v*']) if artifact == COMMON else None
-        # Framework versions need not have their own tags: use their recorded source commit.
-        if artifact == FRAMEWORK:
-            for release in releases():
-                if release['draft'] or release['prerelease']:
-                    continue
-                records = [a for a in release['assets'] if a['name'].startswith(FRAMEWORK + '-')
-                           and a['name'].endswith('.json')]
-                for asset in records:
-                    record = gh_json('api', '-H', 'Accept: application/octet-stream',
-                                     'repos/' + REPO + '/releases/assets/' + str(asset['id']))
-                    if record.get('state') == 'published':
-                        candidate = record['commit']
-                        if subprocess.run(['git', 'merge-base', '--is-ancestor', candidate, 'HEAD'],
-                                          capture_output=True).returncode == 0:
-                            previous = candidate
-                            break
-                if previous:
-                    break
-        revision = previous + '..HEAD' if previous else 'HEAD'
-        paths = ['.'] if artifact == COMMON else ['.', ':(exclude)eppo-sdk-common/',
-                                                   ':(exclude).github/', ':(exclude)scripts/']
-        notes = run('git', 'log', '--format=- %s (%h)', revision, '--', *paths)
-        lines.extend(['', '## ' + artifact, '', notes or 'No changes recorded.'])
-    lines.extend(['', 'Publishing this release starts package publication. Check the release workflow',
-                  'for completion; publication records are attached after verification.'])
-    with tempfile.TemporaryDirectory() as directory:
-        path = Path(directory) / 'notes.md'
-        path.write_text('\n'.join(lines) + '\n')
-        subprocess.run(['gh', 'release', 'create', plan['tag'], '--draft', '--target', plan['commit'],
-                        '--title', 'sdk-common-jvm ' + plan['artifacts'][COMMON]['version'],
-                        '--notes-file', str(path), '--repo', REPO], check=True)
-
-
 def stage_record(artifact, item, plan):
     shutil.rmtree(STAGING, ignore_errors=True)
     task = ':publish' if artifact == FRAMEWORK else ':eppo-sdk-common:publish'
@@ -340,16 +290,12 @@ tasks.register('verifyRelease') {
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'draft', 'publish'])
-    parser.add_argument('--tag')
+    parser.add_argument('command', choices=['plan', 'publish'])
+    parser.add_argument('--tag', required=True)
     args = parser.parse_args()
     plan = make_plan(args.tag)
     print(json.dumps(plan, indent=2), flush=True)
-    if args.command == 'draft':
-        draft(plan)
-    elif args.command == 'publish':
-        if not args.tag:
-            raise ValueError('Publishing requires an explicit --tag')
+    if args.command == 'publish':
         if run('git', 'rev-parse', 'refs/tags/' + args.tag + '^{commit}') != plan['commit']:
             raise ValueError('Checkout does not match the release tag')
         publish(plan)

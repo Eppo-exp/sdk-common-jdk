@@ -19,7 +19,7 @@ dependencies {
 
 ## Releasing a new version
 
-Publishing a stable GitHub release starts `publish-release.yml`. One release publishes
+Publishing a stable GitHub release starts `publish-release.yml`. Every new release publishes a new version of
 `sdk-common-jvm` and publishes `eppo-sdk-framework` first when its selected version is new.
 The GitHub tag is the common version (`v4.0.0`); framework is independently versioned
 (`0.1.0`). Maintainers choose both versions in Gradle; automation does not infer semver.
@@ -36,19 +36,10 @@ The GitHub tag is the common version (`v4.0.0`); framework is independently vers
    Set the root framework version in `build.gradle` to the exact stable version to
    publish or reuse. A framework change requires a new framework version and a new
    common version. Never leave the root version at SNAPSHOT for a stable common release.
-2. Use a clean checkout of that commit with current `origin/main` and tags. Install
-   Java 8, Python 3, and authenticated GitHub CLI (`gh`). Inspect the plan and create a draft:
-
-   ```bash
-   git fetch origin main --tags
-   make release-plan
-   make release-draft
-   ```
-
-   The helper reads Gradle versions and prepares package actions and change notes,
-   with the draft targeted at the exact commit. It does not publish Maven packages.
-   You can also create the equivalent draft manually in GitHub, targeting that commit
-   and using the common version as its `vMAJOR.MINOR.PATCH` tag.
+2. In GitHub, open **Releases → Draft a new release**. Choose the reviewed commit
+   containing those versions and create a tag matching the common version, such as
+   `v4.0.1`. Write the release notes (or use GitHub's generated notes) and include
+   the framework version being published or reused. No local release CLI is needed.
 3. Review and publish the draft in GitHub. The workflow validates the tag, versions,
    clean checkout and main ancestry; tests the SDK; publishes framework if needed;
    waits for its artifacts; and publishes common. It then verifies package checksums
@@ -70,7 +61,9 @@ are excluded from the framework fingerprint. Update that fixture pin deliberatel
 changing it changes the published framework tests JAR and requires a framework bump.
 
 Staging is cleared between packages. If framework succeeds and common fails, rerun the
-same workflow: verified framework publication is reused and common resumes. A publication
+same workflow: verified framework publication is reused and common resumes. A retry
+of an existing release can skip packages already published by that release; each new
+release must have a new common version. A publication
 attempt is recorded **before** uploading. If its files are still missing, reruns wait up
 to 20 minutes and stop rather than submitting another upload. Inspect the existing
 Central Portal deployment and finish it there, then rerun. If an upload never reached
@@ -90,7 +83,7 @@ will block release events, whose ref is a tag. Store `MAVEN_CENTRAL_TOKEN_USERNA
 `MAVEN_CENTRAL_TOKEN_PASSWORD`, `GPG_PASSPHRASE`, and `GPG_PRIVATE_KEY` as environment secrets,
 and `GPG_PUBLIC_KEY` as an environment variable. The workflow needs contents-write permission
 to attach publication records. Release publication must be initiated by a user or token
-that can trigger Actions; use your normal authenticated CLI to prepare drafts.
+that can trigger Actions, such as publishing through the GitHub UI.
 
 Release tooling tests run in CI and locally with `make test-release`. Snapshot publishing
 keeps its separate workflow. The server SDK has its own downstream version and release.
