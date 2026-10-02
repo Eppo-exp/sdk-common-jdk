@@ -17,7 +17,7 @@ buildscript {
 plugins {
   id 'java-library'
   id 'maven-publish'
-  id 'org.jreleaser' version '1.25.0' // Stay at 1.18. Version 1.20.0 fails to publish.
+  id 'org.jreleaser' version '1.26.0' // PR CI does not run jreleaser tasks. Check the publish workflows after an upgrade.
 }
 
 apply plugin: "com.diffplug.spotless"
@@ -57,7 +57,7 @@ dependencies {
   }
   testImplementation 'net.bytebuddy:byte-buddy:1.18.12' // Use the latest available version
   testImplementation 'org.mockito:mockito-inline:4.11.0'
-  testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.21.5'
   testImplementation "com.squareup.okhttp3:okhttp:4.12.0"
 
   // Use common http/parser implementations in tests.
