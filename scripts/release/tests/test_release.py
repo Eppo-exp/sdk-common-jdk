@@ -51,7 +51,8 @@ class ReleaseTests(unittest.TestCase):
     def test_shared_build_and_fixture_pin_are_framework_inputs(self):
         for path in ['build.gradle', 'settings.gradle', 'gradle.properties', 'Makefile',
                      'gradle/wrapper/gradle-wrapper.properties', 'scripts/release/test-data-ref',
-                     'src/main/java/Example.java', 'src/test/java/ExampleTest.java', 'new-build-input']:
+                     'src/main/java/Example.java', 'src/test/java/ExampleTest.java',
+                     'src/main/resources/notice.md', 'src/test/resources/fixture.md', 'new-build-input']:
             self.assertTrue(r.framework_input(path), path)
         for path in ['eppo-sdk-common/build.gradle', 'README.md', '.github/workflows/test.yml',
                      'scripts/release/release.py']:
@@ -104,7 +105,7 @@ class ReleaseTests(unittest.TestCase):
             stage.assert_called_once_with(r.COMMON, plan['artifacts'][r.COMMON], plan)
             deploy.assert_called_once_with(['./gradlew', 'jreleaserDeploy'], check=True)
             self.assertEqual(wait.call_count, 2)
-            self.assertEqual(upload.call_count, 3)
+            upload.assert_called_once_with(plan['tag'], common)
             consumer.assert_called_once_with(plan)
 
     def test_persist_intent_before_deploy(self):
@@ -184,6 +185,7 @@ class ReleaseTests(unittest.TestCase):
                     patch.object(r, 'releases', return_value=history), \
                     patch.object(r, 'record_from', side_effect=provenance), \
                     patch.object(r, 'available', side_effect=lambda a, v: (a, v) in records), \
+                    patch.object(r, 'verify_record', return_value=True), \
                     patch.object(r, 'fingerprint', side_effect=lambda a: changed.get(a, 'inputs')):
                 if error:
                     with self.assertRaisesRegex(ValueError, error):
@@ -196,7 +198,8 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             tracked = ['src/main/Test.java', 'eppo-sdk-common/src/main/Common.java',
-                       'build.gradle', 'scripts/release/test-data-ref', 'README.md']
+                       'build.gradle', 'scripts/release/test-data-ref', 'README.md',
+                       'src/main/resources/notice.md', 'src/test/resources/fixture.md']
             for name in tracked:
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,7 +216,8 @@ class ReleaseTests(unittest.TestCase):
                     self.assertNotEqual(r.fingerprint(r.COMMON), common)
                     (root / 'README.md').write_text('documentation change')
                     self.assertEqual(r.fingerprint(r.FRAMEWORK), framework)
-                    for name in [tracked[0], 'build.gradle', 'scripts/release/test-data-ref']:
+                    for name in [tracked[0], 'build.gradle', 'scripts/release/test-data-ref',
+                                 'src/main/resources/notice.md', 'src/test/resources/fixture.md']:
                         (root / name).write_text('changed')
                         self.assertNotEqual(r.fingerprint(r.FRAMEWORK), framework, name)
                         (root / name).write_text('original')
@@ -248,6 +252,75 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Inspect the existing Central deployment'):
                 r.wait_for_record(record(), seconds=0)
             sleep.assert_not_called()
+
+    def test_intent_state_does_not_override_verified_central_completion(self):
+        self.assertEqual(r.choose_action(record(state='attempting'), True), 'reuse')
+        self.assertEqual(r.choose_action(record(state='published'), False), 'resume')
+
+    def test_deploy_failure_after_central_success_retains_record_and_retries(self):
+        import json
+        artifacts = {r.FRAMEWORK: record(state='attempting'),
+                     r.COMMON: record(r.COMMON, state='attempting')}
+        plan = {'tag': 'v4.0.0', 'artifacts': {
+            a: {'action': 'publish', 'record': None, 'version': value['version']}
+            for a, value in artifacts.items()}}
+        assets = {}
+        central = set()
+        uploads = []
+
+        def external(command, **kwargs):
+            if command[:3] == ['gh', 'release', 'upload']:
+                self.assertNotIn('--clobber', command)
+                path = Path(command[4])
+                self.assertNotIn(path.name, assets, 'Provenance must never be replaced')
+                assets[path.name] = json.loads(path.read_text())
+                uploads.append(path.name)
+            elif command == ['./gradlew', 'jreleaserDeploy']:
+                central.add(r.FRAMEWORK)
+                raise subprocess.CalledProcessError(1, command)
+            else:
+                self.fail(str(command))
+
+        with patch.object(r, 'stage_record', side_effect=lambda a, *_: artifacts[a]), \
+                patch.object(r.shutil, 'rmtree'), \
+                patch.object(r.subprocess, 'run', side_effect=external):
+            with self.assertRaises(subprocess.CalledProcessError):
+                r.publish(plan)
+        framework = assets[r.record_name(r.FRAMEWORK, '0.1.0')]
+        self.assertEqual(framework['state'], 'attempting')
+        self.assertEqual(central, {r.FRAMEWORK})
+        with patch.object(r, 'central_file', return_value=b'published'):
+            plan['artifacts'][r.FRAMEWORK].update(
+                action=r.choose_action(framework, r.verify_record(framework)), record=framework)
+        deployments = []
+
+        def resume_external(command, **kwargs):
+            if command == ['./gradlew', 'jreleaserDeploy']:
+                deployments.append(r.COMMON)
+                central.add(r.COMMON)
+            else:
+                external(command, **kwargs)
+
+        with patch.object(r, 'stage_record', side_effect=lambda a, *_: artifacts[a]), \
+                patch.object(r.shutil, 'rmtree'), patch.object(r, 'wait_for_record'), \
+                patch.object(r, 'verify_consumer'), \
+                patch.object(r.subprocess, 'run', side_effect=resume_external):
+            r.publish(plan)
+        self.assertEqual(deployments, [r.COMMON])
+        self.assertEqual(len(uploads), 2)
+        self.assertEqual(assets[r.record_name(r.FRAMEWORK, '0.1.0')], framework)
+
+    def test_consumer_failure_after_both_deploys_needs_no_record_rewrite(self):
+        plan = {'tag': 'v4.0.0', 'artifacts': {
+            a: {'action': 'reuse', 'record': record(a, 'attempting'), 'version': '0.1.0'}
+            for a in (r.FRAMEWORK, r.COMMON)}}
+        with patch.object(r, 'wait_for_record'), patch.object(r, 'upload_record') as upload, \
+                patch.object(r, 'stage_record') as stage, \
+                patch.object(r, 'verify_consumer', side_effect=ValueError('consumer failed')):
+            with self.assertRaisesRegex(ValueError, 'consumer failed'):
+                r.publish(plan)
+            upload.assert_not_called()
+            stage.assert_not_called()
 
 
 if __name__ == '__main__':

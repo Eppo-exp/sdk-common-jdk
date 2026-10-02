@@ -45,7 +45,7 @@ def read_versions():
 
 def framework_input(path):
     # Conservative: new build inputs are included unless explicitly administrative.
-    if path == 'scripts/release/test-data-ref':
+    if path.startswith('src/') or path == 'scripts/release/test-data-ref':
         return True
     return not (path.startswith(('eppo-sdk-common/', '.github/', 'scripts/'))
                 or path.endswith('.md') or path in ('.gitignore', '.gitattributes', 'LICENSE'))
@@ -144,7 +144,8 @@ def wait_for_record(record, seconds=1200):
 
 def choose_action(record, exists):
     if record:
-        return 'reuse' if record['state'] == 'published' else 'resume'
+        # Completion comes from Central, not a mutable GitHub status record.
+        return 'reuse' if exists else 'resume'
     if exists:
         raise ValueError('Coordinate exists without a publication record; refusing to overwrite/reuse it')
     return 'publish'
@@ -183,7 +184,7 @@ def make_plan(tag=None):
                       matches[0] if matches else None)
         if matches and any(r['files'] != record['files'] for r in matches):
             raise ValueError('Conflicting publication records for ' + artifact)
-        exists = available(artifact, version)
+        exists = verify_record(record) if record else available(artifact, version)
         try:
             action = choose_action(record, exists)
         except ValueError as error:
@@ -203,7 +204,7 @@ def upload_record(tag, record):
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / record_name(record['artifact'], record['version'])
         save_json(path, record)
-        subprocess.run(['gh', 'release', 'upload', tag, str(path), '--clobber', '--repo', REPO], check=True)
+        subprocess.run(['gh', 'release', 'upload', tag, str(path), '--repo', REPO], check=True)
 
 
 def stage_record(artifact, item, plan):
@@ -242,8 +243,8 @@ def publish(plan):
             shutil.rmtree(Path('build/jreleaser'), ignore_errors=True)
             subprocess.run(['./gradlew', 'jreleaserDeploy'], check=True)
         wait_for_record(record)
-        record['state'] = 'published'
-        upload_record(plan['tag'], record)
+        # The intent/checksum record is immutable. Never replace it after deploy:
+        # retries establish completion by checking Central against this record.
         print('Verified ' + artifact + ':' + item['version'], flush=True)
     verify_consumer(plan)
     summary = os.environ.get('GITHUB_STEP_SUMMARY')

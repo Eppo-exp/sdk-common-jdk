@@ -51,13 +51,15 @@ The GitHub tag is the common version (`v4.0.0`); framework is independently vers
 
 ### Reuse and retries
 
-The workflow attaches a JSON publication record for each package to the GitHub release.
-It records source commit, build-input fingerprint, expected file checksums and state.
+Before uploading a new package, the workflow attaches an immutable JSON intent record
+to its GitHub release. It records source commit, build-input fingerprint and expected
+file checksums. It is never replaced or copied when reusing a package. Completion is
+determined by verifying the files on Central, not by rewriting the record’s state.
 Framework reuse requires matching recorded inputs and verified Central files; changes
 without a framework version bump fail. Inputs conservatively include root sources and
 tests, shared Gradle/build settings, and the pinned fixture revision in
-`scripts/release/test-data-ref`. Common-only sources and administrative documentation
-are excluded from the framework fingerprint. Update that fixture pin deliberately;
+`scripts/release/test-data-ref`. All framework source-set files, including Markdown resources, are included.
+Common-only sources and administrative documentation are excluded from the framework fingerprint. Update that fixture pin deliberately;
 changing it changes the published framework tests JAR and requires a framework bump.
 
 Staging is cleared between packages. If framework succeeds and common fails, rerun the
@@ -67,13 +69,17 @@ release must have a new common version. A publication
 attempt is recorded **before** uploading. If its files are still missing, reruns wait up
 to 20 minutes and stop rather than submitting another upload. Inspect the existing
 Central Portal deployment and finish it there, then rerun. If an upload never reached
-Central or was rejected, confirm that it cannot publish before removing its `attempting`
-JSON asset and rerunning. Do not delete a successful publication record. Coordinates
+Central or was rejected, confirm that it cannot publish before removing its intent JSON asset and rerunning.
+The retained `attempting` state records intent, not current deployment status; check
+Central before any manual deletion. Never delete a record for a published package. Coordinates
 without provenance, conflicting checksums and HTTP errors fail closed.
 
 After completion, development versions can return to SNAPSHOT. Before a later common-only
 stable release, restore the exact published framework version in the root build. Framework
 is always released with common; independent framework-only releases are not supported.
+
+Release runs use a shared concurrency group with `queue: max`, so pending releases
+queue instead of replacing one another (up to GitHub’s 100-run limit).
 
 ### Repository setup
 
