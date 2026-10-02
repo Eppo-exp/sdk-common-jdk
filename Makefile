@@ -33,12 +33,15 @@ testDataDir := src/test/resources/shared
 tempDir := ${testDataDir}/temp
 gitDataDir := ${tempDir}/sdk-test-data
 branchName := main
+testDataRef ?= $(branchName)
 githubRepoLink := https://github.com/Eppo-exp/sdk-test-data.git
 .PHONY: test-data
 test-data:
 	rm -rf $(testDataDir)
 	mkdir -p ${tempDir}
 	git clone -b ${branchName} --depth 1 --single-branch ${githubRepoLink} ${gitDataDir}
+	git -C ${gitDataDir} fetch --depth 1 origin "$(testDataRef)"
+	git -C ${gitDataDir} checkout --detach FETCH_HEAD
 	cp -r ${gitDataDir}/ufc ${testDataDir}
 	rm -f ${testDataDir}/ufc/bandit-tests/*.dynamic-typing.json || true
 	rm -rf ${tempDir}
@@ -58,3 +61,18 @@ snapshot-release:
 	@echo "$(INFO)Pushing $(LOCAL_BRANCH) to snapshot/$(LOCAL_BRANCH)$(END)"
 	git push origin HEAD:refs/heads/snapshot/$(LOCAL_BRANCH)
 	@echo "$(OK)Snapshot workflow triggered for snapshot/$(LOCAL_BRANCH)$(END)"
+
+## release-plan - Validate the committed versions and show packages to publish/reuse.
+.PHONY: release-plan
+release-plan:
+	python3 scripts/release/release.py plan
+
+## release-draft - Prepare a draft GitHub release; publish it in GitHub to release packages.
+.PHONY: release-draft
+release-draft:
+	python3 scripts/release/release.py draft
+
+## test-release - Test the release planner and publication recovery behavior.
+.PHONY: test-release
+test-release:
+	python3 -m unittest discover -s scripts/release/tests -v

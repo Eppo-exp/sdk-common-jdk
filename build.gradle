@@ -215,3 +215,13 @@ javadoc {
     options.addBooleanOption('html5', true)
   }
 }
+
+// Machine-readable versions for the draft helper and release workflow.
+tasks.register('releaseVersions') {
+  doLast {
+    println groovy.json.JsonOutput.toJson([
+      'eppo-sdk-framework': project.version.toString(),
+      'sdk-common-jvm': project(':eppo-sdk-common').version.toString()
+    ])
+  }
+}

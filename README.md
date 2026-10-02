@@ -19,38 +19,81 @@ dependencies {
 
 ## Releasing a new version
 
-Releases are published to Maven Central via GitHub Actions. There are two artifacts, each with its own workflow:
+Publishing a stable GitHub release starts `publish-release.yml`. One release publishes
+`sdk-common-jvm` and publishes `eppo-sdk-framework` first when its selected version is new.
+The GitHub tag is the common version (`v4.0.0`); framework is independently versioned
+(`0.1.0`). Maintainers choose both versions in Gradle; automation does not infer semver.
 
-| Artifact | artifactId | Workflow |
-|---|---|---|
-| Framework SDK | `eppo-sdk-framework` | `publish-framework.yml` |
-| Common SDK | `sdk-common-jvm` | `publish-common.yml` |
+| GitHub tag | Common | Framework | Packages published |
+|---|---|---|---|
+| `v4.0.0` | `4.0.0` | `0.1.0` | Both, for the first release |
+| `v4.0.1` | `4.0.1` | `0.1.0` | Common only |
+| `v4.1.0` | `4.1.0` | `0.2.0` | Both |
 
-### Steps
+### Prepare and publish
 
-> **Ordering requirement:** If releasing both artifacts, release `eppo-sdk-framework` first and confirm it is visible on Maven Central before triggering `publish-common.yml`. The `sdk-common-jvm` POM declares `eppo-sdk-framework` as a compile dependency; releasing common first leaves consumers with an unresolvable transitive dependency.
+1. Commit and merge the stable common version in `eppo-sdk-common/build.gradle`.
+   Set the root framework version in `build.gradle` to the exact stable version to
+   publish or reuse. A framework change requires a new framework version and a new
+   common version. Never leave the root version at SNAPSHOT for a stable common release.
+2. Use a clean checkout of that commit with current `origin/main` and tags. Install
+   Java 8, Python 3, and authenticated GitHub CLI (`gh`). Inspect the plan and create a draft:
 
-1. Bump the version in the relevant `build.gradle` (root for framework, `eppo-sdk-common/build.gradle` for common) — drop the `-SNAPSHOT` suffix
-2. Merge the version bump to `main`
-3. Trigger the workflow via the GitHub UI or CLI:
+   ```bash
+   git fetch origin main --tags
+   make release-plan
+   make release-draft
+   ```
 
-```bash
-# Release the Framework SDK (do this first if releasing both)
-gh workflow run publish-framework.yml --ref main --field version=0.1.0
+   The helper reads Gradle versions and prepares package actions and change notes,
+   with the draft targeted at the exact commit. It does not publish Maven packages.
+   You can also create the equivalent draft manually in GitHub, targeting that commit
+   and using the common version as its `vMAJOR.MINOR.PATCH` tag.
+3. Review and publish the draft in GitHub. The workflow validates the tag, versions,
+   clean checkout and main ancestry; tests the SDK; publishes framework if needed;
+   waits for its artifacts; and publishes common. It then verifies package checksums
+   and resolves common and the framework tests classifier in a separate consumer build
+   using Central, without `mavenLocal` or project dependencies.
+4. Check the [release workflow](https://github.com/Eppo-exp/sdk-common-jdk/actions/workflows/publish-release.yml)
+   for completion. Publishing the GitHub release starts the process; it does not mean
+   Central already serves the packages. Prereleases do not publish stable packages.
 
-# Release the Common SDK
-gh workflow run publish-common.yml --ref main --field version=4.0.0
-```
+### Reuse and retries
 
-The workflow will:
-- Verify the version in `build.gradle` matches the input
-- Run all tests
-- Sign and publish the artifact to Maven Central
-- Create and push a tag (`eppo-sdk-framework-vN.N.N` or `sdk-common-jvm-vN.N.N`) on successful deploy
+The workflow attaches a JSON publication record for each package to the GitHub release.
+It records source commit, build-input fingerprint, expected file checksums and state.
+Framework reuse requires matching recorded inputs and verified Central files; changes
+without a framework version bump fail. Inputs conservatively include root sources and
+tests, shared Gradle/build settings, and the pinned fixture revision in
+`scripts/release/test-data-ref`. Common-only sources and administrative documentation
+are excluded from the framework fingerprint. Update that fixture pin deliberately;
+changing it changes the published framework tests JAR and requires a framework bump.
 
-4. After **both** artifacts are confirmed on Maven Central, bump `main` back to the next `-SNAPSHOT` version (e.g. `4.0.1-SNAPSHOT` / `0.1.1-SNAPSHOT`) so that snapshot publishing continues to work. Do not bump either version to SNAPSHOT until common has been released — the common POM embeds the framework version at publish time, and a SNAPSHOT framework version would produce a broken transitive dependency in the common release artifact.
+Staging is cleared between packages. If framework succeeds and common fails, rerun the
+same workflow: verified framework publication is reused and common resumes. A publication
+attempt is recorded **before** uploading. If its files are still missing, reruns wait up
+to 20 minutes and stop rather than submitting another upload. Inspect the existing
+Central Portal deployment and finish it there, then rerun. If an upload never reached
+Central or was rejected, confirm that it cannot publish before removing its `attempting`
+JSON asset and rerunning. Do not delete a successful publication record. Coordinates
+without provenance, conflicting checksums and HTTP errors fail closed.
 
-Monitor progress at [GitHub Actions](https://github.com/Eppo-exp/sdk-common-jdk/actions).
+After completion, development versions can return to SNAPSHOT. Before a later common-only
+stable release, restore the exact published framework version in the root build. Framework
+is always released with common; independent framework-only releases are not supported.
+
+### Repository setup
+
+Configure `maven-central-release` with a required reviewer and allowed release tags matching
+`v*` (the workflow validates the exact version and main ancestry). A main-branch-only rule
+will block release events, whose ref is a tag. Store `MAVEN_CENTRAL_TOKEN_USERNAME`,
+`MAVEN_CENTRAL_TOKEN_PASSWORD`, `GPG_PASSPHRASE`, and `GPG_PRIVATE_KEY` as environment secrets,
+and `GPG_PUBLIC_KEY` as an environment variable. The workflow needs contents-write permission
+to attach publication records. Release publication must be initiated by a user or token
+that can trigger Actions; use your normal authenticated CLI to prepare drafts.
+
+Release tooling tests run in CI and locally with `make test-release`. Snapshot publishing
+keeps its separate workflow. The server SDK has its own downstream version and release.
 
 ## Using Snapshots
 

@@ -46,3 +46,6 @@ bin/
 .DS_Store
 .idea/
 gradle.properties
+
+# Python release tooling
+__pycache__/
