@@ -83,13 +83,25 @@ queue instead of replacing one another (up to GitHub’s 100-run limit).
 
 ### Repository setup
 
-Configure `maven-central-release` with a required reviewer and allowed release tags matching
-`v*` (the workflow validates the exact version and main ancestry). A main-branch-only rule
-will block release events, whose ref is a tag. Store `MAVEN_CENTRAL_TOKEN_USERNAME`,
-`MAVEN_CENTRAL_TOKEN_PASSWORD`, `GPG_PASSPHRASE`, and `GPG_PRIVATE_KEY` as environment secrets,
-and `GPG_PUBLIC_KEY` as an environment variable. The workflow needs contents-write permission
-to attach publication records. Release publication must be initiated by a user or token
-that can trigger Actions, such as publishing through the GitHub UI.
+Before the first release, a repository admin must create `maven-central-release` with
+release owners as required reviewers and an allowed **tag** rule matching `v*`.
+The workflow references this environment as an approval gate: the publish job waits
+for approval before any of its steps run. A main-branch-only rule will block release
+events, whose ref is a tag; the workflow separately validates the exact version and
+main ancestry. GitHub automatically creates a missing environment without protection
+rules, so referencing its name alone does not enable approval. This setup is a separate
+repository-admin prerequisite, not a configuration change performed by this PR.
+
+Keep the existing repository-level `MAVEN_CENTRAL_TOKEN_USERNAME`,
+`MAVEN_CENTRAL_TOKEN_PASSWORD`, `GPG_PASSPHRASE`, and `GPG_PRIVATE_KEY` secrets and
+`GPG_PUBLIC_KEY` variable unchanged. Do not move or duplicate them into the environment.
+Both release and snapshot publishing use this existing configuration; the snapshot
+workflow has no environment. The approval gate protects this release job from accidental
+publication; it does not isolate repository secrets from users who can edit workflows.
+
+The workflow needs contents-write permission to attach publication records. Release
+publication must be initiated by a user or token that can trigger Actions, such as
+publishing through the GitHub UI.
 
 Release tooling tests run in CI and locally with `make test-release`. Snapshot publishing
 keeps its separate workflow. The server SDK has its own downstream version and release.
