@@ -104,16 +104,31 @@ def required_files(artifact, version):
     return {base + suffix for suffix in suffixes}
 
 
+def changed_inputs(artifact, commit):
+    # Diagnostics must not weaken the fingerprint guard or interpret record data as options.
+    if not isinstance(commit, str) or not re.fullmatch(r'[a-f0-9]{40}', commit):
+        return []
+    diff = subprocess.run(['git', 'diff', '--name-only', '--no-renames', '-z',
+                           commit, 'HEAD', '--'], text=True, capture_output=True)
+    if diff.returncode:
+        return []
+    return [path for path in diff.stdout.split('\0') if path and (framework_input(path)
+            or (artifact == COMMON and path.startswith('eppo-sdk-common/')))]
+
+
 def validate_record(record, artifact, version, inputs):
     if (record.get('schema') != 1 or record.get('artifact') != artifact
             or record.get('version') != version
-            or record.get('state') not in ('attempting', 'published')
+            or record.get('state') != 'attempting'
             or not required_files(artifact, version).issubset(record.get('files', {}))):
         raise ValueError('Publication provenance is incomplete for ' + artifact + ':' + version)
     if record.get('inputs') != inputs:
         version_file = 'build.gradle' if artifact == FRAMEWORK else 'eppo-sdk-common/build.gradle'
-        raise ValueError(artifact + ':' + version + ' has new source/build inputs but no version bump. '
-                         + 'Bump the version in ' + version_file + ' before releasing.')
+        changed = changed_inputs(artifact, record.get('commit'))
+        names = ' (changed: ' + ', '.join(changed[:10]) + (', ...' if len(changed) > 10 else '') + ')'
+        raise ValueError(artifact + ':' + version + ' has new source/build inputs but no version bump'
+                         + (names if changed else '') + '. Bump the version in '
+                         + version_file + ' before releasing.')
     for name, checksum in record['files'].items():
         if '/' in name or not re.fullmatch(r'[a-f0-9]{64}', checksum):
             raise ValueError('Invalid publication record')
@@ -136,9 +151,10 @@ def wait_for_record(record, seconds=1200):
         if verify_record(record):
             return
         if time.monotonic() >= deadline:
-            raise ValueError('Publication is incomplete for ' + record['artifact']
-                             + '. Inspect the existing Central deployment; do not re-upload blindly.'
-                             + ' Once it is published, rerun this release workflow.')
+            raise ValueError('Publication is incomplete for ' + record['artifact'] + ':' + record['version']
+                             + ' (intent recorded by run ' + str(record.get('run')) + '). Check its Central'
+                             + ' Portal deployment before rerunning or deleting the record; see'
+                             + ' "Reuse and retries" in README.md.')
         time.sleep(20)
 
 
@@ -180,8 +196,7 @@ def make_plan(tag=None):
             if record:
                 validate_record(record, artifact, version, inputs)
                 matches.append(record)
-        record = next((r for r in matches if r['state'] == 'published'),
-                      matches[0] if matches else None)
+        record = matches[0] if matches else None
         if matches and any(r['files'] != record['files'] for r in matches):
             raise ValueError('Conflicting publication records for ' + artifact)
         exists = verify_record(record) if record else available(artifact, version)
@@ -236,6 +251,9 @@ def publish(plan):
         record = item['record']
         if item['action'] == 'publish':
             record = stage_record(artifact, item, plan)
+            # Catch signing, POM and configuration failures before recording an upload attempt.
+            shutil.rmtree(Path('build/jreleaser'), ignore_errors=True)
+            subprocess.run(['./gradlew', 'jreleaserDeploy', '--dryrun'], check=True)
             # Persist intent and exact checksums BEFORE contacting Central. If the runner
             # disappears, a rerun must reconcile this attempt instead of uploading twice.
             upload_record(plan['tag'], record)
@@ -276,6 +294,7 @@ dependencies {
 tasks.register('verifyRelease') {
   doLast {
     def artifacts = configurations.testRuntimeClasspath.resolvedConfiguration.resolvedArtifacts
+    artifacts.each { assert it.file.isFile() }  // Force artifact downloads, not only metadata.
     assert artifacts.any { it.moduleVersion.id.group == 'cloud.eppo' &&
       it.name == 'sdk-common-jvm' && it.moduleVersion.id.version == '%s' }
     assert artifacts.any { it.moduleVersion.id.group == 'cloud.eppo' &&

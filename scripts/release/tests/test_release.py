@@ -12,7 +12,7 @@ r = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r)
 
 
-def record(artifact=r.FRAMEWORK, state='published'):
+def record(artifact=r.FRAMEWORK, state='attempting'):
     return {'schema': 1, 'artifact': artifact, 'version': '0.1.0', 'inputs': 'inputs',
             'commit': 'commit', 'state': state,
             'files': {name: hashlib.sha256(b'published').hexdigest()
@@ -103,7 +103,8 @@ class ReleaseTests(unittest.TestCase):
                 patch.object(r.subprocess, 'run') as deploy, patch.object(r.shutil, 'rmtree'):
             r.publish(plan)
             stage.assert_called_once_with(r.COMMON, plan['artifacts'][r.COMMON], plan)
-            deploy.assert_called_once_with(['./gradlew', 'jreleaserDeploy'], check=True)
+            self.assertEqual([c.args[0] for c in deploy.call_args_list],
+                             [['./gradlew', 'jreleaserDeploy', '--dryrun'], ['./gradlew', 'jreleaserDeploy']])
             self.assertEqual(wait.call_count, 2)
             upload.assert_called_once_with(plan['tag'], common)
             consumer.assert_called_once_with(plan)
@@ -116,7 +117,7 @@ class ReleaseTests(unittest.TestCase):
                 patch.object(r.subprocess, 'run') as deploy:
             with self.assertRaisesRegex(ValueError, 'cannot persist'):
                 r.publish(plan)
-            deploy.assert_not_called()
+            deploy.assert_called_once_with(['./gradlew', 'jreleaserDeploy', '--dryrun'], check=True)
 
     def test_plan_rejects_wrong_tag_and_detached_version(self):
         with patch.object(r, 'run', return_value=''), \
@@ -249,13 +250,13 @@ class ReleaseTests(unittest.TestCase):
 
     def test_pending_publication_wait_is_bounded(self):
         with patch.object(r, 'verify_record', return_value=False), patch.object(r.time, 'sleep') as sleep:
-            with self.assertRaisesRegex(ValueError, 'Inspect the existing Central deployment'):
+            with self.assertRaisesRegex(ValueError, 'Check its Central Portal deployment'):
                 r.wait_for_record(record(), seconds=0)
             sleep.assert_not_called()
 
     def test_intent_state_does_not_override_verified_central_completion(self):
         self.assertEqual(r.choose_action(record(state='attempting'), True), 'reuse')
-        self.assertEqual(r.choose_action(record(state='published'), False), 'resume')
+        self.assertEqual(r.choose_action(record(state='attempting'), False), 'resume')
 
     def test_deploy_failure_after_central_success_retains_record_and_retries(self):
         import json
@@ -275,6 +276,8 @@ class ReleaseTests(unittest.TestCase):
                 self.assertNotIn(path.name, assets, 'Provenance must never be replaced')
                 assets[path.name] = json.loads(path.read_text())
                 uploads.append(path.name)
+            elif command == ['./gradlew', 'jreleaserDeploy', '--dryrun']:
+                pass
             elif command == ['./gradlew', 'jreleaserDeploy']:
                 central.add(r.FRAMEWORK)
                 raise subprocess.CalledProcessError(1, command)
