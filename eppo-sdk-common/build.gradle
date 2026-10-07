@@ -6,7 +6,7 @@ plugins {
 apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
-version = '4.0.0-SNAPSHOT'
+version = '4.0.0'
 
 java {
   sourceCompatibility = JavaVersion.VERSION_1_8
@@ -102,7 +102,7 @@ publishing {
       pom {
         name = 'Eppo SDK Common JVM'
         description = 'Complete Eppo SDK for JVM with default HTTP client and configuration parser'
-        url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+        url = 'https://github.com/Eppo-exp/sdk-common-jdk'
         licenses {
           license {
             name = 'MIT License'
@@ -112,13 +112,13 @@ publishing {
         developers {
           developer {
             name = 'Eppo'
-            email = 'https://geteppo.com'
+            email = 'sdk@geteppo.com'
           }
         }
         scm {
-          connection = 'scm:git:git://github.com/Eppo-exp/sdk-common-jvm.git'
-          developerConnection = 'scm:git:ssh://github.com/Eppo-exp/sdk-common-jvm.git'
-          url = 'https://github.com/Eppo-exp/sdk-common-jvm'
+          connection = 'scm:git:https://github.com/Eppo-exp/sdk-common-jdk.git'
+          developerConnection = 'scm:git:ssh://git@github.com/Eppo-exp/sdk-common-jdk.git'
+          url = 'https://github.com/Eppo-exp/sdk-common-jdk'
         }
 
         // Manual POM manipulation required for Maven consumers

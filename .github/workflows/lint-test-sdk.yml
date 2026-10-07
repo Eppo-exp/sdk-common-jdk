@@ -30,6 +30,18 @@ env:
   SDK_REPO: Eppo-exp/sdk-common-jdk
 
 jobs:
+  test-release-tooling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SDK_REPO }}
+          ref: ${{ env.SDK_BRANCH }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: make test-release
+
   lint-test-sdk:
     runs-on: ubuntu-latest
     strategy:

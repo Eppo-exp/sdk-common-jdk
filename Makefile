@@ -33,12 +33,15 @@ testDataDir := src/test/resources/shared
 tempDir := ${testDataDir}/temp
 gitDataDir := ${tempDir}/sdk-test-data
 branchName := main
+testDataRef ?= $(branchName)
 githubRepoLink := https://github.com/Eppo-exp/sdk-test-data.git
 .PHONY: test-data
 test-data:
 	rm -rf $(testDataDir)
 	mkdir -p ${tempDir}
 	git clone -b ${branchName} --depth 1 --single-branch ${githubRepoLink} ${gitDataDir}
+	git -C ${gitDataDir} fetch --depth 1 origin "$(testDataRef)"
+	git -C ${gitDataDir} checkout --detach FETCH_HEAD
 	cp -r ${gitDataDir}/ufc ${testDataDir}
 	rm -f ${testDataDir}/ufc/bandit-tests/*.dynamic-typing.json || true
 	rm -rf ${tempDir}
@@ -51,6 +54,15 @@ test: test-data build
 .PHONY: snapshot-release
 snapshot-release:
 	$(eval LOCAL_BRANCH := $(shell git rev-parse --abbrev-ref HEAD))
+	@if [ "$(LOCAL_BRANCH)" = "HEAD" ]; then \
+	  echo "Error: detached HEAD state — checkout a named branch before running snapshot-release"; \
+	  exit 1; \
+	fi
 	@echo "$(INFO)Pushing $(LOCAL_BRANCH) to snapshot/$(LOCAL_BRANCH)$(END)"
 	git push origin HEAD:refs/heads/snapshot/$(LOCAL_BRANCH)
 	@echo "$(OK)Snapshot workflow triggered for snapshot/$(LOCAL_BRANCH)$(END)"
+
+## test-release - Test the release planner and publication recovery behavior.
+.PHONY: test-release
+test-release:
+	python3 -m unittest discover -s scripts/release/tests -v
