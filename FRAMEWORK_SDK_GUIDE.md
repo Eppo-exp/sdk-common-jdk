@@ -60,7 +60,7 @@ The framework provides two interfaces you must implement:
 
 ```groovy
 dependencies {
-    implementation 'cloud.eppo:eppo-sdk-framework:0.1.0'
+    implementation 'cloud.eppo:eppo-sdk-framework:0.1.1'
 
     // Add your choice of JSON library
     implementation 'com.google.code.gson:gson:2.10.1'  // Example
@@ -81,7 +81,7 @@ repositories {
     <dependency>
         <groupId>cloud.eppo</groupId>
         <artifactId>eppo-sdk-framework</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
     </dependency>
 
     <!-- Add your JSON library -->

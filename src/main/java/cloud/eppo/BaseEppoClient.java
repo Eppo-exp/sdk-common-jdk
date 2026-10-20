@@ -591,8 +591,11 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   public AssignmentDetails<String> getJSONStringAssignmentDetails(
       String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
     try {
-      return this.getTypedAssignmentWithDetails(
-          flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
+      EvaluationDetails details =
+          evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, VariationType.JSON);
+      String resultValue =
+          details.evaluationSuccessful() ? details.getVariationValue().stringValue() : defaultValue;
+      return new AssignmentDetails<>(resultValue, null, details);
     } catch (Exception e) {
       return new AssignmentDetails<>(
           throwIfNotGraceful(e, defaultValue),
