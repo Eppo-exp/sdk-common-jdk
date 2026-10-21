@@ -16,9 +16,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class JSONStringAssignmentTest {
+  enum Overload {
+    VALUE,
+    VALUE_WITH_ATTRIBUTES,
+    DETAILS,
+    DETAILS_WITH_ATTRIBUTES
+  }
+
   private static final String RAW_JSON = "{ \"message\": \"café\", \"enabled\": true }";
   private final ObjectMapper mapper = new ObjectMapper();
   private final AssignmentLogger logger = mock(AssignmentLogger.class);
@@ -75,20 +82,20 @@ class JSONStringAssignmentTest {
 
   private String assign(
       BaseEppoClient<Configuration, JsonNode> client,
-      int overload,
+      Overload overload,
       String flag,
       String fallback,
       EvaluationDetails expectedDetails) {
     Attributes attributes = new Attributes();
     attributes.put("country", EppoValue.valueOf("CA"));
-    if (overload == 0) {
+    if (overload == Overload.VALUE) {
       return client.getJSONStringAssignment(flag, "subject", fallback);
     }
-    if (overload == 1) {
+    if (overload == Overload.VALUE_WITH_ATTRIBUTES) {
       return client.getJSONStringAssignment(flag, "subject", attributes, fallback);
     }
     AssignmentDetails<String> details =
-        overload == 2
+        overload == Overload.DETAILS
             ? client.getJSONStringAssignmentDetails(flag, "subject", fallback)
             : client.getJSONStringAssignmentDetails(flag, "subject", attributes, fallback);
     if (expectedDetails != null) {
@@ -101,8 +108,8 @@ class JSONStringAssignmentTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 2, 3})
-  void successfulJSONStringOverloadsPreserveRawTextAndDetails(int overload) throws Exception {
+  @EnumSource(Overload.class)
+  void successfulJSONStringOverloadsPreserveRawTextAndDetails(Overload overload) throws Exception {
     BaseEppoClient<Configuration, JsonNode> client = spy(client(false, null, RAW_JSON));
     EvaluationDetails details = success();
     doReturn(details)
@@ -128,15 +135,15 @@ class JSONStringAssignmentTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 2, 3})
-  void realJSONFlagEvaluatesAndLogsOncePerCall(int overload) throws Exception {
+  @EnumSource(Overload.class)
+  void realJSONFlagEvaluatesAndLogsOncePerCall(Overload overload) throws Exception {
     BaseEppoClient<Configuration, JsonNode> client = client(false, null, RAW_JSON);
     assertEquals(RAW_JSON, assign(client, overload, "json-flag", null, null));
     verify(logger, times(1)).logAssignment(any(Assignment.class));
   }
 
   @Test
-  void JSONStringLoggingStillDeduplicates() throws Exception {
+  void jsonStringLoggingStillDeduplicates() throws Exception {
     BaseEppoClient<Configuration, JsonNode> client =
         client(false, new LRUInMemoryAssignmentCache(10), RAW_JSON);
     assertEquals(RAW_JSON, client.getJSONStringAssignment("json-flag", "subject", null));
@@ -148,8 +155,8 @@ class JSONStringAssignmentTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 2, 3})
-  void missingFlagPreservesDefaultIncludingNull(int overload) throws Exception {
+  @EnumSource(Overload.class)
+  void missingFlagPreservesDefaultIncludingNull(Overload overload) throws Exception {
     BaseEppoClient<Configuration, JsonNode> client = client(false, null, RAW_JSON);
     assertEquals("fallback", assign(client, overload, "missing", "fallback", null));
     assertNull(assign(client, overload, "missing", null, null));
@@ -175,8 +182,8 @@ class JSONStringAssignmentTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 2, 3})
-  void gracefulModePreservesErrorDefaults(int overload) throws Exception {
+  @EnumSource(Overload.class)
+  void gracefulModePreservesErrorDefaults(Overload overload) throws Exception {
     BaseEppoClient<Configuration, JsonNode> client = client(true, null, RAW_JSON);
     assertEquals("fallback", assign(client, overload, "", "fallback", null));
     assertNull(assign(client, overload, "", null, null));
@@ -190,8 +197,8 @@ class JSONStringAssignmentTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 2, 3})
-  void strictModeStillThrows(int overload) throws Exception {
+  @EnumSource(Overload.class)
+  void strictModeStillThrows(Overload overload) throws Exception {
     BaseEppoClient<Configuration, JsonNode> client = client(false, null, RAW_JSON);
     assertThrows(RuntimeException.class, () -> assign(client, overload, "", null, null));
     verifyNoInteractions(logger);
