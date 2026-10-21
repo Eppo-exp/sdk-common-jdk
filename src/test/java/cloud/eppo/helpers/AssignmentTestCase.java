@@ -178,11 +178,23 @@ public class AssignmentTestCase {
                     flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
             assertAssignment(flagKey, subjectAssignment, details.getVariation());
             assertAssignmentDetails(flagKey, subjectAssignment, details.getEvaluationDetails());
+
+            AssignmentDetails<String> stringDetails =
+                eppoClient.getJSONStringAssignmentDetails(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
+            assertAssignment(flagKey, subjectAssignment, parseJson(stringDetails.getVariation()));
+            assertAssignmentDetails(
+                flagKey, subjectAssignment, stringDetails.getEvaluationDetails());
           } else {
             JsonNode jsonAssignment =
                 eppoClient.getJSONAssignment(
                     flagKey, subjectKey, subjectAttributes, testCase.getDefaultValue().jsonValue());
             assertAssignment(flagKey, subjectAssignment, jsonAssignment);
+
+            String jsonStringAssignment =
+                eppoClient.getJSONStringAssignment(
+                    flagKey, subjectKey, subjectAttributes, defaultValue.stringValue());
+            assertAssignment(flagKey, subjectAssignment, parseJson(jsonStringAssignment));
           }
           break;
         default:
@@ -193,6 +205,17 @@ public class AssignmentTestCase {
                   + flagKey
                   + " test case");
       }
+    }
+  }
+
+  private static JsonNode parseJson(String json) {
+    if (json == null) {
+      return null;
+    }
+    try {
+      return mapper.readTree(json);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

@@ -13,22 +13,31 @@ or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 
 ```groovy
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:4.0.0'
+  implementation 'cloud.eppo:sdk-common-jvm:4.0.1'
 }
 ```
+
+## Upgrading from common 3.x
+
+Starting in common 4.0.0, strict mode (graceful mode disabled) throws when a JSON flag
+contains malformed JSON. Common 3.13.2 returned the supplied non-null default for this
+case. Graceful mode continues to return the default. This applies to both parsed JSON
+and JSON-string assignments and should be noted when upgrading a server SDK from 5.x
+to 6.x. The JSON-string cast fix in 4.0.1 retains this strict-mode behaviour.
 
 ## Releasing a new version
 
 Publishing a stable GitHub release starts `publish-release.yml`. Every new release publishes a new version of
 `sdk-common-jvm` and publishes `eppo-sdk-framework` first when its selected version is new.
-The GitHub tag is the common version (`v4.0.0`); framework is independently versioned
-(`0.1.0`). Maintainers choose both versions in Gradle; automation does not infer semver.
+The GitHub tag is the common version (`v4.0.1`); framework is independently versioned
+(`0.1.1`). Maintainers choose both versions in Gradle; automation does not infer semver.
 
 | GitHub tag | Common | Framework | Packages published |
 |---|---|---|---|
 | `v4.0.0` | `4.0.0` | `0.1.0` | Both, for the first release |
-| `v4.0.1` | `4.0.1` | `0.1.0` | Common only |
-| `v4.1.0` | `4.1.0` | `0.2.0` | Both |
+| `v4.0.1` | `4.0.1` | `0.1.1` | Both, for a framework patch |
+| `v4.0.2` | `4.0.2` | `0.1.1` | Common only (example) |
+| `v4.1.0` | `4.1.0` | `0.2.0` | Both (example) |
 
 ### Prepare and publish
 
