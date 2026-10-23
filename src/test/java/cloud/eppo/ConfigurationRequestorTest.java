@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
@@ -449,6 +450,65 @@ public class ConfigurationRequestorTest {
 
       assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
       verify(configStore, never()).saveConfiguration(any());
+    }
+
+    // Flags answer 304 once the client echoes "flags-v1"; bandits fail once, then succeed.
+    private AtomicInteger stubBanditFlagsWithOneBanditFailure() throws IOException {
+      byte[] banditFlags =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-flags-v1.json"));
+      byte[] banditModels =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-models-v1.json"));
+      AtomicInteger banditCalls = new AtomicInteger();
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenAnswer(
+              invocation -> {
+                EppoConfigurationRequest request = invocation.getArgument(0);
+                if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
+                  return CompletableFuture.completedFuture(
+                      banditCalls.incrementAndGet() == 1
+                          ? EppoConfigurationResponse.error(503, null)
+                          : EppoConfigurationResponse.success(200, null, banditModels));
+                }
+                return CompletableFuture.completedFuture(
+                    "flags-v1".equals(request.getLastVersionId())
+                        ? EppoConfigurationResponse.notModified("flags-v1")
+                        : EppoConfigurationResponse.success(200, "flags-v1", banditFlags));
+              });
+      return banditCalls;
+    }
+
+    @Test
+    void testFailedBanditFetchIsRetriedOnNextFetch() throws IOException {
+      AtomicInteger banditCalls = stubBanditFlagsWithOneBanditFailure();
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
+      assertTrue(configStore.getConfiguration().isEmpty());
+
+      requestor.fetchAndSaveFromRemote();
+
+      assertEquals(2, banditCalls.get());
+      assertNotNull(configStore.getConfiguration().getBanditParameters("banner_bandit"));
+    }
+
+    @Test
+    void testFailedBanditFetchIsRetriedOnNextAsyncFetch() throws IOException {
+      AtomicInteger banditCalls = stubBanditFlagsWithOneBanditFailure();
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      assertThrows(CompletionException.class, () -> requestor.fetchAndSaveFromRemoteAsync().join());
+      assertTrue(configStore.getConfiguration().isEmpty());
+
+      requestor.fetchAndSaveFromRemoteAsync().join();
+
+      assertEquals(2, banditCalls.get());
+      assertNotNull(configStore.getConfiguration().getBanditParameters("banner_bandit"));
     }
   }
 

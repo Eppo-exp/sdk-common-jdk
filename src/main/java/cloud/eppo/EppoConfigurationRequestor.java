@@ -138,9 +138,11 @@ class EppoConfigurationRequestor<
       EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
       try {
         EppoConfigurationResponse banditResponse = configurationClient.execute(banditRequest).get();
-        if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
-          banditBytes = banditResponse.getBody();
+        if (!banditResponse.isSuccessful() || banditResponse.getBody() == null) {
+          throw new RuntimeException(
+              "Failed to fetch bandit parameters. Status: " + banditResponse.getStatusCode());
         }
+        banditBytes = banditResponse.getBody();
       } catch (InterruptedException e) {
         log.error("Error fetching bandit parameters", e);
         Thread.currentThread().interrupt();
@@ -233,10 +235,12 @@ class EppoConfigurationRequestor<
           .execute(banditRequest)
           .thenCompose(
               banditResponse -> {
-                byte[] banditBytes =
-                    banditResponse.isSuccessful() && banditResponse.getBody() != null
-                        ? banditResponse.getBody()
-                        : null;
+                if (!banditResponse.isSuccessful() || banditResponse.getBody() == null) {
+                  throw new RuntimeException(
+                      "Failed to fetch bandit parameters. Status: "
+                          + banditResponse.getStatusCode());
+                }
+                byte[] banditBytes = banditResponse.getBody();
                 ConfigurationType config =
                     configurationParser.buildConfig(
                         flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
