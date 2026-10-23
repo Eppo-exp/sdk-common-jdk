@@ -44,6 +44,32 @@ public class FlagEvaluator {
       String environmentName,
       Date configFetchedAt,
       Date configPublishedAt) {
+    return evaluateFlag(
+        flag,
+        flagKey,
+        subjectKey,
+        subjectAttributes,
+        isConfigObfuscated,
+        environmentName,
+        configFetchedAt,
+        configPublishedAt,
+        true);
+  }
+
+  /**
+   * Same as above. With {@code includeDetails} false, skips the allocation details, matched rule
+   * and description, which only the assignment-details APIs read.
+   */
+  public static FlagEvaluationResult evaluateFlag(
+      FlagConfig flag,
+      String flagKey,
+      String subjectKey,
+      Attributes subjectAttributes,
+      boolean isConfigObfuscated,
+      String environmentName,
+      Date configFetchedAt,
+      Date configPublishedAt,
+      boolean includeDetails) {
     Date now = new Date();
 
     FlagEvaluationResult.Builder builder =
@@ -64,7 +90,7 @@ public class FlagEvaluator {
           .flagEvaluationDescription("Unrecognized or disabled flag: " + flagKey);
 
       // All allocations are unevaluated for disabled flags
-      if (flag.getAllocations() != null) {
+      if (includeDetails && flag.getAllocations() != null) {
         for (int i = 0; i < flag.getAllocations().size(); i++) {
           Allocation allocation = flag.getAllocations().get(i);
           String allocationKey =
@@ -91,21 +117,25 @@ public class FlagEvaluator {
 
       // Check if allocation is time-bound and not yet active
       if (allocation.getStartAt() != null && allocation.getStartAt().after(now)) {
-        builder.addUnmatchedAllocation(
-            new AllocationDetails(
-                deobfuscatedAllocationKey,
-                AllocationEvaluationCode.BEFORE_START_TIME,
-                allocationPosition));
+        if (includeDetails) {
+          builder.addUnmatchedAllocation(
+              new AllocationDetails(
+                  deobfuscatedAllocationKey,
+                  AllocationEvaluationCode.BEFORE_START_TIME,
+                  allocationPosition));
+        }
         continue;
       }
 
       // Check if allocation is time-bound and no longer active
       if (allocation.getEndAt() != null && allocation.getEndAt().before(now)) {
-        builder.addUnmatchedAllocation(
-            new AllocationDetails(
-                deobfuscatedAllocationKey,
-                AllocationEvaluationCode.AFTER_END_TIME,
-                allocationPosition));
+        if (includeDetails) {
+          builder.addUnmatchedAllocation(
+              new AllocationDetails(
+                  deobfuscatedAllocationKey,
+                  AllocationEvaluationCode.AFTER_END_TIME,
+                  allocationPosition));
+        }
         continue;
       }
 
@@ -124,11 +154,13 @@ public class FlagEvaluator {
 
         if (matchedTargetingRule == null) {
           // Rules are defined but none match
-          builder.addUnmatchedAllocation(
-              new AllocationDetails(
-                  deobfuscatedAllocationKey,
-                  AllocationEvaluationCode.FAILING_RULE,
-                  allocationPosition));
+          if (includeDetails) {
+            builder.addUnmatchedAllocation(
+                new AllocationDetails(
+                    deobfuscatedAllocationKey,
+                    AllocationEvaluationCode.FAILING_RULE,
+                    allocationPosition));
+          }
           continue;
         }
       }
@@ -152,11 +184,13 @@ public class FlagEvaluator {
 
       if (variation == null) {
         // Rules matched but subject doesn't fall in traffic split
-        builder.addUnmatchedAllocation(
-            new AllocationDetails(
-                deobfuscatedAllocationKey,
-                AllocationEvaluationCode.TRAFFIC_EXPOSURE_MISS,
-                allocationPosition));
+        if (includeDetails) {
+          builder.addUnmatchedAllocation(
+              new AllocationDetails(
+                  deobfuscatedAllocationKey,
+                  AllocationEvaluationCode.TRAFFIC_EXPOSURE_MISS,
+                  allocationPosition));
+        }
         continue;
       }
 
@@ -204,6 +238,16 @@ public class FlagEvaluator {
           }
           extraLogging = deobfuscatedExtraLogging;
         }
+      }
+
+      builder
+          .allocationKey(allocationKey)
+          .variation(variation)
+          .extraLogging(extraLogging)
+          .doLog(allocation.doLog())
+          .flagEvaluationCode(FlagEvaluationCode.MATCH);
+      if (!includeDetails) {
+        break;
       }
 
       // Build matched rule details if applicable
@@ -263,11 +307,6 @@ public class FlagEvaluator {
       // TODO check type
 
       builder
-          .allocationKey(allocationKey)
-          .variation(variation)
-          .extraLogging(extraLogging)
-          .doLog(allocation.doLog())
-          .flagEvaluationCode(FlagEvaluationCode.MATCH)
           .flagEvaluationDescription(description)
           .matchedRule(matchedRule)
           .matchedAllocation(

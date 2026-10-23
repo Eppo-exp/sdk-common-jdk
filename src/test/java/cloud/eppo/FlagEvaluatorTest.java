@@ -343,6 +343,43 @@ public class FlagEvaluatorTest {
   }
 
   @Test
+  public void testWithoutDetailsMatchesWithDetails() {
+    Map<String, Variation> variations = createVariations("a", "b");
+    Set<TargetingRule> rules =
+        createRules("email", OperatorType.MATCHES, EppoValue.valueOf(".*example\\.com$"));
+    List<Allocation> allocations = createAllocations("first", createSplits("b"), rules);
+    allocations.addAll(createAllocations("default", createSplits("a")));
+    FlagConfig flag = createFlag("key", true, variations, allocations);
+
+    String[][] cases = {{"eppo@example.com", "first", "b"}, {"eppo@test.com", "default", "a"}};
+    for (String[] testCase : cases) {
+      Attributes attributes = new Attributes();
+      attributes.put("email", testCase[0]);
+      FlagEvaluationResult full =
+          FlagEvaluator.evaluateFlag(
+              flag, "flag", "subjectKey", attributes, false, "Test", null, null, true);
+      FlagEvaluationResult lean =
+          FlagEvaluator.evaluateFlag(
+              flag, "flag", "subjectKey", attributes, false, "Test", null, null, false);
+
+      assertEquals(testCase[1], lean.getAllocationKey());
+      assertEquals(testCase[2], lean.getVariation().getKey());
+      assertEquals(full.getVariation().getKey(), lean.getVariation().getKey());
+      assertEquals(full.getAllocationKey(), lean.getAllocationKey());
+      assertEquals(full.doLog(), lean.doLog());
+      assertEquals(full.getExtraLogging(), lean.getExtraLogging());
+      EvaluationDetails details = lean.getEvaluationDetails();
+      assertEquals(
+          full.getEvaluationDetails().getFlagEvaluationCode(), details.getFlagEvaluationCode());
+      assertNull(details.getFlagEvaluationDescription());
+      assertNull(details.getMatchedRule());
+      assertNull(details.getMatchedAllocation());
+      assertTrue(details.getUnmatchedAllocations().isEmpty());
+      assertTrue(details.getUnevaluatedAllocations().isEmpty());
+    }
+  }
+
+  @Test
   public void testVariationShardRanges() {
     Map<String, Variation> variations = createVariations("a", "b", "c");
     Set<Shard> trafficShards = createShards("traffic", 0, 5);

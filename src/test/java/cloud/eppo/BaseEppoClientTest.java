@@ -315,7 +315,11 @@ public class BaseEppoClientTest {
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
-            anyString(), anyString(), any(Attributes.class), any(VariationType.class));
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(VariationType.class),
+            anyBoolean());
 
     assertTrue(spyClient.getBooleanAssignment("experiment1", "subject1", true));
     assertFalse(spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
@@ -360,7 +364,11 @@ public class BaseEppoClientTest {
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
-            anyString(), anyString(), any(Attributes.class), any(VariationType.class));
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(VariationType.class),
+            anyBoolean());
 
     assertThrows(
         RuntimeException.class,
