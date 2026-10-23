@@ -13,7 +13,7 @@ or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 
 ```groovy
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:4.0.1'
+  implementation 'cloud.eppo:sdk-common-jvm:4.0.2'
 }
 ```
 
@@ -29,14 +29,15 @@ to 6.x. The JSON-string cast fix in 4.0.1 retains this strict-mode behaviour.
 
 Publishing a stable GitHub release starts `publish-release.yml`. Every new release publishes a new version of
 `sdk-common-jvm` and publishes `eppo-sdk-framework` first when its selected version is new.
-The GitHub tag is the common version (`v4.0.1`); framework is independently versioned
-(`0.1.1`). Maintainers choose both versions in Gradle; automation does not infer semver.
+The GitHub tag is the common version (`v4.0.2`); framework is independently versioned
+(`0.1.2`). Maintainers choose both versions in Gradle; automation does not infer semver.
 
 | GitHub tag | Common | Framework | Packages published |
 |---|---|---|---|
 | `v4.0.0` | `4.0.0` | `0.1.0` | Both, for the first release |
 | `v4.0.1` | `4.0.1` | `0.1.1` | Both, for a framework patch |
-| `v4.0.2` | `4.0.2` | `0.1.1` | Common only (example) |
+| `v4.0.2` | `4.0.2` | `0.1.2` | Both, for a framework patch |
+| `v4.0.3` | `4.0.3` | `0.1.2` | Common only (example) |
 | `v4.1.0` | `4.1.0` | `0.2.0` | Both (example) |
 
 ### Prepare and publish
