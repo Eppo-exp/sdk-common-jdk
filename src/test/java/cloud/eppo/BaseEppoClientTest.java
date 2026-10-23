@@ -48,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -315,7 +316,11 @@ public class BaseEppoClientTest {
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
-            anyString(), anyString(), any(Attributes.class), any(VariationType.class));
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(VariationType.class),
+            anyBoolean());
 
     assertTrue(spyClient.getBooleanAssignment("experiment1", "subject1", true));
     assertFalse(spyClient.getBooleanAssignment("experiment1", "subject1", new Attributes(), false));
@@ -352,6 +357,63 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testDetailsErrorGracefulModeOnAndOff() throws Exception {
+    mockConfigClient = mockConfigurationClient(FileUtils.readFileToByteArray(flagConfigFile));
+    initClient(true, false);
+    BaseEppoClient<Configuration, JsonNode> spyClient = spy(eppoClient);
+    doThrow(new RuntimeException("Exception thrown by mock"))
+        .when(spyClient)
+        .evaluateAndMaybeLog(
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(VariationType.class),
+            anyBoolean());
+    JsonNode json = mapper.readTree("{\"a\": 1}");
+
+    AssignmentDetails<Boolean> bool =
+        spyClient.getBooleanAssignmentDetails("experiment1", "subject1", true);
+    assertTrue(bool.getVariation());
+    assertEquals(
+        FlagEvaluationCode.ASSIGNMENT_ERROR, bool.getEvaluationDetails().getFlagEvaluationCode());
+    assertEquals(
+        10,
+        (int) spyClient.getIntegerAssignmentDetails("experiment1", "subject1", 10).getVariation());
+    assertEquals(
+        1.2345,
+        spyClient.getDoubleAssignmentDetails("experiment1", "subject1", 1.2345).getVariation(),
+        0.0001);
+    assertEquals(
+        "default",
+        spyClient.getStringAssignmentDetails("experiment1", "subject1", "default").getVariation());
+    assertEquals(
+        json, spyClient.getJSONAssignmentDetails("experiment1", "subject1", json).getVariation());
+    assertEquals(
+        "{}",
+        spyClient.getJSONStringAssignmentDetails("experiment1", "subject1", "{}").getVariation());
+
+    spyClient.setIsGracefulFailureMode(false);
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getBooleanAssignmentDetails("experiment1", "subject1", true));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getIntegerAssignmentDetails("experiment1", "subject1", 10));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getDoubleAssignmentDetails("experiment1", "subject1", 1.2345));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getStringAssignmentDetails("experiment1", "subject1", "default"));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getJSONAssignmentDetails("experiment1", "subject1", json));
+    assertThrows(
+        RuntimeException.class,
+        () -> spyClient.getJSONStringAssignmentDetails("experiment1", "subject1", "{}"));
+  }
+
+  @Test
   public void testErrorGracefulModeOff() {
     initClient(false, false);
 
@@ -360,7 +422,11 @@ public class BaseEppoClientTest {
     doThrow(new RuntimeException("Exception thrown by mock"))
         .when(spyClient)
         .evaluateAndMaybeLog(
-            anyString(), anyString(), any(Attributes.class), any(VariationType.class));
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(VariationType.class),
+            anyBoolean());
 
     assertThrows(
         RuntimeException.class,
@@ -562,6 +628,59 @@ public class BaseEppoClientTest {
     expectedMeta.put("sdkLibVersion", "100.1.0");
 
     assertEquals(expectedMeta, capturedAssignment.getMetaData());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testPlainAssignmentLogsExtraLoggingAndHonorsDoLog(boolean obfuscated)
+      throws IOException {
+    File config =
+        new File(
+            "src/test/resources/shared/ufc/flags-v1" + (obfuscated ? "-obfuscated" : "") + ".json");
+    mockConfigClient = mockConfigurationClient(FileUtils.readFileToByteArray(config));
+    initClient(false, obfuscated);
+
+    // "rollout" carries extraLogging. "internal users" has doLog false.
+    Attributes rollout = new Attributes();
+    rollout.put("country", "Mexico");
+    Attributes internal = new Attributes();
+    internal.put("email", "alice@mycompany.com");
+    assertEquals(
+        "blue", eppoClient.getStringAssignment("new-user-onboarding", "2", rollout, "default"));
+    assertEquals(
+        "green",
+        eppoClient.getStringAssignment("new-user-onboarding", "alice", internal, "default"));
+
+    ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
+    verify(mockAssignmentLogger, times(1)).logAssignment(captor.capture());
+    Assignment logged = captor.getValue();
+    assertEquals("rollout", logged.getAllocation());
+    assertEquals("new-user-onboarding-rollout", logged.getExperiment());
+    Map<String, String> expectedExtraLogging = new HashMap<>();
+    expectedExtraLogging.put("allocationvalue_type", "rollout");
+    expectedExtraLogging.put("owner", "hippo");
+    assertEquals(expectedExtraLogging, logged.getExtraLogging());
+  }
+
+  @Test
+  public void testPlainAssignmentsSkipDetails() throws IOException {
+    mockConfigClient = mockConfigurationClient(FileUtils.readFileToByteArray(flagConfigFile));
+    initClient();
+    BaseEppoClient<Configuration, JsonNode> spyClient = spy(eppoClient);
+
+    spyClient.getBooleanAssignment("kill-switch", "alice", false);
+    spyClient.getIntegerAssignment("integer-flag", "alice", 0);
+    spyClient.getDoubleAssignment("numeric_flag", "alice", 0.0);
+    spyClient.getStringAssignment("new-user-onboarding", "alice", "default");
+    spyClient.getJSONAssignment("json-config-flag", "alice", null);
+    spyClient.getJSONStringAssignment("json-config-flag", "alice", "{}");
+
+    verify(spyClient, times(6))
+        .evaluateAndMaybeLog(
+            anyString(), anyString(), any(Attributes.class), any(VariationType.class), eq(false));
+    verify(spyClient, never())
+        .evaluateAndMaybeLog(
+            anyString(), anyString(), any(Attributes.class), any(VariationType.class), eq(true));
   }
 
   @Test
