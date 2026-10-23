@@ -138,11 +138,7 @@ class EppoConfigurationRequestor<
       EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
       try {
         EppoConfigurationResponse banditResponse = configurationClient.execute(banditRequest).get();
-        if (!banditResponse.isSuccessful() || banditResponse.getBody() == null) {
-          throw new RuntimeException(
-              "Failed to fetch bandit parameters. Status: " + banditResponse.getStatusCode());
-        }
-        banditBytes = banditResponse.getBody();
+        banditBytes = requireBanditBody(banditResponse);
       } catch (InterruptedException e) {
         log.error("Error fetching bandit parameters", e);
         Thread.currentThread().interrupt();
@@ -154,9 +150,39 @@ class EppoConfigurationRequestor<
     }
 
     ConfigurationType config =
-        configurationParser.buildConfig(
-            flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
+        buildConfig(flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
     configurationStore.saveConfiguration(config).join();
+  }
+
+  // Drop the ETag when the fetched bandits do not match the flags. Otherwise the next poll gets a
+  // 304 and skips them.
+  private ConfigurationType buildConfig(
+      FlagConfigResponse flagConfigResponse,
+      String flagsSnapshotId,
+      ConfigurationType lastConfig,
+      byte[] banditBytes) {
+    ConfigurationType config =
+        configurationParser.buildConfig(
+            flagConfigResponse, flagsSnapshotId, lastConfig, banditBytes);
+    if (banditBytes != null
+        && flagsSnapshotId != null
+        && needsFreshBandits(flagConfigResponse, config)) {
+      log.warn("Bandit parameters do not match flag references; the next fetch retries them");
+      return configurationParser.buildConfig(flagConfigResponse, null, lastConfig, banditBytes);
+    }
+    return config;
+  }
+
+  private static byte[] requireBanditBody(EppoConfigurationResponse banditResponse) {
+    if (!banditResponse.isSuccessful()) {
+      throw new RuntimeException(
+          "Failed to fetch bandit parameters. Status: " + banditResponse.getStatusCode());
+    }
+    byte[] banditBody = banditResponse.getBody();
+    if (banditBody == null) {
+      throw new RuntimeException("Bandit parameters response body is null");
+    }
+    return banditBody;
   }
 
   private boolean needsFreshBandits(FlagConfigResponse flagResponse, ConfigurationType lastConfig) {
@@ -235,14 +261,9 @@ class EppoConfigurationRequestor<
           .execute(banditRequest)
           .thenCompose(
               banditResponse -> {
-                if (!banditResponse.isSuccessful() || banditResponse.getBody() == null) {
-                  throw new RuntimeException(
-                      "Failed to fetch bandit parameters. Status: "
-                          + banditResponse.getStatusCode());
-                }
-                byte[] banditBytes = banditResponse.getBody();
+                byte[] banditBytes = requireBanditBody(banditResponse);
                 ConfigurationType config =
-                    configurationParser.buildConfig(
+                    buildConfig(
                         flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
                 return configurationStore.saveConfiguration(config);
               });
