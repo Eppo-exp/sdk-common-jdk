@@ -225,8 +225,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
-   * Value-only counterpart of {@link #getTypedAssignmentWithDetails}: same evaluation, logging and
-   * graceful-mode handling, without building allocation details or descriptions.
+   * Value-only counterpart of {@link #getTypedAssignmentWithDetails}: same evaluation and logging,
+   * without the allocation lists, matched rule or match description.
    */
   private <T> T getTypedAssignment(
       String flagKey,
@@ -246,16 +246,19 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
-   * Core evaluation method that handles validation, evaluation, and logging. This consolidates the
-   * shared logic between all assignment methods. Returns evaluation details with variationValue set
-   * to the result.
+   * Validates, evaluates and logs an assignment, and returns full evaluation details. The details
+   * and bandit methods call this overload. The plain {@code get*Assignment} methods call the
+   * five-argument overload; override that one to see every evaluation.
    */
   protected EvaluationDetails evaluateAndMaybeLog(
       String flagKey, String subjectKey, Attributes subjectAttributes, VariationType expectedType) {
     return evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, expectedType, true);
   }
 
-  /** With {@code includeDetails} false, the result omits allocation details and descriptions. */
+  /**
+   * With {@code includeDetails} false, the result has no allocation lists or matched rule, and a
+   * match has no description. Error and no-match results keep their descriptions.
+   */
   protected EvaluationDetails evaluateAndMaybeLog(
       String flagKey,
       String subjectKey,
@@ -312,7 +315,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
           null);
     }
 
-    // Evaluate flag with details
+    // Evaluate flag
     FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
             flag,

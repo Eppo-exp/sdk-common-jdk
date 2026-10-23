@@ -57,10 +57,11 @@ public class FlagEvaluator {
   }
 
   /**
-   * Same as above. With {@code includeDetails} false, skips the allocation details, matched rule
-   * and description, which only the assignment-details APIs read.
+   * Same as {@link #evaluateFlag(FlagConfig, String, String, Attributes, boolean, String, Date,
+   * Date)}. With {@code includeDetails} false, skips the allocation lists and, on a match, the
+   * matched rule and description. Only the assignment-details APIs read them.
    */
-  public static FlagEvaluationResult evaluateFlag(
+  static FlagEvaluationResult evaluateFlag(
       FlagConfig flag,
       String flagKey,
       String subjectKey,
