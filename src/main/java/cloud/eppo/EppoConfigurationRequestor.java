@@ -284,8 +284,9 @@ class EppoConfigurationRequestor<
 
     if (needsFreshBandits(flagConfigResponse, lastConfig)) {
       EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
-      return configurationClient
-          .execute(banditRequest)
+      // thenCompose turns an exception that execute throws into a failed future for the fallback.
+      return CompletableFuture.completedFuture(banditRequest)
+          .thenCompose(configurationClient::execute)
           .thenApply(EppoConfigurationRequestor::requireBanditBody)
           .exceptionally(
               e -> {

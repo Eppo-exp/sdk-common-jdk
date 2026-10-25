@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
@@ -40,6 +41,7 @@ public class ConfigurationRequestorTest {
   enum BanditFailure {
     ERROR_STATUS,
     NULL_BODY,
+    THROWN,
     TRANSPORT,
     UNPARSEABLE
   }
@@ -482,6 +484,8 @@ public class ConfigurationRequestorTest {
         case NULL_BODY:
           return CompletableFuture.completedFuture(
               EppoConfigurationResponse.success(200, null, null));
+        case THROWN:
+          throw new RejectedExecutionException("bandit executor shut down");
         case TRANSPORT:
           CompletableFuture<EppoConfigurationResponse> failed = new CompletableFuture<>();
           failed.completeExceptionally(new IOException("connection reset"));
@@ -530,6 +534,8 @@ public class ConfigurationRequestorTest {
       "ERROR_STATUS, true",
       "NULL_BODY, false",
       "NULL_BODY, true",
+      "THROWN, false",
+      "THROWN, true",
       "TRANSPORT, false",
       "TRANSPORT, true",
       "UNPARSEABLE, false",
