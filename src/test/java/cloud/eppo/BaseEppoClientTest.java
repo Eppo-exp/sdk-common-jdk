@@ -663,6 +663,74 @@ public class BaseEppoClientTest {
   }
 
   @Test
+  public void testPlainAssignmentEvaluatesWithoutDetails() throws IOException {
+    mockConfigClient = mockConfigurationClient(FileUtils.readFileToByteArray(flagConfigFile));
+    initClient();
+    BaseEppoClient<Configuration, JsonNode> spyClient = spy(eppoClient);
+    List<EvaluationDetails> returned = new ArrayList<>();
+    doAnswer(
+            invocation -> {
+              EvaluationDetails details = (EvaluationDetails) invocation.callRealMethod();
+              returned.add(details);
+              return details;
+            })
+        .when(spyClient)
+        .evaluateAndMaybeLog(
+            anyString(),
+            anyString(),
+            any(Attributes.class),
+            any(VariationType.class),
+            anyBoolean());
+    Attributes internal = new Attributes();
+    internal.put("email", "alice@mycompany.com");
+
+    assertEquals(
+        "green",
+        spyClient.getStringAssignment("new-user-onboarding", "alice", internal, "default"));
+    assertEquals(
+        "green",
+        spyClient
+            .getStringAssignmentDetails("new-user-onboarding", "alice", internal, "default")
+            .getVariation());
+
+    assertEquals(2, returned.size());
+    EvaluationDetails lean = returned.get(0);
+    EvaluationDetails full = returned.get(1);
+    // Guard: the details call saw an earlier failing allocation and later ones.
+    assertNotNull(full.getMatchedAllocation());
+    assertFalse(full.getUnmatchedAllocations().isEmpty());
+    assertFalse(full.getUnevaluatedAllocations().isEmpty());
+    // The plain call reached FlagEvaluator with includeDetails false.
+    assertEquals(FlagEvaluationCode.MATCH, lean.getFlagEvaluationCode());
+    assertEquals("green", lean.getVariationKey());
+    assertNull(lean.getMatchedAllocation());
+    assertNull(lean.getMatchedRule());
+    assertNull(lean.getFlagEvaluationDescription());
+    assertTrue(lean.getUnmatchedAllocations().isEmpty());
+    assertTrue(lean.getUnevaluatedAllocations().isEmpty());
+  }
+
+  @Test
+  public void testPlainAssignmentGracefulWhenConfigurationFails() throws IOException {
+    mockConfigClient = mockConfigurationClient(FileUtils.readFileToByteArray(flagConfigFile));
+    initClient(true, false);
+    BaseEppoClient<Configuration, JsonNode> spyClient = spy(eppoClient);
+    doThrow(new IllegalStateException("store unavailable")).when(spyClient).getConfiguration();
+
+    assertTrue(spyClient.getBooleanAssignment("kill-switch", "alice", true));
+    assertEquals(7, spyClient.getIntegerAssignment("integer-flag", "alice", 7));
+    assertEquals("d", spyClient.getStringAssignment("new-user-onboarding", "alice", "d"));
+    assertEquals("{}", spyClient.getJSONStringAssignment("json-config-flag", "alice", "{}"));
+    doReturn(null).when(spyClient).getConfiguration();
+    assertEquals("d", spyClient.getStringAssignment("new-user-onboarding", "alice", "d"));
+    verify(mockAssignmentLogger, never()).logAssignment(any());
+
+    spyClient.setIsGracefulFailureMode(false);
+    assertThrows(
+        RuntimeException.class, () -> spyClient.getIntegerAssignment("integer-flag", "alice", 7));
+  }
+
+  @Test
   public void testPlainAssignmentsSkipDetails() throws IOException {
     mockConfigClient = mockConfigurationClient(FileUtils.readFileToByteArray(flagConfigFile));
     initClient();

@@ -247,8 +247,9 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   /**
    * Validates, evaluates and logs an assignment, and returns full evaluation details. The details
-   * and bandit methods call this overload. The plain {@code get*Assignment} methods call the
-   * five-argument overload; override that one to see every evaluation.
+   * and bandit methods call this overload. The plain {@code get*Assignment} methods call neither
+   * this overload nor the {@code get*AssignmentDetails} methods. They call the five-argument
+   * overload; override that one to see every evaluation.
    */
   protected EvaluationDetails evaluateAndMaybeLog(
       String flagKey, String subjectKey, Attributes subjectAttributes, VariationType expectedType) {
@@ -256,8 +257,9 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
-   * With {@code includeDetails} false, the result has no allocation lists or matched rule, and a
-   * match has no description. Error and no-match results keep their descriptions.
+   * With {@code includeDetails} false, the allocation lists are empty, and a match has no
+   * description, matched rule or matched allocation. Error and no-match results keep their
+   * descriptions.
    */
   protected EvaluationDetails evaluateAndMaybeLog(
       String flagKey,
@@ -340,8 +342,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
           flag.getVariationType(),
           assignedValue);
 
-      // Update evaluation details with error code but keep the matched allocation and variation
-      // info
+      // Replace the code and description. Keep the variation and any allocation details.
       String variationKey =
           evaluationResult.getVariation() != null ? evaluationResult.getVariation().getKey() : null;
       String errorDescription =
