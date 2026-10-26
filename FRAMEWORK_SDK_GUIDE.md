@@ -668,6 +668,11 @@ public class MyEppoClient extends BaseEppoClient<JsonElement> {
 }
 ```
 
+To observe or change every evaluation in a subclass, override the protected five-argument
+`evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, expectedType, includeDetails)`.
+Plain `get*Assignment` calls reach only that overload, not the four-argument one or the
+`get*AssignmentDetails` methods.
+
 ---
 
 ## Testing Your Implementation
