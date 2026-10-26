@@ -432,9 +432,30 @@ public class BaseEppoClientBanditTest {
       BanditResult banditResult =
           eppoClient.getBanditAction(
               "banner_bandit_flag", "subject", new Attributes(), actions, "default");
-      assertEquals("banner_bandit", banditResult.getVariation());
+      assertEquals("default", banditResult.getVariation());
       assertNull(banditResult.getAction());
     }
+  }
+
+  // Flags loaded without bandit models, as after a failed bandit fetch on a cold start.
+  @Test
+  public void testMissingBanditParametersReturnDefaultWithBanditError() throws IOException {
+    String flagConfig = FileUtils.readFileToString(initialFlagConfigFile, "UTF8");
+    BaseEppoClient<Configuration, JsonNode> client =
+        initClientWithData(flagConfig, "{\"bandits\":{}}");
+    client.setIsGracefulFailureMode(true);
+
+    AssignmentDetails<String> details =
+        client.getBanditActionDetails(
+            "banner_bandit_flag", "subject", new Attributes(), getBrandActions(), "default");
+
+    assertEquals("default", details.getVariation());
+    assertNull(details.getAction());
+    EvaluationDetails evaluationDetails = details.getEvaluationDetails();
+    assertEquals(FlagEvaluationCode.BANDIT_ERROR, evaluationDetails.getFlagEvaluationCode());
+    assertEquals("banner_bandit", evaluationDetails.getBanditKey());
+    assertNull(evaluationDetails.getVariationKey());
+    assertEquals("default", evaluationDetails.getVariationValue().stringValue());
   }
 
   @Test

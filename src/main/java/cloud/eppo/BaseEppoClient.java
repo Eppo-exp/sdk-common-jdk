@@ -732,7 +732,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
             throw new RuntimeException(banditError);
           }
 
-          // In graceful mode, return flag details with BANDIT_ERROR code
+          // In graceful mode, return the default value with BANDIT_ERROR code
           EvaluationDetails banditErrorDetails =
               EvaluationDetails.builder(flagDetails.getEvaluationDetails())
                   .flagEvaluationCode(FlagEvaluationCode.BANDIT_ERROR)
@@ -740,8 +740,10 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
                       "Bandit evaluation failed: " + banditError.getMessage())
                   .banditKey(banditKey)
                   .banditAction(null)
+                  .variationKey(null)
+                  .variationValue(EppoValue.valueOf(defaultValue))
                   .build();
-          return new AssignmentDetails<>(assignedVariation, null, banditErrorDetails);
+          return new AssignmentDetails<>(defaultValue, null, banditErrorDetails);
         }
       }
 
