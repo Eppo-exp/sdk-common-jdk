@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
@@ -32,10 +32,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 public class ConfigurationRequestorTest {
+
+  enum BanditFailure {
+    ERROR_STATUS,
+    NULL_BODY,
+    THROWN,
+    TRANSPORT,
+    UNPARSEABLE
+  }
 
   private static final File INITIAL_FLAG_CONFIG_FILE =
       new File("src/test/resources/static/initial-flag-config.json");
@@ -458,56 +467,42 @@ public class ConfigurationRequestorTest {
 
     private void fetch(
         EppoConfigurationRequestor<Configuration, JsonNode> requestor, boolean async) {
-      if (async) requestor.fetchAndSaveFromRemoteAsync().join();
-      else requestor.fetchAndSaveFromRemote();
+      if (async) {
+        requestor.fetchAndSaveFromRemoteAsync().join();
+      } else {
+        requestor.fetchAndSaveFromRemote();
+      }
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void testNullBanditBodyPreservesConfigurationAndRetries(boolean async) throws Exception {
-      Configuration original =
-          parser.buildConfig(parser.parseFlagConfig(flagConfigBytes), "old", null, null);
-      configStore.saveConfiguration(original).join();
-      clearInvocations(configStore);
-      byte[] flags =
-          FileUtils.readFileToByteArray(
-              new File("src/test/resources/shared/ufc/bandit-flags-v1.json"));
-      byte[] models =
-          FileUtils.readFileToByteArray(
-              new File("src/test/resources/shared/ufc/bandit-models-v1.json"));
-      AtomicInteger calls = new AtomicInteger();
-      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
-          .thenAnswer(
-              invocation -> {
-                EppoConfigurationRequest request = invocation.getArgument(0);
-                if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
-                  return CompletableFuture.completedFuture(
-                      EppoConfigurationResponse.success(
-                          200, null, calls.incrementAndGet() == 1 ? null : models));
-                }
-                return CompletableFuture.completedFuture(
-                    "flags-v1".equals(request.getLastVersionId())
-                        ? EppoConfigurationResponse.notModified("flags-v1")
-                        : EppoConfigurationResponse.success(200, "flags-v1", flags));
-              });
-      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
-          new EppoConfigurationRequestor<>(
-              configStore, true, parser, mockConfigClient, requestFactory);
-      assertThrows(RuntimeException.class, () -> fetch(requestor, async));
-      assertSame(original, configStore.getConfiguration());
-      verify(configStore, never()).saveConfiguration(any());
-      fetch(requestor, async);
-      Configuration recovered = configStore.getConfiguration();
-      assertEquals("123", recovered.getBanditParameters("banner_bandit").getModelVersion());
-      assertEquals("flags-v1", recovered.getFlagsSnapshotId());
-      fetch(requestor, async);
-      assertSame(recovered, configStore.getConfiguration());
-      assertEquals(2, calls.get());
-      verify(configStore, times(1)).saveConfiguration(any());
+    private CompletableFuture<EppoConfigurationResponse> failedBanditResponse(
+        BanditFailure failure) {
+      switch (failure) {
+        case ERROR_STATUS:
+          return CompletableFuture.completedFuture(
+              EppoConfigurationResponse.error(
+                  503, "{\"error\":\"unavailable\"}".getBytes(StandardCharsets.UTF_8)));
+        case NULL_BODY:
+          return CompletableFuture.completedFuture(
+              EppoConfigurationResponse.success(200, null, null));
+        case THROWN:
+          throw new RejectedExecutionException("bandit executor shut down");
+        case TRANSPORT:
+          CompletableFuture<EppoConfigurationResponse> failed = new CompletableFuture<>();
+          failed.completeExceptionally(new IOException("connection reset"));
+          return failed;
+        case UNPARSEABLE:
+          return CompletableFuture.completedFuture(
+              EppoConfigurationResponse.success(
+                  200, null, "not json".getBytes(StandardCharsets.UTF_8)));
+        default:
+          throw new AssertionError(failure);
+      }
     }
 
-    // Flags answer 304 once the client echoes "flags-v1"; bandits fail once, then succeed.
-    private AtomicInteger stubBanditFlagsWithOneBanditFailure() throws IOException {
+    // Flags answer 304 once the client echoes "flags-v1". The first bandit request fails; later
+    // ones succeed.
+    private AtomicInteger stubBanditFlagsWithOneBanditFailure(BanditFailure failure)
+        throws IOException {
       byte[] banditFlags =
           FileUtils.readFileToByteArray(
               new File("src/test/resources/shared/ufc/bandit-flags-v1.json"));
@@ -520,11 +515,10 @@ public class ConfigurationRequestorTest {
               invocation -> {
                 EppoConfigurationRequest request = invocation.getArgument(0);
                 if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
-                  return CompletableFuture.completedFuture(
-                      banditCalls.incrementAndGet() == 1
-                          ? EppoConfigurationResponse.error(
-                              503, "{\"error\":\"unavailable\"}".getBytes(StandardCharsets.UTF_8))
-                          : EppoConfigurationResponse.success(200, null, banditModels));
+                  return banditCalls.incrementAndGet() == 1
+                      ? failedBanditResponse(failure)
+                      : CompletableFuture.completedFuture(
+                          EppoConfigurationResponse.success(200, null, banditModels));
                 }
                 return CompletableFuture.completedFuture(
                     "flags-v1".equals(request.getLastVersionId())
@@ -534,36 +528,44 @@ public class ConfigurationRequestorTest {
       return banditCalls;
     }
 
-    @Test
-    void testFailedBanditFetchIsRetriedOnNextFetch() throws IOException {
-      AtomicInteger banditCalls = stubBanditFlagsWithOneBanditFailure();
+    // A bandit failure does not block flag updates. The flags load without the ETag, so the next
+    // poll downloads them again and retries the bandits.
+    @ParameterizedTest
+    @CsvSource({
+      "ERROR_STATUS, false",
+      "ERROR_STATUS, true",
+      "NULL_BODY, false",
+      "NULL_BODY, true",
+      "THROWN, false",
+      "THROWN, true",
+      "TRANSPORT, false",
+      "TRANSPORT, true",
+      "UNPARSEABLE, false",
+      "UNPARSEABLE, true"
+    })
+    void testBanditFailureStillAppliesFlagsAndRetriesOnNextFetch(
+        BanditFailure failure, boolean async) throws IOException {
+      AtomicInteger banditCalls = stubBanditFlagsWithOneBanditFailure(failure);
       EppoConfigurationRequestor<Configuration, JsonNode> requestor =
           new EppoConfigurationRequestor<>(
               configStore, true, parser, mockConfigClient, requestFactory);
 
-      assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
-      verify(configStore, never()).saveConfiguration(any());
+      fetch(requestor, async);
+      Configuration degraded = configStore.getConfiguration();
+      assertNotNull(degraded.getFlag("banner_bandit_flag"));
+      assertNull(degraded.getBanditParameters("banner_bandit"));
+      assertNull(degraded.getFlagsSnapshotId());
 
-      requestor.fetchAndSaveFromRemote();
-
+      fetch(requestor, async);
       assertEquals(2, banditCalls.get());
-      assertNotNull(configStore.getConfiguration().getBanditParameters("banner_bandit"));
-    }
+      Configuration recovered = configStore.getConfiguration();
+      assertEquals("123", recovered.getBanditParameters("banner_bandit").getModelVersion());
+      assertEquals("flags-v1", recovered.getFlagsSnapshotId());
 
-    @Test
-    void testFailedBanditFetchIsRetriedOnNextAsyncFetch() throws IOException {
-      AtomicInteger banditCalls = stubBanditFlagsWithOneBanditFailure();
-      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
-          new EppoConfigurationRequestor<>(
-              configStore, true, parser, mockConfigClient, requestFactory);
-
-      assertThrows(CompletionException.class, () -> requestor.fetchAndSaveFromRemoteAsync().join());
-      verify(configStore, never()).saveConfiguration(any());
-
-      requestor.fetchAndSaveFromRemoteAsync().join();
-
+      fetch(requestor, async);
       assertEquals(2, banditCalls.get());
-      assertNotNull(configStore.getConfiguration().getBanditParameters("banner_bandit"));
+      assertSame(recovered, configStore.getConfiguration());
+      verify(configStore, times(2)).saveConfiguration(any());
     }
 
     // Flags answer 304 once the client echoes "flags-v1"; the first 200 bandit body is out of date.
@@ -624,7 +626,7 @@ public class ConfigurationRequestorTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testMissingBanditModelIsRetriedOnNextAsyncFetch(boolean async) throws IOException {
+    void testMissingBanditModelIsRetriedOnNextFetch(boolean async) throws IOException {
       AtomicInteger banditCalls =
           stubBanditFlagsWithOutdatedFirstModels(
               "{\"bandits\":{}}".getBytes(StandardCharsets.UTF_8));
@@ -641,6 +643,216 @@ public class ConfigurationRequestorTest {
       assertEquals(2, banditCalls.get());
       assertNotNull(configStore.getConfiguration().getBanditParameters("banner_bandit"));
       assertEquals("flags-v1", configStore.getConfiguration().getFlagsSnapshotId());
+    }
+
+    // A running client has banner_bandit 122 under "flags-v0". The new flags move it to 123 and
+    // switch non_bandit_flag off. Bandits answer 503 once, then 200.
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testBanditErrorOnLoadedClientStillAppliesFlags(boolean async) throws IOException {
+      ObjectMapper mapper = new ObjectMapper();
+      File flagsFile = new File("src/test/resources/shared/ufc/bandit-flags-v1.json");
+      File modelsFile = new File("src/test/resources/shared/ufc/bandit-models-v1.json");
+      ObjectNode oldFlags = (ObjectNode) mapper.readTree(flagsFile);
+      ((ObjectNode) oldFlags.path("banditReferences").path("banner_bandit"))
+          .put("modelVersion", "122");
+      ObjectNode oldModels = (ObjectNode) mapper.readTree(modelsFile);
+      ((ObjectNode) oldModels.path("bandits").path("banner_bandit")).put("modelVersion", "122");
+      configStore
+          .saveConfiguration(
+              parser.buildConfig(
+                  parser.parseFlagConfig(mapper.writeValueAsBytes(oldFlags)),
+                  "flags-v0",
+                  null,
+                  mapper.writeValueAsBytes(oldModels)))
+          .join();
+      ObjectNode newFlags = (ObjectNode) mapper.readTree(flagsFile);
+      ((ObjectNode) newFlags.path("flags").path("non_bandit_flag")).put("enabled", false);
+      byte[] newFlagBytes = mapper.writeValueAsBytes(newFlags);
+      byte[] newModelBytes = FileUtils.readFileToByteArray(modelsFile);
+      AtomicInteger banditCalls = new AtomicInteger();
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenAnswer(
+              invocation -> {
+                EppoConfigurationRequest request = invocation.getArgument(0);
+                if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
+                  return CompletableFuture.completedFuture(
+                      banditCalls.incrementAndGet() == 1
+                          ? EppoConfigurationResponse.error(
+                              503, "unavailable".getBytes(StandardCharsets.UTF_8))
+                          : EppoConfigurationResponse.success(200, null, newModelBytes));
+                }
+                return CompletableFuture.completedFuture(
+                    "flags-v1".equals(request.getLastVersionId())
+                        ? EppoConfigurationResponse.notModified("flags-v1")
+                        : EppoConfigurationResponse.success(200, "flags-v1", newFlagBytes));
+              });
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      fetch(requestor, async);
+      Configuration degraded = configStore.getConfiguration();
+      assertFalse(degraded.getFlag("non_bandit_flag").isEnabled());
+      assertEquals("122", degraded.getBanditParameters("banner_bandit").getModelVersion());
+      assertNull(degraded.getFlagsSnapshotId());
+
+      fetch(requestor, async);
+      fetch(requestor, async);
+
+      assertEquals(2, banditCalls.get());
+      assertEquals(
+          "123",
+          configStore.getConfiguration().getBanditParameters("banner_bandit").getModelVersion());
+      assertEquals("flags-v1", configStore.getConfiguration().getFlagsSnapshotId());
+    }
+
+    // One of three models is stale. The models that match must survive the ETag-less rebuild.
+    @Test
+    void testPartialBanditMismatchKeepsFetchedModels() throws IOException {
+      ObjectMapper mapper = new ObjectMapper();
+      ObjectNode staleModels =
+          (ObjectNode)
+              mapper.readTree(new File("src/test/resources/shared/ufc/bandit-models-v1.json"));
+      ((ObjectNode) staleModels.path("bandits").path("banner_bandit")).put("modelVersion", "122");
+      stubBanditFlagsWithOutdatedFirstModels(mapper.writeValueAsBytes(staleModels));
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      requestor.fetchAndSaveFromRemote();
+
+      Configuration saved = configStore.getConfiguration();
+      assertNull(saved.getFlagsSnapshotId());
+      assertEquals("122", saved.getBanditParameters("banner_bandit").getModelVersion());
+      assertEquals("456", saved.getBanditParameters("car_bandit").getModelVersion());
+      assertNotNull(saved.getBanditParameters("cold_start_bandit"));
+    }
+
+    // An interrupt during the bandit fetch aborts the poll without saving.
+    @Test
+    void testInterruptDuringBanditFetchAbortsWithoutSaving() throws IOException {
+      byte[] banditFlags =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-flags-v1.json"));
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenAnswer(
+              invocation -> {
+                EppoConfigurationRequest request = invocation.getArgument(0);
+                if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
+                  Thread.currentThread().interrupt();
+                  return new CompletableFuture<EppoConfigurationResponse>();
+                }
+                return CompletableFuture.completedFuture(
+                    EppoConfigurationResponse.success(200, "flags-v1", banditFlags));
+              });
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      try {
+        RuntimeException thrown =
+            assertThrows(RuntimeException.class, requestor::fetchAndSaveFromRemote);
+        assertInstanceOf(InterruptedException.class, thrown.getCause());
+        assertTrue(Thread.currentThread().isInterrupted());
+      } finally {
+        Thread.interrupted();
+      }
+      verify(configStore, never()).saveConfiguration(any());
+    }
+
+    // The server sends no ETag. A bandit failure on a running client keeps model 122.
+    @ParameterizedTest
+    @CsvSource({
+      "ERROR_STATUS, false",
+      "ERROR_STATUS, true",
+      "UNPARSEABLE, false",
+      "UNPARSEABLE, true"
+    })
+    void testBanditFailureWithoutEtagKeepsLoadedModels(BanditFailure failure, boolean async)
+        throws IOException {
+      ObjectMapper mapper = new ObjectMapper();
+      File flagsFile = new File("src/test/resources/shared/ufc/bandit-flags-v1.json");
+      File modelsFile = new File("src/test/resources/shared/ufc/bandit-models-v1.json");
+      ObjectNode oldFlags = (ObjectNode) mapper.readTree(flagsFile);
+      ((ObjectNode) oldFlags.path("banditReferences").path("banner_bandit"))
+          .put("modelVersion", "122");
+      ObjectNode oldModels = (ObjectNode) mapper.readTree(modelsFile);
+      ((ObjectNode) oldModels.path("bandits").path("banner_bandit")).put("modelVersion", "122");
+      configStore
+          .saveConfiguration(
+              parser.buildConfig(
+                  parser.parseFlagConfig(mapper.writeValueAsBytes(oldFlags)),
+                  null,
+                  null,
+                  mapper.writeValueAsBytes(oldModels)))
+          .join();
+      ObjectNode newFlags = (ObjectNode) mapper.readTree(flagsFile);
+      ((ObjectNode) newFlags.path("flags").path("non_bandit_flag")).put("enabled", false);
+      byte[] newFlagBytes = mapper.writeValueAsBytes(newFlags);
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenAnswer(
+              invocation -> {
+                EppoConfigurationRequest request = invocation.getArgument(0);
+                return Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())
+                    ? failedBanditResponse(failure)
+                    : CompletableFuture.completedFuture(
+                        EppoConfigurationResponse.success(200, null, newFlagBytes));
+              });
+      ConfigurationParser<Configuration, JsonNode> spyParser = spy(parser);
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, spyParser, mockConfigClient, requestFactory);
+
+      fetch(requestor, async);
+
+      Configuration saved = configStore.getConfiguration();
+      assertFalse(saved.getFlag("non_bandit_flag").isEnabled());
+      assertEquals("122", saved.getBanditParameters("banner_bandit").getModelVersion());
+      assertNull(saved.getFlagsSnapshotId());
+      verify(spyParser, times(failure == BanditFailure.UNPARSEABLE ? 2 : 1))
+          .buildConfig(any(), any(), any(), any());
+    }
+
+    // Loaded models already match, so a bandit outage must not touch flag updates.
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testBanditOutageSkippedWhenLoadedModelsMatch(boolean async) throws Exception {
+      byte[] banditFlags =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-flags-v1.json"));
+      byte[] banditModels =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-models-v1.json"));
+      configStore
+          .saveConfiguration(
+              parser.buildConfig(
+                  parser.parseFlagConfig(flagConfigBytes), "old", null, banditModels))
+          .join();
+      clearInvocations(configStore);
+      AtomicInteger banditCalls = new AtomicInteger();
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenAnswer(
+              invocation -> {
+                EppoConfigurationRequest request = invocation.getArgument(0);
+                if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
+                  banditCalls.incrementAndGet();
+                  return CompletableFuture.completedFuture(
+                      EppoConfigurationResponse.error(
+                          503, "unavailable".getBytes(StandardCharsets.UTF_8)));
+                }
+                return CompletableFuture.completedFuture(
+                    EppoConfigurationResponse.success(200, "flags-v2", banditFlags));
+              });
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      fetch(requestor, async);
+
+      assertEquals(0, banditCalls.get());
+      verify(configStore, times(1)).saveConfiguration(any());
+      assertEquals("flags-v2", configStore.getConfiguration().getFlagsSnapshotId());
     }
   }
 
