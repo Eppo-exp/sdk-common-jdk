@@ -809,6 +809,52 @@ public class ConfigurationRequestorTest {
           .buildConfig(any(), any(), any(), any());
     }
 
+    // The store already holds the flags under "flags-v1" without bandit models, as framework 0.1.1
+    // could leave it. The first fetch ignores that ETag and loads the models; the next one gets a
+    // 304.
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFirstFetchRepairsSavedConfigWithoutBanditModels(boolean async) throws IOException {
+      byte[] banditFlags =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-flags-v1.json"));
+      byte[] banditModels =
+          FileUtils.readFileToByteArray(
+              new File("src/test/resources/shared/ufc/bandit-models-v1.json"));
+      configStore
+          .saveConfiguration(
+              parser.buildConfig(parser.parseFlagConfig(banditFlags), "flags-v1", null, null))
+          .join();
+      AtomicInteger banditCalls = new AtomicInteger();
+      when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+          .thenAnswer(
+              invocation -> {
+                EppoConfigurationRequest request = invocation.getArgument(0);
+                if (Constants.BANDIT_ENDPOINT.equals(request.getResourcePath())) {
+                  banditCalls.incrementAndGet();
+                  return CompletableFuture.completedFuture(
+                      EppoConfigurationResponse.success(200, null, banditModels));
+                }
+                return CompletableFuture.completedFuture(
+                    "flags-v1".equals(request.getLastVersionId())
+                        ? EppoConfigurationResponse.notModified("flags-v1")
+                        : EppoConfigurationResponse.success(200, "flags-v1", banditFlags));
+              });
+      EppoConfigurationRequestor<Configuration, JsonNode> requestor =
+          new EppoConfigurationRequestor<>(
+              configStore, true, parser, mockConfigClient, requestFactory);
+
+      fetch(requestor, async);
+      Configuration repaired = configStore.getConfiguration();
+      assertEquals(1, banditCalls.get());
+      assertEquals("123", repaired.getBanditParameters("banner_bandit").getModelVersion());
+      assertEquals("flags-v1", repaired.getFlagsSnapshotId());
+
+      fetch(requestor, async);
+      assertEquals(1, banditCalls.get());
+      assertSame(repaired, configStore.getConfiguration());
+    }
+
     // Loaded models already match, so a bandit outage must not touch flag updates.
     @ParameterizedTest
     @ValueSource(booleans = {false, true})

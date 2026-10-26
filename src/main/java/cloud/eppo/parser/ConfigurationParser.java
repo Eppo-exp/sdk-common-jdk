@@ -34,9 +34,10 @@ public interface ConfigurationParser<
    * bandit parameters are carried over from {@code previousConfig} (if available). Pass null when
    * the caller has determined fresh bandit parameters are not needed.
    *
-   * <p>The result must return the applied bandit parameters from {@code getBanditParameters}. While
-   * a referenced model is missing or at another version, the requestor saves the configuration
-   * without {@code flagsSnapshotId}, so the next fetch downloads the flags again.
+   * <p>The result must return the applied bandit parameters from {@code getBanditParameters}. With
+   * bandit support on, while a referenced model is missing or at another version, the requestor
+   * saves the configuration without {@code flagsSnapshotId}, so the next fetch downloads the flags
+   * again.
    *
    * @param flags parsed flag configuration response
    * @param flagsSnapshotId opaque snapshot ID from HTTP ETag header, or null
