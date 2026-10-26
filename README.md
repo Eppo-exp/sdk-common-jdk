@@ -25,6 +25,20 @@ case. Graceful mode continues to return the default. This applies to both parsed
 and JSON-string assignments and should be noted when upgrading a server SDK from 5.x
 to 6.x. The JSON-string cast fix in 4.0.1 retains this strict-mode behaviour.
 
+## Upgrading from common 4.0.1
+
+Plain `get*Assignment` methods no longer call the four-argument `evaluateAndMaybeLog`
+or the matching `get*AssignmentDetails` method. They call the protected five-argument
+overload with `includeDetails` false. For valid configurations, values and assignment
+logging do not change.
+
+If a subclass or a Mockito stub intercepts the four-argument overload or a
+`get*AssignmentDetails` method, it no longer sees plain calls. Override or stub the
+five-argument overload instead. It sees plain, details and bandit calls.
+
+In graceful mode, a plain call now returns the default when the configuration store
+throws or returns null. `*Details` calls still throw in that case.
+
 ## Releasing a new version
 
 Publishing a stable GitHub release starts `publish-release.yml`. Every new release publishes a new version of

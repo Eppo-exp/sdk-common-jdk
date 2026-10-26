@@ -58,8 +58,9 @@ public class FlagEvaluator {
 
   /**
    * Same as {@link #evaluateFlag(FlagConfig, String, String, Attributes, boolean, String, Date,
-   * Date)}. With {@code includeDetails} false, skips the allocation lists and, on a match, the
-   * matched rule and description. Only the assignment-details APIs read them.
+   * Date)}. With {@code includeDetails} false, leaves the allocation lists empty and, on a match,
+   * skips the matched rule, matched allocation and description. Only the assignment-details APIs
+   * read them.
    */
   static FlagEvaluationResult evaluateFlag(
       FlagConfig flag,
