@@ -313,6 +313,45 @@ public class GenericConfigurationPipelineTest {
     assertTrue(configStore.getConfiguration().banditsApplied);
   }
 
+  // A custom parser that throws something other than ConfigurationParseException on bad bandit
+  // bytes must not block the flags.
+  @Test
+  void testCustomParserBanditFailureStillAppliesFlags() {
+    StubParser throwingParser =
+        new StubParser() {
+          @Override
+          @NotNull public StubConfig buildConfig(
+              @NotNull FlagConfigResponse flags,
+              @Nullable String flagsSnapshotId,
+              @Nullable StubConfig previousConfig,
+              @Nullable byte[] banditParamsBytes) {
+            if (banditParamsBytes != null) {
+              throw new IllegalStateException("bad bandit model");
+            }
+            return super.buildConfig(flags, flagsSnapshotId, previousConfig, null);
+          }
+        };
+    throwingParser.banditReferences =
+        Collections.singletonMap(
+            "test-bandit", new BanditReference.Default("v1", Collections.emptyList()));
+    when(mockConfigClient.execute(any(EppoConfigurationRequest.class)))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                EppoConfigurationResponse.success(200, "v1", "flag-body".getBytes())))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                EppoConfigurationResponse.success(200, null, "bandit-body".getBytes())));
+    EppoConfigurationRequestor<StubConfig, String> requestor =
+        new EppoConfigurationRequestor<>(
+            configStore, true, throwingParser, mockConfigClient, requestFactory);
+
+    requestor.fetchAndSaveFromRemote();
+
+    assertEquals("flag-body", configStore.getConfiguration().source);
+    assertFalse(configStore.getConfiguration().banditsApplied);
+    assertNull(configStore.getConfiguration().snapshotId);
+  }
+
   @Test
   void testNoBanditEvenIfReferencedWhenSupportBanditsIsFalse() {
     stubSuccessResponse("{}", "v1");

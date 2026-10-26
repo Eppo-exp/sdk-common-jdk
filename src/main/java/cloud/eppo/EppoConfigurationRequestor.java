@@ -146,7 +146,7 @@ class EppoConfigurationRequestor<
   }
 
   // A failed bandit fetch returns null, so the save keeps the loaded models and flag updates still
-  // apply.
+  // apply. An interrupt still aborts the poll.
   @Nullable private byte[] fetchBanditParameters() {
     EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
     try {
@@ -161,8 +161,9 @@ class EppoConfigurationRequestor<
     }
   }
 
-  // Saves without the ETag while a referenced model version is missing. The next poll then gets the
-  // flags again instead of a 304, and retries the bandits.
+  // Builds the config, keeping the loaded models if the bandit bytes fail to parse. While a
+  // referenced model version is not loaded, drops the ETag so the next poll gets the flags again
+  // instead of a 304 and retries the bandits.
   private ConfigurationType buildConfigWithBanditCheck(
       FlagConfigResponse flagConfigResponse,
       @Nullable String flagsSnapshotId,
@@ -173,7 +174,7 @@ class EppoConfigurationRequestor<
       config =
           configurationParser.buildConfig(
               flagConfigResponse, flagsSnapshotId, lastConfig, banditBytes);
-    } catch (ConfigurationParseException e) {
+    } catch (RuntimeException e) {
       if (banditBytes == null) {
         throw e;
       }
@@ -184,8 +185,8 @@ class EppoConfigurationRequestor<
     }
     if (flagsSnapshotId != null && needsFreshBandits(flagConfigResponse, config)) {
       log.warn(
-          "Bandit models {} do not match the flags; saving without the ETag so the next poll"
-              + " retries them",
+          "Loaded bandit models do not match the flags: {}; saving without the ETag so the next"
+              + " poll retries them",
           staleBandits(flagConfigResponse, config));
       return configurationParser.buildConfig(flagConfigResponse, null, lastConfig, banditBytes);
     }
@@ -223,7 +224,16 @@ class EppoConfigurationRequestor<
   private String staleBandits(FlagConfigResponse flagResponse, ConfigurationType config) {
     return flagResponse.getBanditReferences().entrySet().stream()
         .filter(entry -> isStale(entry, config))
-        .map(entry -> entry.getKey() + "@" + entry.getValue().getModelVersion())
+        .map(
+            entry -> {
+              BanditParameters loaded = config.getBanditParameters(entry.getKey());
+              return entry.getKey()
+                  + " (flags want "
+                  + entry.getValue().getModelVersion()
+                  + ", loaded "
+                  + (loaded == null ? "none" : loaded.getModelVersion())
+                  + ")";
+            })
         .collect(Collectors.joining(", ", "[", "]"));
   }
 

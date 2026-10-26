@@ -42,8 +42,11 @@ public interface ConfigurationParser<
    * @param flagsSnapshotId opaque snapshot ID from HTTP ETag header, or null
    * @param previousConfig previous configuration to carry over bandit parameters from, or null on
    *     first fetch
-   * @param banditParamsBytes raw JSON bytes for fresh bandit parameters, or null if not needed
+   * @param banditParamsBytes raw JSON bytes for fresh bandit parameters, or null to carry over the
+   *     bandit parameters from {@code previousConfig}
    * @return a new immutable configuration object
+   * @throws ConfigurationParseException if {@code banditParamsBytes} cannot be parsed. The
+   *     requestor then builds again with null, so the flags still apply.
    */
   @NotNull ConfigurationType buildConfig(
       @NotNull FlagConfigResponse flags,
