@@ -2,6 +2,7 @@ package cloud.eppo;
 
 import cloud.eppo.api.SerializableEppoConfiguration;
 import cloud.eppo.api.dto.BanditParameters;
+import cloud.eppo.api.dto.BanditReference;
 import cloud.eppo.api.dto.FlagConfigResponse;
 import cloud.eppo.http.EppoConfigurationClient;
 import cloud.eppo.http.EppoConfigurationRequest;
@@ -9,9 +10,13 @@ import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +36,7 @@ class EppoConfigurationRequestor<
   private volatile CompletableFuture<Void> remoteFetchFuture = null;
   private volatile CompletableFuture<Boolean> configurationFuture = null;
   private volatile boolean initialConfigSet = false;
+  private volatile boolean fetchedConfigSaved = false;
 
   public EppoConfigurationRequestor(
       @NotNull IConfigurationStore<ConfigurationType> configurationStore,
@@ -98,7 +104,7 @@ class EppoConfigurationRequestor<
     ConfigurationType lastConfig = configurationStore.getConfiguration();
 
     EppoConfigurationRequest flagRequest =
-        requestFactory.createFlagConfigRequest(lastConfig.getFlagsSnapshotId());
+        requestFactory.createFlagConfigRequest(etagToSend(lastConfig));
     EppoConfigurationResponse flagResponse;
     try {
       flagResponse = configurationClient.execute(flagRequest).get();
@@ -133,28 +139,92 @@ class EppoConfigurationRequestor<
       throw new RuntimeException(e);
     }
 
-    byte[] banditBytes = null;
-    if (needsFreshBandits(flagConfigResponse, lastConfig)) {
-      EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
-      try {
-        EppoConfigurationResponse banditResponse = configurationClient.execute(banditRequest).get();
-        if (banditResponse.isSuccessful() && banditResponse.getBody() != null) {
-          banditBytes = banditResponse.getBody();
-        }
-      } catch (InterruptedException e) {
-        log.error("Error fetching bandit parameters", e);
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
-        log.error("Error fetching bandit parameters", e);
-        throw new RuntimeException(e);
-      }
-    }
-
+    byte[] banditBytes =
+        needsFreshBandits(flagConfigResponse, lastConfig) ? fetchBanditParameters() : null;
     ConfigurationType config =
-        configurationParser.buildConfig(
+        buildConfigWithBanditCheck(
             flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
     configurationStore.saveConfiguration(config).join();
+    fetchedConfigSaved = true;
+  }
+
+  // Until this requestor saves a fetched configuration, it ignores the saved ETag. A configuration
+  // that was saved without its bandit models is then downloaded again instead of getting a 304.
+  @Nullable private String etagToSend(ConfigurationType lastConfig) {
+    return fetchedConfigSaved ? lastConfig.getFlagsSnapshotId() : null;
+  }
+
+  // A failed bandit fetch returns null, so the save keeps the loaded models and flag updates still
+  // apply. An interrupt still aborts the poll.
+  @Nullable private byte[] fetchBanditParameters() {
+    EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
+    try {
+      return requireBanditBody(configurationClient.execute(banditRequest).get());
+    } catch (InterruptedException e) {
+      log.error("Bandit parameter fetch interrupted", e);
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    } catch (ExecutionException | RuntimeException e) {
+      log.warn("Failed to fetch bandit parameters; keeping the loaded models: {}", describe(e));
+      log.debug("Bandit parameter fetch failure", e);
+      return null;
+    }
+  }
+
+  // Builds the config, keeping the loaded models if the bandit bytes fail to parse. While a
+  // referenced model version is not loaded, drops the ETag so the next poll gets the flags again
+  // instead of a 304 and retries the bandits.
+  private ConfigurationType buildConfigWithBanditCheck(
+      FlagConfigResponse flagConfigResponse,
+      @Nullable String flagsSnapshotId,
+      ConfigurationType lastConfig,
+      @Nullable byte[] banditBytes) {
+    ConfigurationType config;
+    try {
+      config =
+          configurationParser.buildConfig(
+              flagConfigResponse, flagsSnapshotId, lastConfig, banditBytes);
+    } catch (RuntimeException e) {
+      if (banditBytes == null) {
+        throw e;
+      }
+      log.warn("Failed to parse bandit parameters; keeping the loaded models: {}", describe(e));
+      log.debug("Bandit parameter parse failure", e);
+      banditBytes = null;
+      config =
+          configurationParser.buildConfig(flagConfigResponse, flagsSnapshotId, lastConfig, null);
+    }
+    if (flagsSnapshotId != null && needsFreshBandits(flagConfigResponse, config)) {
+      log.warn(
+          "Loaded bandit models do not match the flags: {}; saving without the ETag so the next"
+              + " poll retries them",
+          staleBandits(flagConfigResponse, config));
+      return configurationParser.buildConfig(flagConfigResponse, null, lastConfig, banditBytes);
+    }
+    return config;
+  }
+
+  // Names the failure without the wrapper that a future adds. A bandit outage can log this on every
+  // poll, so the stack trace goes to DEBUG.
+  private static String describe(Throwable e) {
+    Throwable cause =
+        (e instanceof CompletionException || e instanceof ExecutionException)
+                && e.getCause() != null
+            ? e.getCause()
+            : e;
+    return cause.toString();
+  }
+
+  private static byte[] requireBanditBody(EppoConfigurationResponse banditResponse) {
+    if (!banditResponse.isSuccessful()) {
+      throw new RuntimeException(
+          "Failed to fetch bandit parameters. Status: " + banditResponse.getStatusCode());
+    }
+    byte[] banditBody = banditResponse.getBody();
+    if (banditBody == null) {
+      throw new RuntimeException("Bandit parameters response body is null");
+    }
+    return banditBody;
   }
 
   private boolean needsFreshBandits(FlagConfigResponse flagResponse, ConfigurationType lastConfig) {
@@ -164,12 +234,29 @@ class EppoConfigurationRequestor<
       return false;
     }
     return flagResponse.getBanditReferences().entrySet().stream()
-        .anyMatch(
+        .anyMatch(entry -> isStale(entry, lastConfig));
+  }
+
+  private boolean isStale(Map.Entry<String, BanditReference> reference, ConfigurationType config) {
+    BanditParameters loaded = config.getBanditParameters(reference.getKey());
+    return loaded == null
+        || !reference.getValue().getModelVersion().equals(loaded.getModelVersion());
+  }
+
+  private String staleBandits(FlagConfigResponse flagResponse, ConfigurationType config) {
+    return flagResponse.getBanditReferences().entrySet().stream()
+        .filter(entry -> isStale(entry, config))
+        .map(
             entry -> {
-              BanditParameters loaded = lastConfig.getBanditParameters(entry.getKey());
-              return loaded == null
-                  || !entry.getValue().getModelVersion().equals(loaded.getModelVersion());
-            });
+              BanditParameters loaded = config.getBanditParameters(entry.getKey());
+              return entry.getKey()
+                  + " (flags want "
+                  + entry.getValue().getModelVersion()
+                  + ", loaded "
+                  + (loaded == null ? "none" : loaded.getModelVersion())
+                  + ")";
+            })
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   /** Loads configuration asynchronously from the API server, off-thread. */
@@ -185,7 +272,7 @@ class EppoConfigurationRequestor<
     }
 
     EppoConfigurationRequest flagRequest =
-        requestFactory.createFlagConfigRequest(lastConfig.getFlagsSnapshotId());
+        requestFactory.createFlagConfigRequest(etagToSend(lastConfig));
 
     remoteFetchFuture =
         configurationClient
@@ -229,24 +316,32 @@ class EppoConfigurationRequestor<
 
     if (needsFreshBandits(flagConfigResponse, lastConfig)) {
       EppoConfigurationRequest banditRequest = requestFactory.createBanditParamsRequest();
-      return configurationClient
-          .execute(banditRequest)
+      // thenCompose turns an exception that execute throws into a failed future for the fallback.
+      return CompletableFuture.completedFuture(banditRequest)
+          .thenCompose(configurationClient::execute)
+          .thenApply(EppoConfigurationRequestor::requireBanditBody)
+          .exceptionally(
+              e -> {
+                log.warn(
+                    "Failed to fetch bandit parameters; keeping the loaded models: {}",
+                    describe(e));
+                log.debug("Bandit parameter fetch failure", e);
+                return null;
+              })
           .thenCompose(
-              banditResponse -> {
-                byte[] banditBytes =
-                    banditResponse.isSuccessful() && banditResponse.getBody() != null
-                        ? banditResponse.getBody()
-                        : null;
-                ConfigurationType config =
-                    configurationParser.buildConfig(
-                        flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
-                return configurationStore.saveConfiguration(config);
-              });
+              banditBytes ->
+                  configurationStore.saveConfiguration(
+                      buildConfigWithBanditCheck(
+                          flagConfigResponse,
+                          flagResponse.getVersionId(),
+                          lastConfig,
+                          banditBytes)))
+          .thenRun(() -> fetchedConfigSaved = true);
     }
 
     ConfigurationType config =
-        configurationParser.buildConfig(
+        buildConfigWithBanditCheck(
             flagConfigResponse, flagResponse.getVersionId(), lastConfig, null);
-    return configurationStore.saveConfiguration(config);
+    return configurationStore.saveConfiguration(config).thenRun(() -> fetchedConfigSaved = true);
   }
 }

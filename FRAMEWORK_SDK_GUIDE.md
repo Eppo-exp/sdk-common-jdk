@@ -60,7 +60,7 @@ The framework provides two interfaces you must implement:
 
 ```groovy
 dependencies {
-    implementation 'cloud.eppo:eppo-sdk-framework:0.1.1'
+    implementation 'cloud.eppo:eppo-sdk-framework:0.1.2'
 
     // Add your choice of JSON library
     implementation 'com.google.code.gson:gson:2.10.1'  // Example
@@ -81,7 +81,7 @@ repositories {
     <dependency>
         <groupId>cloud.eppo</groupId>
         <artifactId>eppo-sdk-framework</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
     </dependency>
 
     <!-- Add your JSON library -->
@@ -237,6 +237,7 @@ public class MyConfigurationParser implements ConfigurationParser<YourJsonType> 
 3. **Date Parsing:** Dates are in ISO 8601 format (e.g., "2024-01-15T10:30:00Z")
 4. **Format Enum:** `FlagConfigResponse.Format` has two values: `SERVER` and `CLIENT`
 5. **Error Handling:** Wrap all exceptions in `ConfigurationParseException`
+6. **Bandit Parameters:** `buildConfig` must return a configuration whose `getBanditParameters` returns the parameters it applied, fresh or carried over from `previousConfig`. With bandit support on, if it returns no parameters, or another model version, for a bandit that the flags reference, the requestor saves the configuration without its ETag. While that lasts, polls download the full flags instead of getting a 304.
 
 ### DTO Interfaces Reference
 
