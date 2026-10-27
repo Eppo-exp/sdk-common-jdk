@@ -115,12 +115,20 @@ class JSONStringAssignmentTest {
     doReturn(details)
         .when(client)
         .evaluateAndMaybeLog(
-            eq("json-flag"), eq("subject"), any(Attributes.class), eq(VariationType.JSON));
+            eq("json-flag"),
+            eq("subject"),
+            any(Attributes.class),
+            eq(VariationType.JSON),
+            anyBoolean());
 
     assertEquals(RAW_JSON, assign(client, overload, "json-flag", "fallback", details));
     verify(client, times(1))
         .evaluateAndMaybeLog(
-            eq("json-flag"), eq("subject"), any(Attributes.class), eq(VariationType.JSON));
+            eq("json-flag"),
+            eq("subject"),
+            any(Attributes.class),
+            eq(VariationType.JSON),
+            anyBoolean());
   }
 
   @Test

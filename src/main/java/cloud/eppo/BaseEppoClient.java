@@ -225,12 +225,48 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   }
 
   /**
-   * Core evaluation method that handles validation, evaluation, and logging. This consolidates the
-   * shared logic between all assignment methods. Returns evaluation details with variationValue set
-   * to the result.
+   * Value-only counterpart of {@link #getTypedAssignmentWithDetails}: same evaluation and logging,
+   * without the allocation lists, matched rule or match description.
+   */
+  private <T> T getTypedAssignment(
+      String flagKey,
+      String subjectKey,
+      Attributes subjectAttributes,
+      T defaultValue,
+      VariationType expectedType) {
+    try {
+      EvaluationDetails details =
+          evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, expectedType, false);
+      return details.evaluationSuccessful()
+          ? details.getVariationValue().unwrap(expectedType, configurationParser::parseJsonValue)
+          : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
+  }
+
+  /**
+   * Validates, evaluates and logs an assignment, and returns full evaluation details. The details
+   * and bandit methods call this overload. The plain {@code get*Assignment} methods call neither
+   * this overload nor the {@code get*AssignmentDetails} methods. They call the five-argument
+   * overload; override that one to see every evaluation.
    */
   protected EvaluationDetails evaluateAndMaybeLog(
       String flagKey, String subjectKey, Attributes subjectAttributes, VariationType expectedType) {
+    return evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, expectedType, true);
+  }
+
+  /**
+   * With {@code includeDetails} false, the allocation lists are empty, and a match has no
+   * description, matched rule or matched allocation. Error and no-match results keep their
+   * descriptions.
+   */
+  protected EvaluationDetails evaluateAndMaybeLog(
+      String flagKey,
+      String subjectKey,
+      Attributes subjectAttributes,
+      VariationType expectedType,
+      boolean includeDetails) {
 
     throwIfEmptyOrNull(flagKey, "flagKey must not be empty");
     throwIfEmptyOrNull(subjectKey, "subjectKey must not be empty");
@@ -281,7 +317,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
           null);
     }
 
-    // Evaluate flag with details
+    // Evaluate flag
     FlagEvaluationResult evaluationResult =
         FlagEvaluator.evaluateFlag(
             flag,
@@ -291,7 +327,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
             config.isConfigObfuscated(),
             config.getEnvironmentName(),
             config.getConfigFetchedAt(),
-            config.getConfigPublishedAt());
+            config.getConfigPublishedAt(),
+            includeDetails);
     EvaluationDetails evaluationDetails = evaluationResult.getEvaluationDetails();
 
     EppoValue assignedValue =
@@ -305,8 +342,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
           flag.getVariationType(),
           assignedValue);
 
-      // Update evaluation details with error code but keep the matched allocation and variation
-      // info
+      // Replace the code and description. Keep the variation and any allocation details.
       String variationKey =
           evaluationResult.getVariation() != null ? evaluationResult.getVariation().getKey() : null;
       String errorDescription =
@@ -407,8 +443,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   public boolean getBooleanAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, boolean defaultValue) {
-    return this.getBooleanAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    return getTypedAssignment(
+        flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.BOOLEAN);
   }
 
   public AssignmentDetails<Boolean> getBooleanAssignmentDetails(
@@ -441,8 +477,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   public int getIntegerAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, int defaultValue) {
-    return this.getIntegerAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    return getTypedAssignment(
+        flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.INTEGER);
   }
 
   public AssignmentDetails<Integer> getIntegerAssignmentDetails(
@@ -475,8 +511,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   public Double getDoubleAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, double defaultValue) {
-    return this.getDoubleAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    return getTypedAssignment(
+        flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.NUMERIC);
   }
 
   public AssignmentDetails<Double> getDoubleAssignmentDetails(
@@ -509,8 +545,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   public String getStringAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
-    return this.getStringAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    return getTypedAssignment(
+        flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.STRING);
   }
 
   public AssignmentDetails<String> getStringAssignmentDetails(
@@ -544,8 +580,8 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   public JsonFlagType getJSONAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, JsonFlagType defaultValue) {
-    return this.getJSONAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    return getTypedAssignment(
+        flagKey, subjectKey, subjectAttributes, defaultValue, VariationType.JSON);
   }
 
   public AssignmentDetails<JsonFlagType> getJSONAssignmentDetails(
@@ -579,8 +615,16 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   public String getJSONStringAssignment(
       String flagKey, String subjectKey, Attributes subjectAttributes, String defaultValue) {
-    return this.getJSONStringAssignmentDetails(flagKey, subjectKey, subjectAttributes, defaultValue)
-        .getVariation();
+    try {
+      // Return the raw string; getTypedAssignment would unwrap to JsonFlagType.
+      EvaluationDetails details =
+          evaluateAndMaybeLog(flagKey, subjectKey, subjectAttributes, VariationType.JSON, false);
+      return details.evaluationSuccessful()
+          ? details.getVariationValue().stringValue()
+          : defaultValue;
+    } catch (Exception e) {
+      return throwIfNotGraceful(e, defaultValue);
+    }
   }
 
   public AssignmentDetails<String> getJSONStringAssignmentDetails(
