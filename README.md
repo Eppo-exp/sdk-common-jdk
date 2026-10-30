@@ -13,9 +13,13 @@ or [JVM](https://github.com/Eppo-exp/java-server-sdk) SDKs.
 
 ```groovy
 dependencies {
-  implementation 'cloud.eppo:sdk-common-jvm:4.0.3'
+  implementation 'cloud.eppo:sdk-common-jvm:4.+'
 }
 ```
+
+`4.+` selects the latest available 4.x version. Pin an exact version or use
+[Gradle dependency locking](https://docs.gradle.org/current/userguide/dependency_locking.html)
+for reproducible builds.
 
 ## Upgrading from common 3.x
 
