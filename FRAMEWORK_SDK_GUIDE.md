@@ -60,7 +60,7 @@ The framework provides two interfaces you must implement:
 
 ```groovy
 dependencies {
-    implementation 'cloud.eppo:eppo-sdk-framework:0.1.2'
+    implementation 'cloud.eppo:eppo-sdk-framework:0.+'
 
     // Add your choice of JSON library
     implementation 'com.google.code.gson:gson:2.10.1'  // Example
@@ -74,6 +74,11 @@ repositories {
 }
 ```
 
+`0.+` selects the latest available 0.x version, including newer minor versions.
+The framework is pre-1.0, so those updates may introduce breaking changes. Pin an
+exact version or use [Gradle dependency locking](https://docs.gradle.org/current/userguide/dependency_locking.html)
+for reproducible builds.
+
 ### Maven
 
 ```xml
@@ -81,7 +86,7 @@ repositories {
     <dependency>
         <groupId>cloud.eppo</groupId>
         <artifactId>eppo-sdk-framework</artifactId>
-        <version>0.1.2</version>
+        <version>0.1.3</version>
     </dependency>
 
     <!-- Add your JSON library -->

@@ -9,3 +9,7 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    ignore:
+      # sdk-common-jvm ships OkHttp 4. mockwebserver 5 puts OkHttp 5 on the test classpath.
+      - dependency-name: "com.squareup.okhttp3:mockwebserver"
+        update-types: ["version-update:semver-major"]
