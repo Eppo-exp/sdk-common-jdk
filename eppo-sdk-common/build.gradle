@@ -6,7 +6,7 @@ plugins {
 apply plugin: "com.diffplug.spotless"
 
 group = 'cloud.eppo'
-version = '4.0.3-SNAPSHOT'
+version = '4.0.4-SNAPSHOT'
 
 java {
   sourceCompatibility = JavaVersion.VERSION_1_8
@@ -21,16 +21,21 @@ dependencies {
 
   // HTTP client and JSON parser implementations
   implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.5'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.7'
 
-  implementation 'org.slf4j:slf4j-api:2.0.17'
+  implementation 'org.slf4j:slf4j-api:2.0.20'
 
   // Test dependencies
-  testImplementation platform('org.junit:junit-bom:5.14.1')
+  testImplementation platform('org.junit:junit-bom:5.14.4')
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
   testImplementation 'com.google.truth:truth:1.4.5'
+  constraints {
+    testImplementation('com.google.guava:guava:33.7.2-android') {
+      because 'truth 1.4.5 pulls guava 33.4.3, which has GHSA-xxph-c9ww-hj94'
+    }
+  }
 }
 
 test {
