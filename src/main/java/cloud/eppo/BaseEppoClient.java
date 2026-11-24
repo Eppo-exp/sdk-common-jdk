@@ -832,6 +832,9 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   /**
    * Subscribe to changes to the configuration.
    *
+   * <p>Callbacks must not synchronously wait for a configuration fetch whose completion depends on
+   * this save or its notifications. Start the fetch asynchronously and return.
+   *
    * @param callback A function to be executed when the configuration changes.
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.

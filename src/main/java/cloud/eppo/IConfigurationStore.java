@@ -23,6 +23,11 @@ public interface IConfigurationStore<ConfigurationType extends SerializableEppoC
    *
    * <p>Prefer extending {@link AbstractConfigurationStore} rather than implementing this method
    * directly; it handles locking and subscriber notification automatically.
+   *
+   * <p>Store implementations and subscribers must not synchronously wait for a configuration fetch
+   * that depends on this save completing. For example, remote persistence waits for an initial save
+   * to settle; waiting for that fetch inside this save's notification would create a cycle. Start
+   * asynchronous work and return from the callback instead.
    */
   CompletableFuture<Void> saveConfiguration(@NotNull ConfigurationType configuration);
 
