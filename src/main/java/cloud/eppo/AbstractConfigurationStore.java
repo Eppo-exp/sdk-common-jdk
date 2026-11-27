@@ -14,7 +14,10 @@ import org.slf4j.LoggerFactory;
  * <p>Owns a {@link CallbackManager} and wires subscriber notification automatically inside {@link
  * #saveConfiguration(SerializableEppoConfiguration)}: subclasses implement only {@link
  * #persist(SerializableEppoConfiguration)}, which handles the actual storage. After {@code persist}
- * completes, all registered subscribers are notified with the new configuration value.
+ * completes, all registered subscribers are notified with the new configuration value. Direct
+ * subscribers execute inline as low-level extension hooks and must return promptly; they must not
+ * wait for dependent configuration operations. Public client observers registered through {@link
+ * BaseEppoClient#onConfigurationChange(Consumer)} use a separate delivery boundary.
  *
  * <p>{@link #subscribe(Consumer)} and {@link #unsubscribe(Consumer)} delegate to the managed {@code
  * CallbackManager} and do not need to be overridden.
@@ -47,8 +50,8 @@ public abstract class AbstractConfigurationStore<
   private final CallbackManager<ConfigurationType> callbackManager = new CallbackManager<>();
 
   /**
-   * Persists the configuration and notifies all registered subscribers after the returned future
-   * completes.
+   * Persists the configuration, then notifies all registered store subscribers before completing
+   * the returned future. Public client observer delivery is independent of this completion.
    *
    * <p>Subclasses must not override this method. Implement {@link
    * #persist(SerializableEppoConfiguration)} instead.
@@ -78,7 +81,9 @@ public abstract class AbstractConfigurationStore<
    * #saveConfiguration(SerializableEppoConfiguration)} before subscribers are notified.
    *
    * <p>Implementations must update the stored value so that a subsequent {@link
-   * #getConfiguration()} call returns {@code configuration}.
+   * #getConfiguration()} call returns {@code configuration}. The returned future must eventually
+   * complete after installation, or complete exceptionally on failure. Blocking storage work must
+   * run asynchronously because this method can be invoked on another save's completion thread.
    */
   protected abstract CompletableFuture<Void> persist(@NotNull ConfigurationType configuration);
 

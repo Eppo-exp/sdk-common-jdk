@@ -31,6 +31,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
 
   final ConfigurationRequestor<ConfigurationType> requestor;
   private final IConfigurationStore<ConfigurationType> configurationStore;
+  private final ConfigurationObserverDispatcher<ConfigurationType> configurationObservers;
   private final AssignmentLogger assignmentLogger;
   private final BanditLogger banditLogger;
   private final String sdkName;
@@ -83,6 +84,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
       throw new IllegalArgumentException("ConfigurationStore must not be null");
     }
     this.configurationStore = configurationStore;
+    this.configurationObservers = new ConfigurationObserverDispatcher<>(configurationStore);
 
     EppoConfigurationRequestFactory requestFactory =
         new EppoConfigurationRequestFactory(
@@ -108,6 +110,10 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
     this.sdkVersion = sdkVersion;
   }
 
+  /**
+   * Loads configuration synchronously. A successful update is persisted and installed before this
+   * method returns; public configuration-change observers execute independently.
+   */
   protected void loadConfiguration() {
     try {
       requestor.fetchAndSaveFromRemote();
@@ -168,6 +174,10 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
     fetchConfigurationsTask.scheduleNext();
   }
 
+  /**
+   * Loads configuration asynchronously. A successful update is persisted and installed before the
+   * result completes; public configuration-change observer completion is not awaited.
+   */
   protected CompletableFuture<Void> loadConfigurationAsync() {
     CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -832,15 +842,27 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
   /**
    * Subscribe to changes to the configuration.
    *
-   * <p>Callbacks must not synchronously wait for a configuration fetch whose completion depends on
-   * this save or its notifications. Start the fetch asynchronously and return.
+   * <p>Callbacks execute asynchronously, independently of configuration persistence and load
+   * completion. A callback may start before or after an update returns or its load future
+   * completes. Its argument identifies that change; {@link #getConfiguration()} may already expose
+   * a newer configuration when the callback runs. Callback failures do not fail configuration
+   * updates.
+   *
+   * <p>Each client's callbacks are delivered sequentially in queued order on a separate worker. A
+   * blocked callback can delay that client's later notifications, but does not block configuration
+   * updates. Up to 256 notifications can wait; new notifications are rejected and logged if this
+   * backlog is full. No notification is run on the persistence or loading thread as an overflow
+   * fallback. An idle worker is retired after 30 seconds and recreated when needed.
+   *
+   * <p>Unsubscription cancels queued deliveries that have not been selected for execution; an
+   * already-selected delivery may finish. Callback registration order is unspecified.
    *
    * @param callback A function to be executed when the configuration changes.
    * @return a Runnable which, when called unsubscribes the callback from configuration change
    *     events.
    */
   public Runnable onConfigurationChange(Consumer<ConfigurationType> callback) {
-    return configurationStore.subscribe(callback);
+    return configurationObservers.subscribe(callback);
   }
 
   /**
@@ -850,7 +872,7 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * @return true if the callback was found and removed, false otherwise
    */
   public boolean unsubscribeFromConfigurationChange(Consumer<ConfigurationType> callback) {
-    return configurationStore.unsubscribe(callback);
+    return configurationObservers.unsubscribe(callback);
   }
 
   /**
@@ -860,21 +882,16 @@ public class BaseEppoClient<ConfigurationType extends SerializableEppoConfigurat
    * on the client builder or rely on the automatic fetch-on-init behaviour; this method is not a
    * replacement for those paths.
    *
-   * <p>The call is synchronous: it blocks until the store's {@code saveConfiguration} future
-   * completes. For {@link AbstractConfigurationStore} subclasses this guarantees that all
-   * registered {@link #onConfigurationChange(Consumer)} subscribers have been notified before this
-   * method returns, because notification is chained onto the persist future via {@code thenRun}.
-   * Custom {@link IConfigurationStore} implementations are only required to update the stored value
-   * before notifying; they may dispatch callbacks asynchronously, in which case subscribers may run
-   * on the store's completing thread rather than the caller's thread.
+   * <p>The call is synchronous: it waits for the store's {@code saveConfiguration} future. A
+   * successful update is persisted and installed before return. Public {@link
+   * #onConfigurationChange(Consumer)} callbacks are delivered independently; this method does not
+   * wait for them to complete. A callback may start before or after this method returns. Callback
+   * failures do not turn successful persistence into an update failure.
    *
    * <p><strong>Last-write-wins:</strong> any source — a completing remote fetch, a pending
    * initial-configuration future, or another call to this method — that writes to the store after
    * this call will overwrite the configuration supplied here. Concurrent calls from multiple
    * threads have an unspecified winner; callers must coordinate externally if ordering matters.
-   *
-   * <p><strong>Subscriber re-entrancy:</strong> subscribers must not call {@code setConfiguration}
-   * from within their callback. Re-entrant calls are detected by the store and silently dropped.
    *
    * <p>If {@code config} is {@code null} and graceful mode is enabled the call is silently ignored.
    * If {@code config} is {@code null} and graceful mode is disabled an {@link

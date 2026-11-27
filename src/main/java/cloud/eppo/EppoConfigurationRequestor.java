@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,6 +31,7 @@ class EppoConfigurationRequestor<
 
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final boolean supportBandits;
+  private final ConfigurationResultPublisher resultPublisher;
 
   @NotNull private final ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser;
 
@@ -54,7 +56,24 @@ class EppoConfigurationRequestor<
       @NotNull ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser,
       @NotNull EppoConfigurationClient configurationClient,
       @NotNull EppoConfigurationRequestFactory requestFactory) {
+    this(
+        configurationStore,
+        supportBandits,
+        configurationParser,
+        configurationClient,
+        requestFactory,
+        new ConfigurationResultPublisher());
+  }
+
+  EppoConfigurationRequestor(
+      @NotNull IConfigurationStore<ConfigurationType> configurationStore,
+      boolean supportBandits,
+      @NotNull ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser,
+      @NotNull EppoConfigurationClient configurationClient,
+      @NotNull EppoConfigurationRequestFactory requestFactory,
+      @NotNull ConfigurationResultPublisher resultPublisher) {
     this.configurationStore = configurationStore;
+    this.resultPublisher = resultPublisher;
     this.supportBandits = supportBandits;
     this.configurationParser = configurationParser;
     this.configurationClient = configurationClient;
@@ -70,10 +89,16 @@ class EppoConfigurationRequestor<
   public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<ConfigurationType> configurationFuture) {
     Objects.requireNonNull(configurationFuture, "configurationFuture");
+    ConfigurationResultPublisher.Publication<Boolean> publication;
     CompletableFuture<Boolean> result = new CompletableFuture<>();
     synchronized (saveLock) {
       if (initialConfigurationRegistered) {
         throw new IllegalStateException("Configuration future has already been set");
+      }
+      publication = resultPublisher.reserve();
+      if (publication == null) {
+        log.warn("Initial configuration skipped: configuration result publishers are occupied");
+        return CompletableFuture.completedFuture(false);
       }
       // Reserve registration before attaching a continuation to an already-completed input.
       initialConfigurationRegistered = true;
@@ -89,7 +114,7 @@ class EppoConfigurationRequestor<
                 result.complete(saved);
               }
             });
-    return result.thenApply(saved -> saved);
+    return publication.follow(result, false);
   }
 
   private CompletableFuture<Boolean> saveInitialConfiguration(ConfigurationType config) {
@@ -368,37 +393,51 @@ class EppoConfigurationRequestor<
   @Override
   public CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
     log.debug("Fetching configuration from API server");
-    final ConfigurationType lastConfig = configurationStore.getConfiguration();
-
-    if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
-      log.debug("Remote fetch is active. Cancelling and restarting");
-      remoteFetchFuture.cancel(true);
-      remoteFetchFuture = null;
+    ConfigurationResultPublisher.Publication<Void> publication = resultPublisher.reserve();
+    if (publication == null) {
+      CompletableFuture<Void> rejected = new CompletableFuture<>();
+      rejected.completeExceptionally(
+          new RejectedExecutionException("Configuration result publishers are occupied"));
+      return rejected;
     }
 
-    EppoConfigurationRequest flagRequest =
-        requestFactory.createFlagConfigRequest(etagToSend(lastConfig));
+    CompletableFuture<Void> fetchFuture;
+    try {
+      final ConfigurationType lastConfig = configurationStore.getConfiguration();
+      if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
+        log.debug("Remote fetch is active. Cancelling and restarting");
+        remoteFetchFuture.cancel(true);
+        remoteFetchFuture = null;
+      }
+      EppoConfigurationRequest flagRequest =
+          requestFactory.createFlagConfigRequest(etagToSend(lastConfig));
+      fetchFuture =
+          configurationClient
+              .execute(flagRequest)
+              .thenCompose(
+                  flagResponse -> {
+                    if (flagResponse.isNotModified()) {
+                      log.debug("Flag configuration not modified");
+                      return CompletableFuture.completedFuture(null);
+                    }
 
-    CompletableFuture<Void> fetchFuture =
-        configurationClient
-            .execute(flagRequest)
-            .thenCompose(
-                flagResponse -> {
-                  if (flagResponse.isNotModified()) {
-                    log.debug("Flag configuration not modified");
-                    return CompletableFuture.completedFuture(null);
-                  }
+                    if (!flagResponse.isSuccessful()) {
+                      throw new RuntimeException(
+                          "Failed to fetch flag configuration. Status: "
+                              + flagResponse.getStatusCode());
+                    }
 
-                  if (!flagResponse.isSuccessful()) {
-                    throw new RuntimeException(
-                        "Failed to fetch flag configuration. Status: "
-                            + flagResponse.getStatusCode());
-                  }
-
-                  return buildAndSaveConfiguration(flagResponse, lastConfig);
-                });
+                    return buildAndSaveConfiguration(flagResponse, lastConfig);
+                  });
+    } catch (RuntimeException failure) {
+      fetchFuture = new CompletableFuture<>();
+      fetchFuture.completeExceptionally(failure);
+    } catch (Error failure) {
+      publication.abandon();
+      throw failure;
+    }
     remoteFetchFuture = fetchFuture;
-    return fetchFuture;
+    return publication.follow(fetchFuture, true);
   }
 
   // Common handling for building config and conditionally loading bandit parameters, async.

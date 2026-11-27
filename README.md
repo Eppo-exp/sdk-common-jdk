@@ -43,6 +43,45 @@ five-argument overload instead. It sees plain, details and bandit calls.
 In graceful mode, a plain call now returns the default when the configuration store
 throws or returns null. `*Details` calls still throw in that case.
 
+## Configuration change observers
+
+`BaseEppoClient.onConfigurationChange` delivers customer callbacks independently of
+configuration operations. `setConfiguration` waits for persistence; successful remote
+load completion also includes the SDK's bookkeeping. Neither waits for customer
+callbacks to finish. A callback can start before or after the caller observes
+completion. Existing graceful-mode error handling still applies: a normal return
+in graceful mode alone does not prove that persistence succeeded.
+
+Use the callback argument as the snapshot for that notification. `getConfiguration()`
+can already expose a newer configuration. Each client delivers queued notifications
+serially on a dedicated daemon worker. A blocked callback delays that client's later
+notifications, while persistence and loading continue. Callback exceptions are logged
+and do not reverse a successful update.
+
+The pending notification queue holds 256 tasks. When full, a new notification is
+logged and rejected without blocking the update. Notifications are not coalesced.
+The worker starts lazily and retires after 30 seconds idle. Keep callbacks short;
+hand off long work to an application-owned executor.
+
+The returned unsubscribe handle removes that registration. Passing the original
+consumer to `unsubscribeFromConfigurationChange` removes all registrations of that
+same consumer reference. Removal suppresses queued callbacks that have not started;
+a callback already running may finish.
+
+Public asynchronous load results use a separate pool with four publication slots
+per requestor. A slot remains occupied while a result is pending or an inline
+continuation is running on its publication worker. When all slots are occupied, a new async load fails before
+starting a request with `RejectedExecutionException`; existing graceful-mode
+handling still applies. This also bounds recursive async loads joined from
+continuations. Synchronous loads and persistence do not use these slots. Publication
+workers are daemon threads created lazily and retired after 30 seconds idle.
+
+This changes the earlier before-return observer timing of `setConfiguration`.
+Applications that need to await their own callback work should track that work
+explicitly. Direct `IConfigurationStore.subscribe` hooks retain their low-level,
+nonblocking extension contract and may execute inline; they must not wait for
+configuration operations that depend on the current save.
+
 ## Releasing a new version
 
 Publishing a stable GitHub release starts `publish-release.yml`. Every new release publishes a new version of

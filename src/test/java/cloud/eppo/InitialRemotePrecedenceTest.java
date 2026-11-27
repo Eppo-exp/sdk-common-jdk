@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -373,7 +374,10 @@ class InitialRemotePrecedenceTest {
     assertFalse(oldFetch.isDone());
     assertTrue(store.submitted.isEmpty());
     CompletableFuture<Void> newFetch = fixture.requestor.fetchAndSaveFromRemoteAsync();
-    assertTrue(oldFetch.isCancelled(), "Restarting cancels a fetch still awaiting its response");
+    assertThrows(
+        CancellationException.class,
+        () -> await(oldFetch),
+        "Restarting cancels a fetch still awaiting its response");
     assertTrue(store.submitted.isEmpty());
 
     newResponse.complete(EppoConfigurationResponse.success(200, "new", new byte[] {1}));
@@ -505,7 +509,8 @@ class InitialRemotePrecedenceTest {
     CompletableFuture<Void> olderWrite = store.holdNextWrite();
     CompletableFuture<Void> older = requestor.fetchAndSaveFromRemoteAsync();
     CompletableFuture<Void> newer = requestor.fetchAndSaveFromRemoteAsync();
-    assertTrue(older.isCancelled());
+    assertThrows(CancellationException.class, () -> await(older));
+    assertEquals(1, store.submitted.size(), "Remote saves wait for the initial save to settle");
     initialWrite.complete(null);
     assertTrue(await(accepted));
     assertEquals(Arrays.asList(cached, first, second), store.submitted);
