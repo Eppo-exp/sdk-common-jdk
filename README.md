@@ -86,8 +86,8 @@ configuration operations that depend on the current save.
 
 Publishing a stable GitHub release starts `publish-release.yml`. Every new release publishes a new version of
 `sdk-common-jvm` and publishes `eppo-sdk-framework` first when its selected version is new.
-The GitHub tag is the common version (`v4.0.3`); framework is independently versioned
-(`0.1.3`). Maintainers choose both versions in Gradle; automation does not infer semver.
+The GitHub tag is the common version (`v4.0.4`); framework is independently versioned
+(`0.1.4`). Maintainers choose both versions in Gradle; automation does not infer semver.
 
 | GitHub tag | Common | Framework | Packages published |
 |---|---|---|---|
@@ -95,7 +95,8 @@ The GitHub tag is the common version (`v4.0.3`); framework is independently vers
 | `v4.0.1` | `4.0.1` | `0.1.1` | Both, for a framework patch |
 | `v4.0.2` | `4.0.2` | `0.1.2` | Both, for a framework patch |
 | `v4.0.3` | `4.0.3` | `0.1.3` | Both, for a framework patch |
-| `v4.0.4` | `4.0.4` | `0.1.3` | Common only (example) |
+| `v4.0.4` | `4.0.4` | `0.1.4` | Both, for a framework patch |
+| `v4.0.5` | `4.0.5` | `0.1.4` | Common only (example) |
 | `v4.1.0` | `4.1.0` | `0.2.0` | Both (example) |
 
 ### Prepare and publish

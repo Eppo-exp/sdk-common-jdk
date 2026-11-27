@@ -86,7 +86,7 @@ for reproducible builds.
     <dependency>
         <groupId>cloud.eppo</groupId>
         <artifactId>eppo-sdk-framework</artifactId>
-        <version>0.1.3</version>
+        <version>0.1.4</version>
     </dependency>
 
     <!-- Add your JSON library -->
