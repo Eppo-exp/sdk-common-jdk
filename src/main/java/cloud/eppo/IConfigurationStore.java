@@ -10,7 +10,9 @@ import org.jetbrains.annotations.NotNull;
  * persisting configuration data across sessions.
  *
  * <p>Implementations are responsible for storing configuration and notifying subscribers when the
- * configuration changes.
+ * configuration changes. Direct store subscribers are low-level extension hooks; customer observers
+ * registered through {@link BaseEppoClient#onConfigurationChange(Consumer)} are delivered
+ * independently by the client.
  */
 public interface IConfigurationStore<ConfigurationType extends SerializableEppoConfiguration> {
   @NotNull ConfigurationType getConfiguration();
@@ -23,11 +25,27 @@ public interface IConfigurationStore<ConfigurationType extends SerializableEppoC
    *
    * <p>Prefer extending {@link AbstractConfigurationStore} rather than implementing this method
    * directly; it handles locking and subscriber notification automatically.
+   *
+   * <p>The returned future must eventually complete, normally after persistence and notification or
+   * exceptionally on failure. The requestor waits for an initial save to settle before admitting
+   * deferred remote saves. Complete the future only after installing the configuration, and perform
+   * blocking storage work asynchronously: a save can be invoked on another save's completion
+   * thread.
+   *
+   * <p>Direct store subscribers run on the store's notification thread and must return promptly.
+   * Store implementations and subscribers must not synchronously wait for a configuration fetch
+   * that depends on this save completing. For example, remote persistence waits for an initial save
+   * to settle; waiting for that fetch inside this save's notification would create a cycle. Start
+   * asynchronous work and return from the callback instead.
    */
   CompletableFuture<Void> saveConfiguration(@NotNull ConfigurationType configuration);
 
   /**
-   * Subscribe to configuration change notifications.
+   * Subscribe to low-level configuration change notifications.
+   *
+   * <p>This extension hook does not provide the independent customer-observer delivery of {@link
+   * BaseEppoClient#onConfigurationChange(Consumer)}. Callbacks must be nonblocking and must not
+   * wait for dependent configuration operations.
    *
    * @param callback invoked with the new configuration each time {@link
    *     #saveConfiguration(ConfigurationType)} succeeds
@@ -38,7 +56,7 @@ public interface IConfigurationStore<ConfigurationType extends SerializableEppoC
   /**
    * Unsubscribes a previously registered callback using identity comparison ({@code ==}).
    *
-   * <p>Pass the exact callback reference returned to {@link #subscribe}; implementations compare by
+   * <p>Pass the exact callback reference supplied to {@link #subscribe}; implementations compare by
    * identity, not {@code equals}.
    *
    * @param callback the callback to remove

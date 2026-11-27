@@ -6,8 +6,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import cloud.eppo.api.Configuration;
 import cloud.eppo.logging.AssignmentLogger;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,27 +52,36 @@ public class SetConfigurationTest {
   }
 
   @Test
-  void testSetConfigurationFiresSubscribers() {
-    List<Configuration> received = new ArrayList<>();
+  void testSetConfigurationFiresSubscribers() throws Exception {
+    BlockingQueue<Configuration> received = new LinkedBlockingQueue<>();
     client.onConfigurationChange(received::add);
 
     Configuration config = Configuration.emptyConfig();
     client.setConfiguration(config);
 
-    assertEquals(1, received.size());
-    assertSame(config, received.get(0));
+    assertSame(config, received.poll(3, TimeUnit.SECONDS));
   }
 
   @Test
-  void testSetConfigurationFiresMultipleSubscribers() {
+  void testSetConfigurationFiresMultipleSubscribers() throws Exception {
+    CountDownLatch notified = new CountDownLatch(2);
     AtomicInteger count1 = new AtomicInteger(0);
     AtomicInteger count2 = new AtomicInteger(0);
 
-    client.onConfigurationChange(c -> count1.incrementAndGet());
-    client.onConfigurationChange(c -> count2.incrementAndGet());
+    client.onConfigurationChange(
+        c -> {
+          count1.incrementAndGet();
+          notified.countDown();
+        });
+    client.onConfigurationChange(
+        c -> {
+          count2.incrementAndGet();
+          notified.countDown();
+        });
 
     client.setConfiguration(Configuration.emptyConfig());
 
+    assertTrue(notified.await(3, TimeUnit.SECONDS));
     assertEquals(1, count1.get());
     assertEquals(1, count2.get());
   }
@@ -101,27 +113,37 @@ public class SetConfigurationTest {
   }
 
   @Test
-  void testSetConfigurationIsReadableBeforeReturn() {
-    // Verify the store is updated synchronously (readable immediately)
+  void testSetConfigurationIsReadableBeforeReturn() throws Exception {
     Configuration config = Configuration.emptyConfig();
-    final Configuration[] captured = {null};
-    client.onConfigurationChange(c -> captured[0] = client.getConfiguration());
+    CompletableFuture<Configuration> captured = new CompletableFuture<>();
+    client.onConfigurationChange(c -> captured.complete(client.getConfiguration()));
 
     client.setConfiguration(config);
 
-    assertSame(config, captured[0]);
+    assertSame(config, client.getConfiguration());
+    assertSame(config, captured.get(3, TimeUnit.SECONDS));
   }
 
   @Test
-  void testSetConfigurationDoesNotFireUnsubscribedSubscribers() {
+  void testSetConfigurationDoesNotFireUnsubscribedSubscribers() throws Exception {
     AtomicInteger count = new AtomicInteger(0);
-    Runnable unsubscribe = client.onConfigurationChange(c -> count.incrementAndGet());
+    CompletableFuture<Void> firstNotification = new CompletableFuture<>();
+    Runnable unsubscribe =
+        client.onConfigurationChange(
+            c -> {
+              count.incrementAndGet();
+              firstNotification.complete(null);
+            });
 
     client.setConfiguration(Configuration.emptyConfig());
+    firstNotification.get(3, TimeUnit.SECONDS);
     assertEquals(1, count.get());
 
     unsubscribe.run();
+    CompletableFuture<Void> secondNotification = new CompletableFuture<>();
+    client.onConfigurationChange(c -> secondNotification.complete(null));
     client.setConfiguration(Configuration.emptyConfig());
-    assertEquals(1, count.get()); // no second call
+    secondNotification.get(3, TimeUnit.SECONDS);
+    assertEquals(1, count.get());
   }
 }

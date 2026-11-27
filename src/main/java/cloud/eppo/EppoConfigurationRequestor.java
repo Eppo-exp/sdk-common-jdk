@@ -10,10 +10,14 @@ import cloud.eppo.http.EppoConfigurationRequestFactory;
 import cloud.eppo.http.EppoConfigurationResponse;
 import cloud.eppo.parser.ConfigurationParseException;
 import cloud.eppo.parser.ConfigurationParser;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,6 +31,7 @@ class EppoConfigurationRequestor<
 
   private final IConfigurationStore<ConfigurationType> configurationStore;
   private final boolean supportBandits;
+  private final ConfigurationResultPublisher resultPublisher;
 
   @NotNull private final ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser;
 
@@ -34,8 +39,15 @@ class EppoConfigurationRequestor<
   @NotNull private final EppoConfigurationRequestFactory requestFactory;
 
   private volatile CompletableFuture<Void> remoteFetchFuture = null;
-  private volatile CompletableFuture<Boolean> configurationFuture = null;
-  private volatile boolean initialConfigSet = false;
+  private final Object saveLock = new Object();
+  // Guarded by saveLock. These reservations are private: cancelling a caller's future must not
+  // release ownership of a configuration already admitted for persistence.
+  private boolean initialConfigurationRegistered = false;
+  private int pendingRemoteSaves = 0;
+  private CompletableFuture<Void> remoteSavesDrained = CompletableFuture.completedFuture(null);
+  private boolean initialSavePending = false;
+  private boolean submittingDeferredRemoteSaves = false;
+  private final Deque<Runnable> deferredRemoteSaves = new ArrayDeque<>();
   private volatile boolean fetchedConfigSaved = false;
 
   public EppoConfigurationRequestor(
@@ -44,7 +56,24 @@ class EppoConfigurationRequestor<
       @NotNull ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser,
       @NotNull EppoConfigurationClient configurationClient,
       @NotNull EppoConfigurationRequestFactory requestFactory) {
+    this(
+        configurationStore,
+        supportBandits,
+        configurationParser,
+        configurationClient,
+        requestFactory,
+        new ConfigurationResultPublisher());
+  }
+
+  EppoConfigurationRequestor(
+      @NotNull IConfigurationStore<ConfigurationType> configurationStore,
+      boolean supportBandits,
+      @NotNull ConfigurationParser<ConfigurationType, JsonFlagType> configurationParser,
+      @NotNull EppoConfigurationClient configurationClient,
+      @NotNull EppoConfigurationRequestFactory requestFactory,
+      @NotNull ConfigurationResultPublisher resultPublisher) {
     this.configurationStore = configurationStore;
+    this.resultPublisher = resultPublisher;
     this.supportBandits = supportBandits;
     this.configurationParser = configurationParser;
     this.configurationClient = configurationClient;
@@ -59,40 +88,142 @@ class EppoConfigurationRequestor<
   @Override
   public CompletableFuture<Boolean> setInitialConfiguration(
       @NotNull CompletableFuture<ConfigurationType> configurationFuture) {
-    if (initialConfigSet || this.configurationFuture != null) {
-      throw new IllegalStateException("Configuration future has already been set");
+    Objects.requireNonNull(configurationFuture, "configurationFuture");
+    ConfigurationResultPublisher.Publication<Boolean> publication;
+    CompletableFuture<Boolean> result = new CompletableFuture<>();
+    synchronized (saveLock) {
+      if (initialConfigurationRegistered) {
+        throw new IllegalStateException("Configuration future has already been set");
+      }
+      publication = resultPublisher.reserve();
+      if (publication == null) {
+        log.warn("Initial configuration skipped: configuration result publishers are occupied");
+        return CompletableFuture.completedFuture(false);
+      }
+      // Reserve registration before attaching a continuation to an already-completed input.
+      initialConfigurationRegistered = true;
     }
-    this.configurationFuture =
-        configurationFuture
-            .thenCompose(
-                (config) -> {
-                  synchronized (configurationStore) {
-                    if (config == null || config.isEmpty()) {
-                      log.debug("Initial configuration future returned empty/null");
-                      return CompletableFuture.completedFuture(false);
-                    } else if (remoteFetchFuture != null
-                        && remoteFetchFuture.isDone()
-                        && !remoteFetchFuture.isCompletedExceptionally()) {
-                      // Don't clobber a successful fetch.
-                      log.debug("Fetch has completed; ignoring initial config load.");
-                      return CompletableFuture.completedFuture(false);
-                    } else {
-                      return configurationStore
-                          .saveConfiguration(config)
-                          .thenApply(
-                              (s) -> {
-                                initialConfigSet = true;
-                                return true;
-                              });
-                    }
-                  }
-                })
-            .exceptionally(
-                (e) -> {
-                  log.error("Error setting initial config", e);
-                  return false;
-                });
-    return this.configurationFuture;
+    configurationFuture
+        .thenCompose(this::saveInitialConfiguration)
+        .whenComplete(
+            (saved, failure) -> {
+              if (failure != null) {
+                log.error("Error setting initial config", failure);
+                result.complete(false);
+              } else {
+                result.complete(saved);
+              }
+            });
+    return publication.follow(result, false);
+  }
+
+  private CompletableFuture<Boolean> saveInitialConfiguration(ConfigurationType config) {
+    if (config == null || config.isEmpty()) {
+      return CompletableFuture.completedFuture(false);
+    }
+    CompletableFuture<Void> pending;
+    synchronized (saveLock) {
+      if (fetchedConfigSaved) {
+        return CompletableFuture.completedFuture(false);
+      }
+      pending = pendingRemoteSaves > 0 ? remoteSavesDrained : null;
+      if (pending == null) {
+        initialSavePending = true;
+      }
+    }
+    if (pending != null) {
+      // Another remote save may have started while this batch drained. Recheck before admission.
+      return pending.thenCompose(ignored -> saveInitialConfiguration(config));
+    }
+
+    CompletableFuture<Boolean> result = new CompletableFuture<>();
+    try {
+      configurationStore
+          .saveConfiguration(config)
+          .whenComplete(
+              (ignored, failure) -> {
+                finishInitialSave();
+                if (failure == null) {
+                  result.complete(true);
+                } else {
+                  result.completeExceptionally(failure);
+                }
+              });
+    } catch (Throwable failure) {
+      finishInitialSave();
+      result.completeExceptionally(failure);
+    }
+    return result;
+  }
+
+  private void finishInitialSave() {
+    synchronized (saveLock) {
+      initialSavePending = false;
+      submittingDeferredRemoteSaves = true;
+    }
+    while (true) {
+      Runnable next;
+      synchronized (saveLock) {
+        next = deferredRemoteSaves.pollFirst();
+        if (next == null) {
+          submittingDeferredRemoteSaves = false;
+          return;
+        }
+      }
+      // Preserve admission order without waiting for earlier remote persistence to finish.
+      next.run();
+    }
+  }
+
+  private CompletableFuture<Void> saveRemoteConfiguration(ConfigurationType config) {
+    CompletableFuture<Void> result = new CompletableFuture<>();
+    boolean deferred;
+    synchronized (saveLock) {
+      if (pendingRemoteSaves++ == 0) {
+        remoteSavesDrained = new CompletableFuture<>();
+      }
+      deferred = initialSavePending || submittingDeferredRemoteSaves;
+      if (deferred) {
+        // One drain preserves FIFO order; independent future callbacks may run in reverse order.
+        deferredRemoteSaves.addLast(() -> persistRemoteConfiguration(config, result));
+      }
+    }
+    if (!deferred) {
+      persistRemoteConfiguration(config, result);
+    }
+    return result.thenApply(ignored -> null);
+  }
+
+  private void persistRemoteConfiguration(
+      ConfigurationType config, CompletableFuture<Void> result) {
+    try {
+      configurationStore
+          .saveConfiguration(config)
+          .whenComplete((ignored, failure) -> finishRemoteSave(result, failure));
+    } catch (Throwable failure) {
+      finishRemoteSave(result, failure);
+    }
+  }
+
+  private void finishRemoteSave(CompletableFuture<Void> result, @Nullable Throwable failure) {
+    CompletableFuture<Void> drained = null;
+    synchronized (saveLock) {
+      if (failure == null) {
+        fetchedConfigSaved = true;
+      }
+      if (--pendingRemoteSaves == 0) {
+        drained = remoteSavesDrained;
+      }
+    }
+    // Completing a future may call the store or subscribers again. Never do so under saveLock.
+    if (drained != null) {
+      drained.complete(null);
+    }
+    if (failure == null) {
+      result.complete(null);
+    } else {
+      result.completeExceptionally(failure);
+    }
   }
 
   /** Loads configuration synchronously from the API server. */
@@ -144,8 +275,7 @@ class EppoConfigurationRequestor<
     ConfigurationType config =
         buildConfigWithBanditCheck(
             flagConfigResponse, flagResponse.getVersionId(), lastConfig, banditBytes);
-    configurationStore.saveConfiguration(config).join();
-    fetchedConfigSaved = true;
+    saveRemoteConfiguration(config).join();
   }
 
   // Until this requestor saves a fetched configuration, it ignores the saved ETag. A configuration
@@ -263,23 +393,29 @@ class EppoConfigurationRequestor<
   @Override
   public CompletableFuture<Void> fetchAndSaveFromRemoteAsync() {
     log.debug("Fetching configuration from API server");
-    final ConfigurationType lastConfig = configurationStore.getConfiguration();
-
-    if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
-      log.debug("Remote fetch is active. Cancelling and restarting");
-      remoteFetchFuture.cancel(true);
-      remoteFetchFuture = null;
+    ConfigurationResultPublisher.Publication<Void> publication = resultPublisher.reserve();
+    if (publication == null) {
+      CompletableFuture<Void> rejected = new CompletableFuture<>();
+      rejected.completeExceptionally(
+          new RejectedExecutionException("Configuration result publishers are occupied"));
+      return rejected;
     }
 
-    EppoConfigurationRequest flagRequest =
-        requestFactory.createFlagConfigRequest(etagToSend(lastConfig));
-
-    remoteFetchFuture =
-        configurationClient
-            .execute(flagRequest)
-            .thenCompose(
-                flagResponse -> {
-                  synchronized (this) {
+    CompletableFuture<Void> fetchFuture;
+    try {
+      final ConfigurationType lastConfig = configurationStore.getConfiguration();
+      if (remoteFetchFuture != null && !remoteFetchFuture.isDone()) {
+        log.debug("Remote fetch is active. Cancelling and restarting");
+        remoteFetchFuture.cancel(true);
+        remoteFetchFuture = null;
+      }
+      EppoConfigurationRequest flagRequest =
+          requestFactory.createFlagConfigRequest(etagToSend(lastConfig));
+      fetchFuture =
+          configurationClient
+              .execute(flagRequest)
+              .thenCompose(
+                  flagResponse -> {
                     if (flagResponse.isNotModified()) {
                       log.debug("Flag configuration not modified");
                       return CompletableFuture.completedFuture(null);
@@ -292,10 +428,16 @@ class EppoConfigurationRequestor<
                     }
 
                     return buildAndSaveConfiguration(flagResponse, lastConfig);
-                  }
-                });
-
-    return remoteFetchFuture;
+                  });
+    } catch (RuntimeException failure) {
+      fetchFuture = new CompletableFuture<>();
+      fetchFuture.completeExceptionally(failure);
+    } catch (Error failure) {
+      publication.abandon();
+      throw failure;
+    }
+    remoteFetchFuture = fetchFuture;
+    return publication.follow(fetchFuture, true);
   }
 
   // Common handling for building config and conditionally loading bandit parameters, async.
@@ -330,18 +472,17 @@ class EppoConfigurationRequestor<
               })
           .thenCompose(
               banditBytes ->
-                  configurationStore.saveConfiguration(
+                  saveRemoteConfiguration(
                       buildConfigWithBanditCheck(
                           flagConfigResponse,
                           flagResponse.getVersionId(),
                           lastConfig,
-                          banditBytes)))
-          .thenRun(() -> fetchedConfigSaved = true);
+                          banditBytes)));
     }
 
     ConfigurationType config =
         buildConfigWithBanditCheck(
             flagConfigResponse, flagResponse.getVersionId(), lastConfig, null);
-    return configurationStore.saveConfiguration(config).thenRun(() -> fetchedConfigSaved = true);
+    return saveRemoteConfiguration(config);
   }
 }
